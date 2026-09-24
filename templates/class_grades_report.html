@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <!-- En-tête -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800 font-weight-bold">
+                <i class="fas fa-file-invoice text-primary mr-2"></i>Bilan des Notes d'Assiduité : {{ classe.name }}
+            </h1>
+            <p class="text-muted small mb-0">
+                Calcul automatique basé sur les absences non justifiées (Sanction : -{{ absence_penalty }} pt / absence non justifiée)
+            </p>
+        </div>
+        <div class="mt-3 mt-sm-0">
+            <a href="{{ url_for('absence.export_class_grades_excel', class_id=classe.id) }}" class="btn btn-success btn-sm shadow-sm mr-2 font-weight-bold">
+                <i class="fas fa-file-excel mr-1"></i> Exporter en Excel (.xlsx)
+            </a>
+            <button onclick="window.print()" class="btn btn-primary btn-sm shadow-sm mr-2 font-weight-bold">
+                <i class="fas fa-print fa-sm mr-1"></i> Imprimer le Bilan
+            </button>
+            <a href="{{ url_for('absence.view_class', class_id=classe.id) }}" class="btn btn-secondary btn-sm shadow-sm font-weight-bold">
+                <i class="fas fa-arrow-left fa-sm mr-1"></i> Retour à la Classe
+            </a>
+        </div>
+    </div>
+
+    <!-- 3 Cartes Résumé -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3 mb-md-0">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body py-2">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Moyenne Assiduité Classe</div>
+                    <div class="h4 mb-0 font-weight-bold {% if class_avg >= 16 %}text-success{% elif class_avg >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ class_avg }} / 20
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3 mb-md-0">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body py-2">
+                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Non Justifiées (NJ)</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ total_class_unjustified }} séance(s)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body py-2">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Justifiées (J)</div>
+                    <div class="h4 mb-0 font-weight-bold text-gray-800">{{ total_class_justified }} séance(s)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau Récapitulatif des Notes -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-gray-900">
+                <i class="fas fa-list-ol text-primary mr-2"></i>Grille des Notes d'Assiduité ({{ students_data|length }} élèves)
+            </h6>
+            <small class="text-muted">Formule : <code>max(0, 20 - (NJ × {{ absence_penalty }}))</code></small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover mb-0" id="reportTable">
+                    <thead class="thead-light">
+                        <tr>
+                            <th width="40" class="text-center">#</th>
+                            <th width="60" class="text-center">Photo</th>
+                            <th>CNE</th>
+                            <th>Nom complet</th>
+                            <th class="text-center" width="130">Total Absences</th>
+                            <th class="text-center text-danger" width="140">Non Justifiées</th>
+                            <th class="text-center text-success" width="120">Justifiées</th>
+                            <th class="text-center bg-light" width="160">Note d'Assiduité / 20</th>
+                            <th width="80" class="text-center d-print-none">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in students_data %}
+                        <tr>
+                            <td class="text-center align-middle">{{ loop.index }}</td>
+                            <td class="text-center align-middle">
+                                <img src="{{ url_for('main.uploaded_file', filename=item.student.photo_path if item.student.photo_path else 'photos/Default.jpg') }}"
+                                    alt="Photo" class="rounded-circle border" style="width: 34px; height: 34px; object-fit: cover;">
+                            </td>
+                            <td class="align-middle font-weight-bold">{{ item.student.cne }}</td>
+                            <td class="align-middle font-weight-bold">
+                                {{ item.student.last_name }} {{ item.student.first_name }}
+                                {% if item.unjustified_abs >= 3 %}
+                                <span class="badge badge-danger ml-1" title="Risque note 0">!</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center align-middle">
+                                <span class="badge badge-dark px-2 py-1">{{ item.total_abs }}</span>
+                            </td>
+                            <td class="text-center align-middle font-weight-bold text-danger">
+                                {{ item.unjustified_abs }}
+                            </td>
+                            <td class="text-center align-middle font-weight-bold text-success">
+                                {{ item.justified_abs }}
+                            </td>
+                            <td class="text-center align-middle bg-light">
+                                <span class="badge badge-pill {% if item.score >= 16 %}badge-success{% elif item.score >= 10 %}badge-warning{% else %}badge-danger{% endif %} px-3 py-1 font-weight-bold" style="font-size: 0.95rem;">
+                                    {{ item.score }} / 20
+                                </span>
+                            </td>
+                            <td class="text-center align-middle d-print-none">
+                                <a href="{{ url_for('absence.student_detail', student_id=item.student.id) }}"
+                                    class="btn btn-info btn-circle btn-sm" title="Détail">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+@media print {
+    #accordionSidebar, .topbar, footer, .d-print-none {
+        display: none !important;
+    }
+    #content-wrapper {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+</style>
+{% endblock %}

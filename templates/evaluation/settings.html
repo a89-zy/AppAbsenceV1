@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+
+{% block title %}Coefficients & Formules de Moyenne - Module Évaluation{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-3">
+    <!-- En-tête du Module -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 pb-2 border-bottom">
+        <div>
+            <div class="d-flex align-items-center mb-1">
+                <span class="badge badge-warning text-dark font-weight-bold mr-2 px-2 py-1">
+                    <i class="fas fa-sliders-h mr-1"></i>Paramètres & Formules
+                </span>
+                <span class="text-muted small">Discipline Informatique &bull; Coefficients MEN & Spécifiques</span>
+            </div>
+            <h2 class="h3 font-weight-bold text-dark mb-0">
+                Pondération des Notes & Formules de Moyenne
+            </h2>
+            <p class="text-muted small mb-0 mt-1">
+                Personnalisez les coefficients des <strong>4 Contrôles Continus</strong> et de la <strong>Note d'Activité / TP (Formule B)</strong>. S'applique automatiquement au Carnet des 5 Notes, aux Bulletins A4 et aux Statistiques.
+            </p>
+        </div>
+
+        <!-- Liens rapides du module -->
+        <div class="mt-3 mt-md-0 d-flex align-items-center flex-wrap" style="gap: 10px;">
+            <a href="{{ url_for('evaluation.index') }}" 
+               class="btn btn-sm btn-outline-secondary bg-white text-dark font-weight-bold shadow-xs text-nowrap px-3 py-2 action-ribbon-btn">
+                <i class="fas fa-arrow-left mr-1"></i> Tableau de Bord
+            </a>
+        </div>
+    </div>
+
+    <!-- Ruban d'Actions Rapides -->
+    <div class="card shadow-sm border-0 mb-4 bg-white" style="border-radius: 12px;">
+        <div class="card-body py-2 px-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between">
+                <div class="d-flex align-items-center mr-3 my-1">
+                    <span class="badge badge-warning text-dark px-2 py-1 mr-2 font-weight-bold">
+                        <i class="fas fa-bolt mr-1"></i> Actions Rapides
+                    </span>
+                    <span class="small text-muted font-weight-bold d-none d-lg-inline">Navigation globale Évaluation :</span>
+                </div>
+                <div class="d-flex flex-wrap align-items-center my-1" style="gap: 8px;">
+                    <a href="{{ url_for('evaluation.grades_grid', class_id=selected_class.id if selected_class else None) }}" 
+                       class="btn btn-sm btn-outline-success font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-table mr-1"></i> Carnet de Notes
+                    </a>
+                    <a href="{{ url_for('evaluation.quick_entry', class_id=selected_class.id if selected_class else None, cc_number=1) }}" 
+                       class="btn btn-sm btn-outline-warning text-dark font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-bolt mr-1"></i> Saisie Rapide CC
+                    </a>
+                    <a href="{{ url_for('evaluation.makeup_manager', class_id=selected_class.id if selected_class else None) }}" 
+                       class="btn btn-sm btn-outline-warning text-dark font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-user-clock mr-1"></i> Rattrapages
+                    </a>
+                    <a href="{{ url_for('evaluation.analytics', class_id=selected_class.id if selected_class else None) }}" 
+                       class="btn btn-sm btn-outline-danger font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-chart-pie mr-1"></i> Analyses & Stats
+                    </a>
+                    <a href="{{ url_for('evaluation.massar_hub', class_id=selected_class.id if selected_class else None) }}" 
+                       class="btn btn-sm btn-outline-info font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-file-excel mr-1"></i> Passerelle MASSAR
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barre de Sélection de la Portée (Globale vs Par Classe) -->
+    <div class="card shadow-sm border-0 mb-4 bg-light">
+        <div class="card-body p-3">
+            <div class="row align-items-center">
+                <div class="col-md-5">
+                    <label class="font-weight-bold small text-muted mb-1 d-block">
+                        <i class="fas fa-school mr-1 text-primary"></i>Portée de la Configuration :
+                    </label>
+                    <select class="custom-select font-weight-bold" onchange="changeScope(this.value)">
+                        <option value="0" {% if not selected_class %}selected{% endif %}>
+                            🌐 Configuration Générale (Par défaut pour toutes les classes)
+                        </option>
+                        <optgroup label="Classes Spécifiques">
+                            {% for c in classes %}
+                            <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>
+                                🏷️ Classe : {{ c.name }}
+                            </option>
+                            {% endfor %}
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="col-md-7 mt-2 mt-md-0">
+                    {% if selected_class %}
+                        {% if is_class_specific %}
+                        <div class="alert alert-warning py-2 px-3 mb-0 small d-flex align-items-center border-warning">
+                            <i class="fas fa-exclamation-triangle text-warning fa-lg mr-2"></i>
+                            <div>
+                                <strong>Configuration spécifique active pour la classe {{ selected_class.name }}.</strong>
+                                <span class="text-muted d-block">Cette formule remplace la formule générale pour cette classe.</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info py-2 px-3 mb-0 small d-flex align-items-center border-info">
+                            <i class="fas fa-info-circle text-info fa-lg mr-2"></i>
+                            <div>
+                                <strong>Héritage actif :</strong> La classe {{ selected_class.name }} utilise actuellement les coefficients généraux.
+                                <span class="text-muted d-block">Vous pouvez définir une personnalisation ci-dessous pour l'isoler.</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                    <div class="alert alert-primary py-2 px-3 mb-0 small d-flex align-items-center border-primary">
+                        <i class="fas fa-globe text-primary fa-lg mr-2"></i>
+                        <div>
+                            <strong>Configuration Générale Commune :</strong>
+                            <span class="text-muted d-block">Ces réglages s'appliquent à toutes les classes qui n'ont pas de formule spécifique.</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Préréglages Rapides en 1-Clic -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3 bg-white">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                <div class="mb-2 mb-md-0">
+                    <span class="font-weight-bold text-dark mr-2">
+                        <i class="fas fa-magic text-warning mr-1"></i>Préréglages Pédagogiques Recommandés :
+                    </span>
+                    <span class="text-muted small">Cliquez sur un profil pour remplir automatiquement les coefficients :</span>
+                </div>
+                <div class="d-flex flex-wrap" style="gap: 8px;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold text-nowrap action-ribbon-btn" onclick="applyPreset(1, 1, 1, 1, 1)">
+                        <i class="fas fa-balance-scale mr-1"></i>1. Standard MEN (Égalitaire 20%)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold text-nowrap action-ribbon-btn" onclick="applyPreset(1, 1, 1, 1, 2)">
+                        <i class="fas fa-laptop-code mr-1"></i>2. Renforcement TP Info (Coeff 2 Activité)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-success font-weight-bold text-nowrap action-ribbon-btn" onclick="applyPreset(1, 1, 1.5, 1.5, 1)">
+                        <i class="fas fa-chart-line mr-1"></i>3. Progressif (CC3 & CC4 x1.5)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire des Coefficients -->
+    <form method="POST" action="{{ url_for('evaluation.save_settings') }}" id="settingsForm">
+        <input type="hidden" name="class_id" value="{{ class_id }}">
+
+        <div class="row">
+            <!-- 5 Cartes de Coefficients -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                        <h5 class="font-weight-bold text-dark mb-0">
+                            <i class="fas fa-weight-hanging text-primary mr-2"></i>Pondération des 5 Notes Officielles
+                        </h5>
+                        <span class="badge badge-light border text-muted">Barème / 20 pour chaque épreuve</span>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <!-- CC1 -->
+                            <div class="col-md-4 mb-3">
+                                <div class="card border rounded shadow-sm text-center p-3 h-100 bg-light">
+                                    <div class="text-primary font-weight-bold mb-1">
+                                        <i class="fas fa-file-alt mr-1"></i>CC 1
+                                    </div>
+                                    <div class="small text-muted mb-2">1er Contrôle Écrit</div>
+                                    <div class="input-group input-group-lg justify-content-center">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text font-weight-bold bg-white border-right-0">x</span>
+                                        </div>
+                                        <input type="number" step="0.25" min="0" max="10" name="cc1" id="weight_cc1" 
+                                               value="{{ weights.cc1 }}" class="form-control text-center font-weight-bold border-left-0" 
+                                               style="max-width: 80px;" oninput="updateLiveSimulator()">
+                                    </div>
+                                    <div class="small text-muted mt-2" id="pct_cc1">- %</div>
+                                </div>
+                            </div>
+
+                            <!-- CC2 -->
+                            <div class="col-md-4 mb-3">
+                                <div class="card border rounded shadow-sm text-center p-3 h-100 bg-light">
+                                    <div class="text-primary font-weight-bold mb-1">
+                                        <i class="fas fa-file-alt mr-1"></i>CC 2
+                                    </div>
+                                    <div class="small text-muted mb-2">2ème Contrôle Continu</div>
+                                    <div class="input-group input-group-lg justify-content-center">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text font-weight-bold bg-white border-right-0">x</span>
+                                        </div>
+                                        <input type="number" step="0.25" min="0" max="10" name="cc2" id="weight_cc2" 
+                                               value="{{ weights.cc2 }}" class="form-control text-center font-weight-bold border-left-0" 
+                                               style="max-width: 80px;" oninput="updateLiveSimulator()">
+                                    </div>
+                                    <div class="small text-muted mt-2" id="pct_cc2">- %</div>
+                                </div>
+                            </div>
+
+                            <!-- CC3 -->
+                            <div class="col-md-4 mb-3">
+                                <div class="card border rounded shadow-sm text-center p-3 h-100 bg-light">
+                                    <div class="text-primary font-weight-bold mb-1">
+                                        <i class="fas fa-file-alt mr-1"></i>CC 3
+                                    </div>
+                                    <div class="small text-muted mb-2">3ème Contrôle Continu</div>
+                                    <div class="input-group input-group-lg justify-content-center">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text font-weight-bold bg-white border-right-0">x</span>
+                                        </div>
+                                        <input type="number" step="0.25" min="0" max="10" name="cc3" id="weight_cc3" 
+                                               value="{{ weights.cc3 }}" class="form-control text-center font-weight-bold border-left-0" 
+                                               style="max-width: 80px;" oninput="updateLiveSimulator()">
+                                    </div>
+                                    <div class="small text-muted mt-2" id="pct_cc3">- %</div>
+                                </div>
+                            </div>
+
+                            <!-- CC4 -->
+                            <div class="col-md-4 mb-3">
+                                <div class="card border rounded shadow-sm text-center p-3 h-100 bg-light">
+                                    <div class="text-primary font-weight-bold mb-1">
+                                        <i class="fas fa-file-alt mr-1"></i>CC 4
+                                    </div>
+                                    <div class="small text-muted mb-2">4ème Contrôle Bilan</div>
+                                    <div class="input-group input-group-lg justify-content-center">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text font-weight-bold bg-white border-right-0">x</span>
+                                        </div>
+                                        <input type="number" step="0.25" min="0" max="10" name="cc4" id="weight_cc4" 
+                                               value="{{ weights.cc4 }}" class="form-control text-center font-weight-bold border-left-0" 
+                                               style="max-width: 80px;" oninput="updateLiveSimulator()">
+                                    </div>
+                                    <div class="small text-muted mt-2" id="pct_cc4">- %</div>
+                                </div>
+                            </div>
+
+                            <!-- Note d'Activité / TP (Formule B) -->
+                            <div class="col-md-8 mb-3">
+                                <div class="card border-primary rounded shadow-sm text-center p-3 h-100" style="background: #f0f7ff;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="badge badge-primary px-2 py-1">Pratique / Labo</span>
+                                        <strong class="text-primary">
+                                            <i class="fas fa-flask mr-1"></i>Note d'Activité & TP (Formule B)
+                                        </strong>
+                                        <span class="badge badge-info px-2 py-1">Assiduité & Travaux</span>
+                                    </div>
+                                    <div class="small text-muted mb-2">
+                                        Note calculée sur les séances de TP, défis d'ateliers et assiduité
+                                    </div>
+                                    <div class="input-group input-group-lg justify-content-center">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text font-weight-bold bg-white text-primary border-right-0">x</span>
+                                        </div>
+                                        <input type="number" step="0.25" min="0" max="10" name="activity" id="weight_act" 
+                                               value="{{ weights.activity }}" class="form-control text-center font-weight-bold border-left-0 text-primary" 
+                                               style="max-width: 100px; font-size: 1.3rem;" oninput="updateLiveSimulator()">
+                                    </div>
+                                    <div class="small font-weight-bold text-primary mt-2" id="pct_act">- % du total semestriel</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Paramètre d'Arrondi -->
+                        <div class="border-top pt-3 mt-2">
+                            <label class="font-weight-bold text-dark small mb-2 d-block">
+                                <i class="fas fa-calculator mr-1 text-secondary"></i>Mode d'Arrondi de la Moyenne Semestrielle :
+                            </label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="custom-control custom-radio custom-control-inline">
+                                    <input type="radio" id="round_001" name="rounding" value="0.01" class="custom-control-input" 
+                                           {% if weights.rounding == '0.01' or not weights.rounding %}checked{% endif %} onchange="updateLiveSimulator()">
+                                    <label class="custom-control-label small" for="round_001">
+                                        <strong>2 Décimales standard</strong> (ex: 14.33 / 20)
+                                    </label>
+                                </div>
+                                <div class="custom-control custom-radio custom-control-inline">
+                                    <input type="radio" id="round_025" name="rounding" value="0.25" class="custom-control-input" 
+                                           {% if weights.rounding == '0.25' %}checked{% endif %} onchange="updateLiveSimulator()">
+                                    <label class="custom-control-label small" for="round_025">
+                                        <strong>Quart de point MEN</strong> (0.00, 0.25, 0.50, 0.75)
+                                    </label>
+                                </div>
+                                <div class="custom-control custom-radio custom-control-inline">
+                                    <input type="radio" id="round_05" name="rounding" value="0.5" class="custom-control-input" 
+                                           {% if weights.rounding == '0.5' %}checked{% endif %} onchange="updateLiveSimulator()">
+                                    <label class="custom-control-label small" for="round_05">
+                                        <strong>Demi-point</strong> (0.00, 0.50)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-light p-3 d-flex flex-column flex-md-row justify-content-between align-items-center">
+                        <div class="text-muted small mb-2 mb-md-0">
+                            Somme totale des coefficients : <strong id="total_weights_sum" class="text-dark">5.0</strong>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success font-weight-bold shadow-sm px-4 text-nowrap action-ribbon-btn">
+                                <i class="fas fa-save mr-1"></i>Enregistrer la Formule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulateur Interactif en Direct -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-dark text-white py-3">
+                        <h6 class="font-weight-bold mb-0">
+                            <i class="fas fa-play-circle text-warning mr-2"></i>Simulateur Interactif Live
+                        </h6>
+                        <span class="small text-white-50">Testez des notes pour visualiser le résultat instantané</span>
+                    </div>
+                    <div class="card-body p-3 bg-light">
+                        <p class="small text-muted mb-3">
+                            Modifiez les notes tests ci-dessous pour voir comment les coefficients ci-contre transforment la moyenne semestrielle :
+                        </p>
+
+                        <div class="form-row mb-2">
+                            <div class="col-6 mb-2">
+                                <label class="small text-muted mb-0">CC1 :</label>
+                                <input type="number" step="0.25" min="0" max="20" id="sim_cc1" value="13.00" class="form-control form-control-sm text-center font-weight-bold" oninput="updateLiveSimulator()">
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label class="small text-muted mb-0">CC2 :</label>
+                                <input type="number" step="0.25" min="0" max="20" id="sim_cc2" value="11.50" class="form-control form-control-sm text-center font-weight-bold" oninput="updateLiveSimulator()">
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label class="small text-muted mb-0">CC3 :</label>
+                                <input type="number" step="0.25" min="0" max="20" id="sim_cc3" value="15.00" class="form-control form-control-sm text-center font-weight-bold" oninput="updateLiveSimulator()">
+                            </div>
+                            <div class="col-6 mb-2">
+                                <label class="small text-muted mb-0">CC4 :</label>
+                                <input type="number" step="0.25" min="0" max="20" id="sim_cc4" value="14.00" class="form-control form-control-sm text-center font-weight-bold" oninput="updateLiveSimulator()">
+                            </div>
+                            <div class="col-12 mb-2">
+                                <label class="small text-primary font-weight-bold mb-0">Activité / TP (Formule B) :</label>
+                                <input type="number" step="0.25" min="0" max="20" id="sim_act" value="17.50" class="form-control form-control-sm text-center font-weight-bold border-primary text-primary" oninput="updateLiveSimulator()">
+                            </div>
+                        </div>
+
+                        <!-- Résultat de la simulation -->
+                        <div class="card border-0 shadow-sm p-3 text-center my-3" style="background: #ffffff; border-radius: 12px;">
+                            <div class="text-uppercase small font-weight-bold text-muted mb-1">Moyenne Semestrielle Finale</div>
+                            <div class="display-4 font-weight-bold text-success my-1" id="sim_result_avg">14.20</div>
+                            <div class="text-muted small">sur 20</div>
+                            <div class="mt-2">
+                                <span class="badge badge-success px-3 py-1 font-weight-bold" id="sim_result_mention">Bien</span>
+                            </div>
+                        </div>
+
+                        <div class="small text-muted">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Total points pondérés :</span>
+                                <strong id="sim_total_points">71.0</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Diviseur (somme coeffs) :</span>
+                                <strong id="sim_diviseur">5.0</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Réinitialisation / Restauration -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-3">
+                        <h6 class="font-weight-bold text-dark small mb-2">
+                            <i class="fas fa-undo mr-1 text-danger"></i>Zone de Réinitialisation
+                        </h6>
+                        <p class="text-muted small mb-3">
+                            {% if selected_class and is_class_specific %}
+                            Supprimer la personnalisation de la classe {{ selected_class.name }} pour qu'elle réutilise la formule générale.
+                            {% else %}
+                            Remettre tous les coefficients généraux à la valeur d'origine (1.0 chacun).
+                            {% endif %}
+                        </p>
+                        <form method="POST" action="{{ url_for('evaluation.reset_settings') }}" onsubmit="return confirm('Confirmez-vous la réinitialisation de cette formule ?');">
+                            <input type="hidden" name="class_id" value="{{ class_id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger btn-block font-weight-bold">
+                                {% if selected_class and is_class_specific %}
+                                <i class="fas fa-trash-alt mr-1"></i>Supprimer la spécificité classe
+                                {% else %}
+                                <i class="fas fa-redo mr-1"></i>Réinitialiser aux défauts MEN (1.0)
+                                {% endif %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function changeScope(classId) {
+    window.location.href = "{{ url_for('evaluation.settings') }}?class_id=" + classId;
+}
+
+function applyPreset(cc1, cc2, cc3, cc4, act) {
+    document.getElementById('weight_cc1').value = cc1;
+    document.getElementById('weight_cc2').value = cc2;
+    document.getElementById('weight_cc3').value = cc3;
+    document.getElementById('weight_cc4').value = cc4;
+    document.getElementById('weight_act').value = act;
+    updateLiveSimulator();
+}
+
+function getRoundingMode() {
+    const radios = document.getElementsByName('rounding');
+    for (let r of radios) {
+        if (r.checked) return r.value;
+    }
+    return '0.01';
+}
+
+function updateLiveSimulator() {
+    const w1 = parseFloat(document.getElementById('weight_cc1').value) || 0;
+    const w2 = parseFloat(document.getElementById('weight_cc2').value) || 0;
+    const w3 = parseFloat(document.getElementById('weight_cc3').value) || 0;
+    const w4 = parseFloat(document.getElementById('weight_cc4').value) || 0;
+    const wAct = parseFloat(document.getElementById('weight_act').value) || 0;
+
+    const totalWeight = w1 + w2 + w3 + w4 + wAct;
+    document.getElementById('total_weights_sum').textContent = totalWeight.toFixed(2);
+    document.getElementById('sim_diviseur').textContent = totalWeight.toFixed(2);
+
+    // Mettre à jour les pourcentages d'impact
+    if (totalWeight > 0) {
+        document.getElementById('pct_cc1').textContent = ((w1 / totalWeight) * 100).toFixed(1) + ' %';
+        document.getElementById('pct_cc2').textContent = ((w2 / totalWeight) * 100).toFixed(1) + ' %';
+        document.getElementById('pct_cc3').textContent = ((w3 / totalWeight) * 100).toFixed(1) + ' %';
+        document.getElementById('pct_cc4').textContent = ((w4 / totalWeight) * 100).toFixed(1) + ' %';
+        document.getElementById('pct_act').textContent = ((wAct / totalWeight) * 100).toFixed(1) + ' % du total';
+    }
+
+    // Calcul notes simulées
+    const n1 = parseFloat(document.getElementById('sim_cc1').value) || 0;
+    const n2 = parseFloat(document.getElementById('sim_cc2').value) || 0;
+    const n3 = parseFloat(document.getElementById('sim_cc3').value) || 0;
+    const n4 = parseFloat(document.getElementById('sim_cc4').value) || 0;
+    const nAct = parseFloat(document.getElementById('sim_act').value) || 0;
+
+    const totalPoints = (n1 * w1) + (n2 * w2) + (n3 * w3) + (n4 * w4) + (nAct * wAct);
+    document.getElementById('sim_total_points').textContent = totalPoints.toFixed(2);
+
+    let rawAvg = totalWeight > 0 ? (totalPoints / totalWeight) : 0;
+    let finalAvg = rawAvg;
+
+    const rMode = getRoundingMode();
+    if (rMode === '0.25') {
+        finalAvg = Math.round(rawAvg * 4) / 4;
+    } else if (rMode === '0.5') {
+        finalAvg = Math.round(rawAvg * 2) / 2;
+    } else {
+        finalAvg = Math.round(rawAvg * 100) / 100;
+    }
+
+    const avgEl = document.getElementById('sim_result_avg');
+    avgEl.textContent = finalAvg.toFixed(2);
+    avgEl.className = 'display-4 font-weight-bold my-1 ' + (finalAvg >= 14 ? 'text-success' : (finalAvg >= 10 ? 'text-primary' : (finalAvg >= 8 ? 'text-warning' : 'text-danger')));
+
+    const mentionEl = document.getElementById('sim_result_mention');
+    if (finalAvg >= 16) {
+        mentionEl.textContent = "Très Bien";
+        mentionEl.className = "badge badge-success px-3 py-1 font-weight-bold";
+    } else if (finalAvg >= 14) {
+        mentionEl.textContent = "Bien";
+        mentionEl.className = "badge badge-primary px-3 py-1 font-weight-bold";
+    } else if (finalAvg >= 12) {
+        mentionEl.textContent = "Assez Bien";
+        mentionEl.className = "badge badge-info px-3 py-1 font-weight-bold";
+    } else if (finalAvg >= 10) {
+        mentionEl.textContent = "Passable";
+        mentionEl.className = "badge badge-secondary px-3 py-1 font-weight-bold";
+    } else if (finalAvg >= 8) {
+        mentionEl.textContent = "Insuffisant";
+        mentionEl.className = "badge badge-warning px-3 py-1 font-weight-bold";
+    } else {
+        mentionEl.textContent = "Non Validé";
+        mentionEl.className = "badge badge-danger px-3 py-1 font-weight-bold";
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateLiveSimulator();
+});
+</script>
+{% endblock %}

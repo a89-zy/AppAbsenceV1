@@ -1,0 +1,876 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="h3 mb-1 text-gray-800 font-weight-bold">
+            <i class="fas fa-graduation-cap text-primary mr-2"></i>Bilan Semestriel des Notes d'Activités
+        </h1>
+        <div class="small text-muted">
+            Formule B : <strong>Note de Base TP/TD</strong> + <strong>Bonus Flash</strong> - <strong>Malus Assiduité</strong> = <strong>Note Finale /20</strong>
+        </div>
+    </div>
+    <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+        <button type="button" class="btn btn-sm btn-outline-warning font-weight-bold shadow-xs px-3" onclick="openFlashModal()">
+            <i class="fas fa-bolt text-warning mr-1"></i> Question Flash
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold shadow-xs px-3" data-toggle="modal" data-target="#configModal">
+            <i class="fas fa-sliders-h mr-1"></i> Paramètres & Poids
+        </button>
+        {% if selected_class %}
+        <a href="{{ url_for('activity.export_semester_evaluations_excel', class_id=selected_class.id, semester=semester) }}" 
+           class="btn btn-sm btn-outline-success font-weight-bold shadow-xs px-3" title="Exporter pour MASSAR">
+            <i class="fas fa-file-excel mr-1"></i> Export Excel
+        </a>
+        <button type="button" class="btn btn-sm btn-success font-weight-bold shadow-xs px-3" data-toggle="modal" data-target="#massarInjectModal" title="Injecter automatiquement les 5 notes dans la grille officielle MASSAR">
+            <i class="fas fa-file-import mr-1"></i> Injecteur MASSAR
+        </button>
+        <a href="{{ url_for('activity.print_semester_evaluations_pdf', class_id=selected_class.id, semester=semester) }}" target="_blank"
+           class="btn btn-sm btn-outline-info font-weight-bold shadow-xs px-3" title="Imprimer ou enregistrer en PDF">
+            <i class="fas fa-print mr-1"></i> Fiche PDF
+        </a>
+        {% endif %}
+        <a href="{{ url_for('activity.activities') }}" class="btn btn-sm btn-secondary shadow-xs font-weight-bold px-3">
+            <i class="fas fa-arrow-left mr-1"></i> Activités
+        </a>
+    </div>
+</div>
+
+<!-- Barre de Filtres : Sélection Classe & Semestre -->
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+    <div class="card-body p-3 bg-white d-flex flex-wrap align-items-center justify-content-between" style="gap: 12px;">
+        <form method="GET" id="filterForm" class="d-flex flex-wrap align-items-center" style="gap: 12px;">
+            <div class="d-flex align-items-center">
+                <label class="small font-weight-bold text-gray-700 mb-0 mr-2">
+                    <i class="fas fa-chalkboard text-primary mr-1"></i>Classe :
+                </label>
+                <select name="class_id" class="form-control form-control-sm rounded-pill font-weight-bold" style="min-width: 170px;" onchange="this.form.submit()">
+                    {% for c in classes %}
+                    <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>
+                        {{ c.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn {% if semester == 1 %}btn-primary font-weight-bold{% else %}btn-outline-primary{% endif %}" onclick="setSemester(1)">
+                    <i class="fas fa-calendar-alt mr-1"></i> Semestre 1
+                </button>
+                <button type="button" class="btn {% if semester == 2 %}btn-primary font-weight-bold{% else %}btn-outline-primary{% endif %}" onclick="setSemester(2)">
+                    <i class="fas fa-calendar-alt mr-1"></i> Semestre 2
+                </button>
+            </div>
+            <input type="hidden" name="semester" id="semesterInput" value="{{ semester }}">
+        </form>
+
+        <div class="d-flex align-items-center small text-muted" style="gap: 10px;">
+            <span class="badge badge-light border text-dark py-1 px-2">
+                <i class="fas fa-clock mr-1 text-info"></i> Période : <strong>{{ start_date.strftime('%d/%m/%Y') }}</strong> au <strong>{{ end_date.strftime('%d/%m/%Y') }}</strong>
+            </span>
+            <span class="badge badge-light border text-dark py-1 px-2">
+                <i class="fas fa-balance-scale mr-1 text-primary"></i> Bonus Max : <strong>+{{ cfg.bonus_max }} pts</strong> | Malus Max : <strong>-{{ cfg.malus_max }} pts</strong>
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Cartes Statistiques KPI de la classe -->
+{% if evaluations %}
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-2">
+        <div class="card border-left-primary shadow-sm h-100 py-2 border-0" style="border-radius: 12px; background: #fff;">
+            <div class="card-body py-2 px-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Moyenne de Classe</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.avg }} <small class="text-muted">/ 20</small></div>
+                        <div class="text-xs text-muted mt-1">Min : <strong>{{ stats.min }}</strong> | Max : <strong>{{ stats.max }}</strong></div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-2">
+        <div class="card border-left-success shadow-sm h-100 py-2 border-0" style="border-radius: 12px; background: #fff;">
+            <div class="card-body py-2 px-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Taux de Réussite (&ge; 10)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.pass_rate }}%</div>
+                        <div class="text-xs text-success mt-1"><i class="fas fa-check-circle mr-1"></i>{{ stats.pass_count }} / {{ stats.count }} élèves</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-2">
+        <div class="card border-left-info shadow-sm h-100 py-2 border-0" style="border-radius: 12px; background: #fff;">
+            <div class="card-body py-2 px-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Mentions Élevées (&ge; 12)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.excellent + stats.good }} élèves</div>
+                        <div class="text-xs text-muted mt-1">{{ stats.excellent }} Très Bien/Exc. | {{ stats.good }} Bien</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-award fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-2">
+        <div class="card border-left-warning shadow-sm h-100 py-2 border-0" style="border-radius: 12px; background: #fff;">
+            <div class="card-body py-2 px-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">En difficulté (&lt; 10)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.insufficient }} élèves</div>
+                        <div class="text-xs text-muted mt-1">Nécessite soutien ou rattrapage</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Formulaire Principal & Tableau Interactif -->
+<form method="POST" action="{{ url_for('activity.semester_evaluations', class_id=selected_class.id if selected_class else '', semester=semester) }}" id="evalForm">
+    <div class="card shadow-sm border-0 mb-4" style="border-radius: 14px;">
+        <div class="card-header py-3 bg-white d-flex align-items-center justify-content-between border-bottom">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-table mr-2"></i>Tableau de Synthèse des Notes d'Activités & Assiduité
+            </h6>
+            <div class="d-flex align-items-center" style="gap: 8px;">
+                <button type="button" class="btn btn-xs btn-outline-primary font-weight-bold py-1 px-2" onclick="recalculateAllInDOM()" title="Recalculer les notes en direct sur la page">
+                    <i class="fas fa-calculator mr-1"></i> Recalculer en direct
+                </button>
+                <button type="submit" class="btn btn-xs btn-success font-weight-bold py-1 px-3 shadow-xs">
+                    <i class="fas fa-save mr-1"></i> Enregistrer & Valider le Bilan
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if evaluations %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" width="100%" cellspacing="0" style="vertical-align: middle;" id="evalTable">
+                    <thead class="bg-light text-muted small text-uppercase">
+                        <tr>
+                            <th width="35" class="text-center">#</th>
+                            <th width="170">Élève & CNE</th>
+                            <th width="110" class="text-center">Note Base</th>
+                            <th width="105" class="text-center">Bonus</th>
+                            <th width="105" class="text-center">Malus</th>
+                            <th width="75" class="text-center">Ajust.</th>
+                            <th width="115" class="text-center bg-light font-weight-bold text-dark">NOTE ACTIVITÉ</th>
+                            <th width="70" class="text-center">CC1</th>
+                            <th width="70" class="text-center">CC2</th>
+                            <th width="70" class="text-center">CC3</th>
+                            <th width="70" class="text-center">CC4</th>
+                            <th width="100" class="text-center font-weight-bold text-primary">MOYENNE</th>
+                            <th>Appréciation / Remarque</th>
+                            <th width="45" class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in evaluations %}
+                        {% set st = item.student %}
+                        {% set fs = item.final_score %}
+                        <tr id="row_st_{{ st.id }}" data-student-id="{{ st.id }}" data-base="{{ item.base_score }}" data-bonus="{{ item.bonus_score }}" data-malus="{{ item.malus_score }}">
+                            <td class="align-middle text-center small text-muted font-weight-bold">
+                                {{ loop.index }}
+                            </td>
+                            <td class="align-middle">
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-light border mr-2 text-center text-primary font-weight-bold flex-shrink-0"
+                                         style="width: 32px; height: 32px; line-height: 32px; font-size: 0.8rem;">
+                                        {{ st.first_name[0]|upper }}
+                                    </div>
+                                    <div>
+                                        <div class="font-weight-bold text-dark text-truncate" style="max-width: 160px;" title="{{ st.last_name }} {{ st.first_name }}">
+                                            {{ st.last_name|upper }} {{ st.first_name }}
+                                        </div>
+                                        <div class="small text-muted d-flex align-items-center" style="gap: 4px;">
+                                            <code>{{ st.cne }}</code>
+                                            {% if st.group %}
+                                            <span class="badge badge-light border">G{{ st.group }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Note de Base TP/TD -->
+                            <td class="align-middle text-center">
+                                <div class="font-weight-bold text-dark" style="font-size: 1.05rem;">
+                                    {{ "%.2f"|format(item.base_score) }} <small class="text-muted">/20</small>
+                                </div>
+                                <div class="small text-muted">
+                                    <span class="badge badge-light border" data-toggle="tooltip" 
+                                          title="{% for a in item.activities_details %}{{ a.title }} : {{ a.score }}/{{ a.max_score }} (coeff {{ a.coeff }})&#10;{% endfor %}">
+                                        <i class="fas fa-tasks mr-1 text-primary"></i>{{ item.activities_count }} activité(s)
+                                    </span>
+                                </div>
+                            </td>
+
+                            <!-- Bonus Flash & Rituels -->
+                            <td class="align-middle text-center">
+                                <div class="font-weight-bold text-success" style="font-size: 1.05rem;" id="bonus_display_{{ st.id }}">
+                                    +{{ "%.2f"|format(item.bonus_score) }}
+                                </div>
+                                <div class="d-flex align-items-center justify-content-center" style="gap: 4px;">
+                                    <span class="badge badge-success-soft text-success small font-weight-bold" 
+                                          data-toggle="tooltip" 
+                                          title="{% for f in item.flash_records %}{{ f.date }} : +{{ f.points }} pt ({{ f.label }})&#10;{% endfor %}">
+                                        {{ item.flash_count }} flash
+                                    </span>
+                                    <button type="button" class="btn btn-xs btn-outline-success py-0 px-1 rounded-circle" 
+                                            onclick="quickAddFlash({{ st.id }}, '{{ st.first_name }} {{ st.last_name }}')" 
+                                            title="Ajouter un point flash en 1 clic">
+                                        <i class="fas fa-plus" style="font-size: 0.65rem;"></i>
+                                    </button>
+                                </div>
+                            </td>
+
+                            <!-- Malus Absences & Assiduité -->
+                            <td class="align-middle text-center">
+                                <div class="font-weight-bold {% if item.malus_score > 0 %}text-danger{% else %}text-muted{% endif %}" style="font-size: 1.05rem;">
+                                    -{{ "%.2f"|format(item.malus_score) }}
+                                </div>
+                                <div class="small text-muted">
+                                    <span class="badge {% if item.unjustified_absences > 0 %}badge-danger-soft text-danger{% else %}badge-light border text-muted{% endif %}"
+                                          title="{{ item.unjustified_absences }} non justifiée(s), {{ item.justified_absences }} justifiée(s)">
+                                        {{ item.unjustified_absences }} abs. NJ
+                                    </span>
+                                </div>
+                            </td>
+
+                            <!-- Ajustement Manuel -->
+                            <td class="align-middle text-center">
+                                <input type="number" step="0.25" min="-5" max="5" 
+                                       name="manual_adj_{{ st.id }}" 
+                                       id="manual_adj_{{ st.id }}"
+                                       class="form-control form-control-sm text-center font-weight-bold rounded-pill" 
+                                       value="{{ item.manual_adjustment }}"
+                                       style="width: 65px; margin: 0 auto; font-size: 0.85rem;"
+                                       onchange="updateRowSubjectAverage({{ st.id }})"
+                                       oninput="updateRowSubjectAverage({{ st.id }})">
+                            </td>
+
+                            <!-- Note Activité (Formule B) -->
+                            <td class="align-middle text-center bg-light">
+                                <div id="badge_final_{{ st.id }}" 
+                                     class="badge {% if fs >= 14 %}badge-success{% elif fs >= 10 %}badge-primary{% elif fs >= 8 %}badge-warning text-dark{% else %}badge-danger{% endif %} font-weight-bold px-2 py-2 shadow-xs" 
+                                     style="font-size: 1.05rem; min-width: 80px;">
+                                    <span id="final_score_txt_{{ st.id }}">{{ fs }}</span> / 20
+                                </div>
+                            </td>
+
+                            <!-- Contrôle Continu 1 -->
+                            <td class="align-middle text-center">
+                                <input type="number" step="0.25" min="0" max="20" 
+                                       name="cc1_{{ st.id }}" id="cc1_{{ st.id }}"
+                                       class="form-control form-control-sm text-center font-weight-bold rounded" 
+                                       value="{{ item.cc1 if item.cc1 is not none else '' }}"
+                                       placeholder="-" style="width: 60px; margin: 0 auto; font-size: 0.85rem;"
+                                       onchange="updateRowSubjectAverage({{ st.id }})"
+                                       oninput="updateRowSubjectAverage({{ st.id }})">
+                            </td>
+
+                            <!-- Contrôle Continu 2 -->
+                            <td class="align-middle text-center">
+                                <input type="number" step="0.25" min="0" max="20" 
+                                       name="cc2_{{ st.id }}" id="cc2_{{ st.id }}"
+                                       class="form-control form-control-sm text-center font-weight-bold rounded" 
+                                       value="{{ item.cc2 if item.cc2 is not none else '' }}"
+                                       placeholder="-" style="width: 60px; margin: 0 auto; font-size: 0.85rem;"
+                                       onchange="updateRowSubjectAverage({{ st.id }})"
+                                       oninput="updateRowSubjectAverage({{ st.id }})">
+                            </td>
+
+                            <!-- Contrôle Continu 3 -->
+                            <td class="align-middle text-center">
+                                <input type="number" step="0.25" min="0" max="20" 
+                                       name="cc3_{{ st.id }}" id="cc3_{{ st.id }}"
+                                       class="form-control form-control-sm text-center font-weight-bold rounded" 
+                                       value="{{ item.cc3 if item.cc3 is not none else '' }}"
+                                       placeholder="-" style="width: 60px; margin: 0 auto; font-size: 0.85rem;"
+                                       onchange="updateRowSubjectAverage({{ st.id }})"
+                                       oninput="updateRowSubjectAverage({{ st.id }})">
+                            </td>
+
+                            <!-- Contrôle Continu 4 -->
+                            <td class="align-middle text-center">
+                                <input type="number" step="0.25" min="0" max="20" 
+                                       name="cc4_{{ st.id }}" id="cc4_{{ st.id }}"
+                                       class="form-control form-control-sm text-center font-weight-bold rounded" 
+                                       value="{{ item.cc4 if item.cc4 is not none else '' }}"
+                                       placeholder="-" style="width: 60px; margin: 0 auto; font-size: 0.85rem;"
+                                       onchange="updateRowSubjectAverage({{ st.id }})"
+                                       oninput="updateRowSubjectAverage({{ st.id }})">
+                            </td>
+
+                            <!-- Moyenne Générale Matière (5 Notes) -->
+                            <td class="align-middle text-center font-weight-bold">
+                                <div class="h6 mb-0 font-weight-bold {% if item.subject_average >= 14 %}text-success{% elif item.subject_average >= 10 %}text-primary{% elif item.subject_average >= 8 %}text-warning{% else %}text-danger{% endif %}" 
+                                     id="subject_avg_{{ st.id }}">
+                                    {{ "%.2f"|format(item.subject_average) }}
+                                </div>
+                                <small class="text-muted" style="font-size: 0.65rem;">/ 20</small>
+                            </td>
+
+                            <!-- Appréciation Pédagogique -->
+                            <td class="align-middle">
+                                <input type="text" name="appreciation_{{ st.id }}" 
+                                       id="appreciation_{{ st.id }}"
+                                       class="form-control form-control-sm rounded-lg" 
+                                       value="{{ item.appreciation }}" 
+                                       placeholder="Remarque pour le bulletin / MASSAR...">
+                            </td>
+
+                            <!-- Actions rapides -->
+                            <td class="align-middle text-center">
+                                <button type="button" class="btn btn-xs btn-outline-info py-1 px-2" 
+                                        onclick="showStudentDetailsModal({{ st.id }})" 
+                                        title="Voir la fiche détaillée de calcul">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-folder-open fa-3x mb-3 text-gray-300"></i>
+                <h5>Aucun élève trouvé pour cette classe.</h5>
+                <p class="small">Veuillez sélectionner une classe avec des effectifs enregistrés.</p>
+            </div>
+            {% endif %}
+        </div>
+        {% if evaluations %}
+        <div class="card-footer bg-white py-3 border-top d-flex flex-wrap justify-content-between align-items-center">
+            <div class="small text-muted">
+                <i class="fas fa-info-circle text-primary mr-1"></i> Formule appliquée : <code>Note Finale = min(20, max(0, Base + Bonus - Malus + Ajust.))</code> (Arrondi au {{ cfg.rounding }} pt).
+            </div>
+            <div class="d-flex" style="gap: 8px;">
+                <button type="button" class="btn btn-sm btn-outline-secondary font-weight-bold px-3" onclick="location.reload()">
+                    <i class="fas fa-undo mr-1"></i> Annuler les modifs
+                </button>
+                <button type="submit" class="btn btn-sm btn-success font-weight-bold px-4 shadow-sm">
+                    <i class="fas fa-check-double mr-1"></i> Enregistrer & Figer les Notes
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Modal Paramètres & Configuration des Poids -->
+<div class="modal fade" id="configModal" tabindex="-1" role="dialog" aria-labelledby="configModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+            <div class="modal-header bg-primary text-white py-3">
+                <h5 class="modal-title font-weight-bold" id="configModalLabel">
+                    <i class="fas fa-sliders-h mr-2"></i>Configuration des Composantes & Poids (Formule B)
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="configForm" onsubmit="saveActivityConfig(event)">
+                <div class="modal-body p-4 bg-light">
+                    <!-- 1. Composante Bonus -->
+                    <div class="card border-0 shadow-xs mb-3" style="border-radius: 10px;">
+                        <div class="card-header bg-white py-2 font-weight-bold text-success small">
+                            <i class="fas fa-plus-circle mr-1"></i> 1. Composante Bonus (Questions Flash & Participation)
+                        </div>
+                        <div class="card-body p-3 bg-white">
+                            <div class="form-row">
+                                <div class="form-group col-md-6 mb-2">
+                                    <label class="small font-weight-bold text-gray-700">Plafond Bonus Maximal (+pts) :</label>
+                                    <input type="number" step="0.5" min="0" max="10" name="bonus_max" class="form-control form-control-sm rounded-lg" value="{{ cfg.bonus_max }}">
+                                    <small class="text-muted">Nombre maximum de points bonus qu'un élève peut accumuler sur le semestre.</small>
+                                </div>
+                                <div class="form-group col-md-6 mb-2">
+                                    <label class="small font-weight-bold text-gray-700">Types d'activités inclus dans la base :</label>
+                                    <select name="included_types" class="form-control form-control-sm rounded-lg">
+                                        <option value="all" {% if cfg.included_types == 'all' %}selected{% endif %}>Tous les types d'activités (TP, TD, Projet, etc.)</option>
+                                        <option value="TP,TD" {% if cfg.included_types == 'TP,TD' %}selected{% endif %}>Seulement TP & TD</option>
+                                        <option value="TP,TD,Projet" {% if cfg.included_types == 'TP,TD,Projet' %}selected{% endif %}>TP, TD et Projets</option>
+                                    </select>
+                                    <small class="text-muted">Définit quelles activités entrent dans le calcul de la note de base.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Composante Malus -->
+                    <div class="card border-0 shadow-xs mb-3" style="border-radius: 10px;">
+                        <div class="card-header bg-white py-2 font-weight-bold text-danger small">
+                            <i class="fas fa-minus-circle mr-1"></i> 2. Composante Malus (Assiduité & Absences)
+                        </div>
+                        <div class="card-body p-3 bg-white">
+                            <div class="form-row">
+                                <div class="form-group col-md-4 mb-2">
+                                    <label class="small font-weight-bold text-gray-700">Pénalité Absence Non Justifiée :</label>
+                                    <input type="number" step="0.1" min="0" max="5" name="absence_unjustified_penalty" class="form-control form-control-sm rounded-lg" value="{{ cfg.absence_unjustified_penalty }}">
+                                    <small class="text-muted">Déduction par séance manquée injustifiée (ex: 0.5 pt).</small>
+                                </div>
+                                <div class="form-group col-md-4 mb-2">
+                                    <label class="small font-weight-bold text-gray-700">Pénalité Absence Justifiée :</label>
+                                    <input type="number" step="0.1" min="0" max="2" name="absence_justified_penalty" class="form-control form-control-sm rounded-lg" value="{{ cfg.absence_justified_penalty }}">
+                                    <small class="text-muted">Par défaut 0.0 (aucune sanction si justifiée).</small>
+                                </div>
+                                <div class="form-group col-md-4 mb-2">
+                                    <label class="small font-weight-bold text-gray-700">Plafond Malus Maximal (-pts) :</label>
+                                    <input type="number" step="0.5" min="0" max="10" name="malus_max" class="form-control form-control-sm rounded-lg" value="{{ cfg.malus_max }}">
+                                    <small class="text-muted">Déduction maximale pouvant être retirée (ex: 4.0 pts).</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Règle d'Arrondi & Dates -->
+                    <div class="card border-0 shadow-xs mb-0" style="border-radius: 10px;">
+                        <div class="card-header bg-white py-2 font-weight-bold text-primary small">
+                            <i class="fas fa-calendar-check mr-1"></i> 3. Règles d'Arrondi & Dates Semestrielles
+                        </div>
+                        <div class="card-body p-3 bg-white">
+                            <div class="form-row">
+                                <div class="form-group col-md-4 mb-2">
+                                    <label class="small font-weight-bold text-gray-700">Arrondi de la Note Finale :</label>
+                                    <select name="rounding" class="form-control form-control-sm rounded-lg">
+                                        <option value="0.25" {% if cfg.rounding == '0.25' %}selected{% endif %}>Au quart de point (0.25) [Recommandé]</option>
+                                        <option value="0.5" {% if cfg.rounding == '0.5' %}selected{% endif %}>Au demi-point (0.50)</option>
+                                        <option value="0.1" {% if cfg.rounding == '0.1' %}selected{% endif %}>Au dixième (0.10)</option>
+                                        <option value="1.0" {% if cfg.rounding == '1.0' %}selected{% endif %}>À l'entier le plus proche</option>
+                                        <option value="none" {% if cfg.rounding == 'none' %}selected{% endif %}>Sans arrondi (2 décimales)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4 mb-2">
+                                    <label class="small font-weight-bold text-gray-700">Semestre 1 (Début / Fin) :</label>
+                                    <div class="d-flex" style="gap: 4px;">
+                                        <input type="date" name="s1_start" class="form-control form-control-sm rounded" value="{{ cfg.s1_start }}" title="Début S1">
+                                        <input type="date" name="s1_end" class="form-control form-control-sm rounded" value="{{ cfg.s1_end }}" title="Fin S1">
+                                    </div>
+                                    <small class="text-muted">Laisser vide pour dates auto.</small>
+                                </div>
+                                <div class="form-group col-md-4 mb-2">
+                                    <label class="small font-weight-bold text-gray-700">Semestre 2 (Début / Fin) :</label>
+                                    <div class="d-flex" style="gap: 4px;">
+                                        <input type="date" name="s2_start" class="form-control form-control-sm rounded" value="{{ cfg.s2_start }}" title="Début S2">
+                                        <input type="date" name="s2_end" class="form-control form-control-sm rounded" value="{{ cfg.s2_end }}" title="Fin S2">
+                                    </div>
+                                    <small class="text-muted">Laisser vide pour dates auto.</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white py-2 border-top">
+                    <button type="button" class="btn btn-sm btn-light border" data-dismiss="modal">Fermer</button>
+                    <button type="submit" class="btn btn-sm btn-primary font-weight-bold px-4 shadow-xs">
+                        <i class="fas fa-check mr-1"></i> Enregistrer la Configuration
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Interactive Question Flash de début de séance -->
+<div class="modal fade" id="flashModal" tabindex="-1" role="dialog" aria-labelledby="flashModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+            <div class="modal-header bg-gradient-warning text-dark py-3" style="background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);">
+                <h5 class="modal-title font-weight-bold text-dark" id="flashModalLabel">
+                    <i class="fas fa-bolt mr-2 text-dark"></i>Question Flash & Rituels Début de Séance
+                </h5>
+                <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4 bg-white">
+                <!-- Zone Tirage au Sort -->
+                <div class="card border-warning mb-3 shadow-xs" style="background: #fffdf5; border-radius: 10px;">
+                    <div class="card-body p-3 text-center">
+                        <div class="small text-muted font-weight-bold mb-1">RITUEL DE DÉBUT DE SÉANCE :</div>
+                        <button type="button" class="btn btn-warning font-weight-bold text-dark px-3 py-2 shadow-xs mb-2" onclick="pickRandomStudent()">
+                            <i class="fas fa-dice mr-1"></i> 🎲 Tirer au sort un élève
+                        </button>
+                        <div id="randomPickerResult" class="h5 font-weight-bold text-primary mb-0" style="min-height: 28px;">
+                            <span class="text-muted small font-italic">Cliquez pour interroger un élève au hasard</span>
+                        </div>
+                    </div>
+                </div>
+
+                <form id="flashForm" onsubmit="submitFlashQuestion(event)">
+                    <input type="hidden" name="class_id" value="{{ selected_class.id if selected_class else '' }}">
+                    <input type="hidden" name="semester" value="{{ semester }}">
+
+                    <div class="form-group mb-3">
+                        <label class="small font-weight-bold text-gray-700">Élève interrogé :</label>
+                        <select name="student_id" id="flashStudentSelect" class="form-control form-control-sm rounded-lg" required>
+                            <option value="">-- Choisir un élève --</option>
+                            {% for item in evaluations %}
+                            <option value="{{ item.student.id }}">
+                                {{ item.student.last_name|upper }} {{ item.student.first_name }} ({{ item.student.cne }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="small font-weight-bold text-gray-700">Intitulé / Sujet de la question :</label>
+                        <input type="text" name="label" id="flashLabelInput" class="form-control form-control-sm rounded-lg" 
+                               value="Question flash début de séance" placeholder="Ex: Définition de boucle for, structure if/else...">
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="small font-weight-bold text-gray-700">Attribution des points :</label>
+                        <div class="d-flex" style="gap: 8px;">
+                            <button type="button" class="btn btn-outline-success font-weight-bold flex-fill py-2 flash-pt-btn active" data-pts="1.0" onclick="setFlashPts(1.0)">
+                                ⭐ +1.0 pt<br><small>Bonne réponse</small>
+                            </button>
+                            <button type="button" class="btn btn-outline-info font-weight-bold flex-fill py-2 flash-pt-btn" data-pts="0.5" onclick="setFlashPts(0.5)">
+                                ✨ +0.5 pt<br><small>Partiel / Encourag.</small>
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary font-weight-bold flex-fill py-2 flash-pt-btn" data-pts="0.0" onclick="setFlashPts(0.0)">
+                                💬 0 pt<br><small>Non su / Passé</small>
+                            </button>
+                        </div>
+                        <input type="hidden" name="points" id="flashPointsInput" value="1.0">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block font-weight-bold py-2 shadow-xs" id="btnSubmitFlash">
+                        <i class="fas fa-check mr-1"></i> Valider & Attribuer le Point Flash
+                    </button>
+                </form>
+
+                <!-- Historique récent -->
+                <div class="mt-4 pt-3 border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="small text-gray-700"><i class="fas fa-history mr-1"></i> Dernières questions flash :</strong>
+                        <button type="button" class="btn btn-xs btn-link text-muted p-0" onclick="loadFlashHistory()">Rafraîchir</button>
+                    </div>
+                    <div id="flashHistoryContainer" style="max-height: 160px; overflow-y: auto;" class="small">
+                        <!-- Chargé en AJAX -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- MODAL : INJECTEUR DANS GRILLE OFFICIELLE MASSAR -->
+<div class="modal fade" id="massarInjectModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg rounded-xl">
+            <div class="modal-header bg-light py-3">
+                <h5 class="modal-title font-weight-bold text-gray-900">
+                    <i class="fas fa-file-excel text-success mr-2"></i> Injecter dans la Grille Officielle MASSAR
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <form action="{{ url_for('activity.inject_massar_excel') }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="class_id" value="{{ selected_class.id if selected_class else '' }}">
+                <input type="hidden" name="semester" value="{{ semester }}">
+                <div class="modal-body p-4">
+                    <div class="alert alert-info border-0 small mb-3">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Téléversez le fichier <strong>Excel (.xlsx) officiel</strong> téléchargé depuis le portail <strong>MASSAR</strong> pour la classe <strong>{{ selected_class.name if selected_class else '' }}</strong>.<br>
+                        Le système va automatiquement injecter les <strong>Contrôles Continus (CC1 à CC4)</strong> et la <strong>Note d'Activité (Formule B)</strong> sur la ligne de chaque élève sans modifier la mise en page officielle.
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-gray-800 small">Sélectionner le fichier Excel MASSAR :</label>
+                        <input type="file" name="massar_file" class="form-control-file border p-2 rounded bg-light" accept=".xlsx,.xlsm" required>
+                    </div>
+
+                    <div class="bg-light p-3 rounded border small">
+                        <div class="font-weight-bold text-gray-700 mb-1"><i class="fas fa-columns mr-1 text-primary"></i> Colonnes officielles prises en charge :</div>
+                        <ul class="mb-0 pl-3 text-muted">
+                            <li><strong>CNE / Code MASSAR</strong> (الرمز / رمز مسار)</li>
+                            <li><strong>Contrôles 1 à 4</strong> (المراقبة 1 .. 4)</li>
+                            <li><strong>Note d'Activité</strong> (الأنشطة المندمجة)</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success btn-sm font-weight-bold px-3">
+                        <i class="fas fa-download mr-1"></i> Injecter & Télécharger le Fichier Prêt
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const CFG = {
+        bonusMax: {{ cfg.bonus_max }},
+        malusMax: {{ cfg.malus_max }},
+        rounding: '{{ cfg.rounding }}'
+    };
+
+    function setSemester(sem) {
+        document.getElementById('semesterInput').value = sem;
+        document.getElementById('filterForm').submit();
+    }
+
+    function applyRoundingJS(val, rule) {
+        if (rule === 'none') return Math.round(val * 100) / 100;
+        if (rule === '0.1') return Math.round(val * 10) / 10;
+        if (rule === '0.25') return Math.round(val * 4) / 4;
+        if (rule === '0.5') return Math.round(val * 2) / 2;
+        if (rule === '1.0') return Math.round(val);
+        return Math.round(val * 100) / 100;
+    }
+
+    function updateRowCalculation(studentId) {
+        const row = document.getElementById('row_st_' + studentId);
+        if (!row) return;
+
+        const base = parseFloat(row.dataset.base) || 0;
+        const bonus = parseFloat(row.dataset.bonus) || 0;
+        const malus = parseFloat(row.dataset.malus) || 0;
+        const adjInput = document.getElementById('manual_adj_' + studentId);
+        const adj = parseFloat(adjInput ? adjInput.value : 0) || 0;
+
+        const raw = base + bonus - malus + adj;
+        const clamped = Math.min(20.0, Math.max(0.0, raw));
+        const finalScore = applyRoundingJS(clamped, CFG.rounding);
+
+        const txtEl = document.getElementById('final_score_txt_' + studentId);
+        if (txtEl) txtEl.textContent = finalScore;
+
+        const badge = document.getElementById('badge_final_' + studentId);
+        if (badge) {
+            badge.className = 'badge font-weight-bold px-2 py-2 shadow-xs ' + 
+                (finalScore >= 14 ? 'badge-success' : 
+                (finalScore >= 10 ? 'badge-primary' : 
+                (finalScore >= 8 ? 'badge-warning text-dark' : 'badge-danger')));
+        }
+    }
+
+    function updateRowSubjectAverage(studentId) {
+        updateRowCalculation(studentId);
+        const txtEl = document.getElementById('final_score_txt_' + studentId);
+        const actScore = parseFloat(txtEl ? txtEl.textContent : 0) || 0;
+
+        const cc1Input = document.getElementById('cc1_' + studentId);
+        const cc2Input = document.getElementById('cc2_' + studentId);
+        const cc3Input = document.getElementById('cc3_' + studentId);
+        const cc4Input = document.getElementById('cc4_' + studentId);
+
+        const notes = [];
+        [cc1Input, cc2Input, cc3Input, cc4Input].forEach(inp => {
+            if (inp && inp.value.trim() !== '') {
+                const v = parseFloat(inp.value.replace(',', '.'));
+                if (!isNaN(v)) notes.push(v);
+            }
+        });
+        notes.push(actScore);
+
+        const avg = notes.length > 0 ? (notes.reduce((a, b) => a + b, 0) / notes.length) : actScore;
+        const roundedAvg = Math.round(avg * 100) / 100;
+
+        const avgEl = document.getElementById('subject_avg_' + studentId);
+        if (avgEl) {
+            avgEl.textContent = roundedAvg.toFixed(2);
+            avgEl.className = 'h6 mb-0 font-weight-bold ' + (roundedAvg >= 14 ? 'text-success' : (roundedAvg >= 10 ? 'text-primary' : (roundedAvg >= 8 ? 'text-warning' : 'text-danger')));
+        }
+    }
+
+    function recalculateAllInDOM() {
+        document.querySelectorAll('#evalTable tbody tr').forEach(row => {
+            const stId = row.dataset.studentId;
+            if (stId) updateRowSubjectAverage(stId);
+        });
+    }
+
+    // Modal Question Flash
+    function openFlashModal() {
+        $('#flashModal').modal('show');
+        loadFlashHistory();
+    }
+
+    function setFlashPts(pts) {
+        document.getElementById('flashPointsInput').value = pts;
+        document.querySelectorAll('.flash-pt-btn').forEach(btn => {
+            if (parseFloat(btn.dataset.pts) === pts) {
+                btn.classList.add('active', 'btn-primary');
+                btn.classList.remove('btn-outline-primary', 'btn-outline-success', 'btn-outline-info', 'btn-outline-secondary');
+            } else {
+                btn.classList.remove('active', 'btn-primary');
+            }
+        });
+    }
+
+    function pickRandomStudent() {
+        const select = document.getElementById('flashStudentSelect');
+        const options = Array.from(select.options).filter(o => o.value !== '');
+        if (options.length === 0) return;
+
+        const resEl = document.getElementById('randomPickerResult');
+        let counter = 0;
+        const interval = setInterval(() => {
+            const rnd = options[Math.floor(Math.random() * options.length)];
+            resEl.textContent = "🎲 " + rnd.text;
+            counter++;
+            if (counter > 10) {
+                clearInterval(interval);
+                const finalChoice = options[Math.floor(Math.random() * options.length)];
+                resEl.innerHTML = `<span class="text-success"><i class="fas fa-check-circle mr-1"></i> Élève retenu :</span> <strong>${finalChoice.text}</strong>`;
+                select.value = finalChoice.value;
+            }
+        }, 80);
+    }
+
+    function submitFlashQuestion(e) {
+        e.preventDefault();
+        const form = document.getElementById('flashForm');
+        const formData = new FormData(form);
+
+        fetch('/activity/api/flash-question', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const stId = formData.get('student_id');
+                const row = document.getElementById('row_st_' + stId);
+                if (row) {
+                    row.dataset.bonus = data.capped_bonus;
+                    const bonusDisplay = document.getElementById('bonus_display_' + stId);
+                    if (bonusDisplay) bonusDisplay.textContent = '+' + data.capped_bonus.toFixed(2);
+                    updateRowCalculation(stId);
+                }
+                loadFlashHistory();
+                alert("Point Flash attribué avec succès !");
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        })
+        .catch(err => alert("Erreur réseau."));
+    }
+
+    function quickAddFlash(studentId, studentName) {
+        document.getElementById('flashStudentSelect').value = studentId;
+        openFlashModal();
+    }
+
+    function loadFlashHistory() {
+        const classId = '{{ selected_class.id if selected_class else "" }}';
+        const semester = '{{ semester }}';
+        if (!classId) return;
+
+        fetch(`/activity/api/flash-history?class_id=${classId}&semester=${semester}`)
+            .then(res => res.json())
+            .then(data => {
+                const cont = document.getElementById('flashHistoryContainer');
+                if (!cont) return;
+                if (!data.records || data.records.length === 0) {
+                    cont.innerHTML = '<div class="text-muted font-italic text-center py-2">Aucune question flash enregistrée pour ce semestre.</div>';
+                    return;
+                }
+                let html = '<ul class="list-group list-group-flush">';
+                data.records.forEach(r => {
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center p-2 border-bottom">
+                            <div>
+                                <strong class="text-dark">${r.student_name}</strong>
+                                <span class="badge badge-success ml-1">+${r.points} pt</span>
+                                <div class="text-muted" style="font-size: 0.72rem;">${r.date} — ${r.label}</div>
+                            </div>
+                            <button type="button" class="btn btn-xs text-danger py-0" onclick="deleteFlashItem(${r.id})" title="Supprimer">
+                                &times;
+                            </button>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                cont.innerHTML = html;
+            });
+    }
+
+    function deleteFlashItem(id) {
+        if (!confirm("Supprimer cet enregistrement flash ?")) return;
+        fetch(`/activity/api/delete-flash-question/${id}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    loadFlashHistory();
+                    location.reload();
+                }
+            });
+    }
+
+    function saveActivityConfig(e) {
+        e.preventDefault();
+        const form = document.getElementById('configForm');
+        const formData = new FormData(form);
+
+        fetch('/activity/api/save-activity-config', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert("Configuration enregistrée avec succès !");
+                $('#configModal').modal('hide');
+                location.reload();
+            } else {
+                alert("Erreur : " + data.message);
+            }
+        })
+        .catch(err => alert("Erreur lors de la sauvegarde."));
+    }
+
+    function showStudentDetailsModal(studentId) {
+        const row = document.getElementById('row_st_' + studentId);
+        if (!row) return;
+        const name = row.querySelector('.font-weight-bold.text-dark').textContent.trim();
+        const base = row.dataset.base;
+        const bonus = row.dataset.bonus;
+        const malus = row.dataset.malus;
+        const adj = document.getElementById('manual_adj_' + studentId).value;
+        const finalTxt = document.getElementById('final_score_txt_' + studentId).textContent;
+
+        alert(`FICHE DE CALCUL — ${name}\n\n• Note Base Activités TP/TD : ${base}/20\n• Bonus Flash & Rituels : +${bonus} pts\n• Malus Assiduité (Absences) : -${malus} pts\n• Ajustement prof : ${adj >= 0 ? '+' : ''}${adj}\n-----------------------------------\n= NOTE FINALE SEMESTRIELLE : ${finalTxt}/20`);
+    }
+
+    // Tooltips activation
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+</script>
+
+<style>
+    .badge-success-soft {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    .badge-danger-soft {
+        background-color: #fee2e2;
+        color: #991b1b;
+    }
+</style>
+{% endblock %}

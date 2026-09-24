@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <h1 class="h3 mb-4 text-gray-800">Suivi des Activités par Étudiant</h1>
+
+        <!-- Selection Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Sélectionner un Étudiant</h6>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('activity.activities_report') }}">
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Classe</label>
+                            <select id="classSelect" name="class_id" class="form-control" onchange="updateStudents()"
+                                required>
+                                <option value="">Choisir une classe...</option>
+                                {% for c in classes %}
+                                <option value="{{ c.id }}" {% if student and student.class_id==c.id %}selected{% endif
+                                    %}>{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Étudiant</label>
+                            <select id="studentSelect" name="student_id" class="form-control" required disabled>
+                                <option value="">Choisir un étudiant...</option>
+                                {% if student %}
+                                <option value="{{ student.id }}" selected>{{ student.last_name }} {{ student.first_name
+                                    }}</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="form-group col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-block">Afficher</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if student %}
+        <!-- Results Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">Historique pour : {{ student.last_name }} {{
+                    student.first_name }} ({{ student.cne }})</h6>
+                <button onclick="window.print()" class="btn btn-sm btn-secondary d-none d-md-inline-block">
+                    <i class="fas fa-print"></i> Imprimer
+                </button>
+            </div>
+            <div class="card-body">
+                {% if grades %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Module & Chapitre</th>
+                                <th>Type</th>
+                                <th class="text-center">Statut</th>
+                                <th>Note / Barème</th>
+                                <th>Appréciation / Remarque</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for g in grades %}
+                            <tr>
+                                <td class="align-middle font-weight-bold">{{ g.activity.date.strftime('%d/%m/%Y') }}</td>
+                                <td class="align-middle">
+                                    <span class="badge badge-info mb-1">{{ g.activity.module }}</span><br>
+                                    <small class="text-dark font-weight-bold">{{ g.activity.section }}</small>
+                                </td>
+                                <td class="align-middle">
+                                    <span class="badge badge-primary">{{ g.activity.activity_type }}</span>
+                                    {% if g.group_number %}
+                                    <br><small class="text-muted"><i class="fas fa-users mr-1"></i>{{ g.group_number }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle text-center">
+                                    {% if g.status == 'Fait' %}
+                                    <span class="badge badge-success px-2 py-1">Fait</span>
+                                    {% elif g.status == 'Non fait' %}
+                                    <span class="badge badge-danger px-2 py-1">Non fait</span>
+                                    {% elif g.status == 'Assigné' %}
+                                    <span class="badge badge-warning text-dark px-2 py-1">Assigné</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary px-2 py-1">Non assigné</span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle">
+                                    <strong class="text-dark">{{ g.score }}</strong>
+                                    <span class="text-muted small">/{{ g.activity.max_score or 20 }}</span>
+                                    {% if g.activity.coefficient and g.activity.coefficient != 1.0 %}
+                                    <span class="badge badge-light border text-muted ml-1">x{{ g.activity.coefficient }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle">
+                                    {% if g.feedback %}
+                                    <span class="small text-dark font-italic"><i class="fas fa-comment-dots text-primary mr-1"></i>{{ g.feedback }}</span>
+                                    {% else %}
+                                    <span class="text-muted small">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4 text-gray-500">
+                    Aucune activité enregistrée pour cet étudiant.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function updateStudents() {
+        const classId = document.getElementById('classSelect').value;
+        const studentSelect = document.getElementById('studentSelect');
+
+        if (!classId) {
+            studentSelect.innerHTML = '<option value="">Choisir un étudiant...</option>';
+            studentSelect.disabled = true;
+            return;
+        }
+
+        fetch(`/absence/api/get_students?class_id=${classId}`)
+            .then(response => response.json())
+            .then(data => {
+                studentSelect.innerHTML = '<option value="">Choisir un étudiant...</option>';
+                data.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = s.name;
+                    studentSelect.appendChild(opt);
+                });
+                studentSelect.disabled = false;
+            });
+    }
+
+    // Initialize student dropdown if class is already selected (e.g. after form submission)
+    window.onload = function () {
+        const classId = document.getElementById('classSelect').value;
+        if (classId) {
+            const studentId = "{{ student.id if student else '' }}";
+            fetch(`/absence/api/get_students?class_id=${classId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const studentSelect = document.getElementById('studentSelect');
+                    studentSelect.innerHTML = '<option value="">Choisir un étudiant...</option>';
+                    data.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = s.name;
+                        if (s.id == studentId) opt.selected = true;
+                        studentSelect.appendChild(opt);
+                    });
+                    studentSelect.disabled = false;
+                });
+        }
+    };
+</script>
+{% endblock %}

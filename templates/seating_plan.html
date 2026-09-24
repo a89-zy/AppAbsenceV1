@@ -1,0 +1,1600 @@
+{% extends 'base.html' %}
+
+{% block title %}Plan de Salle en U &amp; Laboratoire Informatique — {{ classe.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* =========================================================
+   PLAN DE SALLE EN U — VUE DIRECTE SUR UN SEUL ÉCRAN (SANS SCROLL)
+   ========================================================= */
+
+/* Fixer une hauteur minimale et permettre le scroll vertical fluide si l'écran est petit */
+.lab-page-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 120px);
+    overflow: visible;
+}
+
+/* En-tête compact et barre d'actions raffinée */
+.lab-top-header {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+
+.lab-header-info {
+    gap: 8px;
+}
+
+.lab-action-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.lab-btn-group {
+    display: inline-flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.btn-lab-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    padding: 0 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #475569;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.btn-lab-action:hover {
+    color: #0f172a;
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.btn-lab-action.active,
+.btn-lab-action:active {
+    color: #2563eb;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.btn-lab-action i {
+    font-size: 0.78rem;
+    margin-right: 5px;
+}
+
+.btn-lab-primary {
+    background: #2563eb;
+    color: #ffffff !important;
+    border-color: #2563eb;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25);
+}
+
+.btn-lab-primary:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #ffffff !important;
+    box-shadow: 0 2px 5px rgba(37, 99, 235, 0.35);
+}
+
+.btn-lab-success {
+    background: #059669;
+    color: #ffffff !important;
+    border-color: #059669;
+    box-shadow: 0 1px 3px rgba(5, 150, 105, 0.25);
+    padding: 0 14px;
+    font-weight: 700;
+}
+
+.btn-lab-success:hover {
+    background: #047857;
+    border-color: #047857;
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
+}
+
+.lab-pill-back {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.lab-pill-back:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+    text-decoration: none;
+}
+
+/* Zone Principale de la Salle */
+.lab-main-layout {
+    flex: 1 1 auto;
+    display: flex;
+    gap: 8px;
+    min-height: 0;
+    align-items: stretch;
+}
+
+/* Le Canvas du Laboratoire en U */
+.lab-canvas-screen {
+    flex: 1 1 auto;
+    background: #f8fafc;
+    border: 2px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,0.03);
+    position: relative;
+    overflow-y: auto;
+}
+
+/* Tableau Blanc & Estrade Professeur */
+.lab-board-top {
+    flex: 0 0 auto;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 5px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.74rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 4px rgba(15,23,42,0.15);
+}
+
+/* Structure en Fer à Cheval (U) */
+.horseshoe-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 6px;
+}
+
+/* Ligne Supérieure : Aile Gauche | Allée Centrale | Aile Droite */
+.horseshoe-wings-row {
+    flex: 1 1 auto;
+    display: flex;
+    gap: 8px;
+    min-height: 0;
+    align-items: stretch;
+}
+
+/* Paillasse Latérale Gauche & Droite */
+.wing-column {
+    flex: 1 1 0%;
+    min-width: 0;
+    background: #ffffff;
+    border-top: 3px solid #2563eb;
+    border-radius: 8px 8px 0 0;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+.wing-column-left {
+    border-left: 4px solid #2563eb;
+    border-right: 1px solid #e2e8f0;
+}
+.wing-column-right {
+    border-right: 4px solid #2563eb;
+    border-left: 1px solid #e2e8f0;
+}
+
+/* En-tête d'une Aile */
+.wing-title-strip {
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Liste des Postes dans les Ailes - Pas de chevauchement */
+.wing-stations-list {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+/* Allée Centrale de Circulation Professeur */
+.center-aisle-column {
+    flex: 0 0 140px;
+    min-width: 120px;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(241, 245, 249, 0.85),
+        rgba(241, 245, 249, 0.85) 10px,
+        rgba(226, 232, 240, 0.85) 10px,
+        rgba(226, 232, 240, 0.85) 20px
+    );
+    border: 2px dashed #94a3b8;
+    border-radius: 8px;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 0;
+}
+
+.aisle-pill-badge {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #475569;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 8px;
+    white-space: nowrap;
+}
+
+.aisle-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 6px;
+    width: 100%;
+    max-width: 130px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+/* Paillasse Fond de Salle (Relie la gauche et la droite) */
+.bottom-wing-row {
+    flex: 0 0 auto;
+    background: #ffffff;
+    border-bottom: 4px solid #2563eb;
+    border-left: 4px solid #2563eb;
+    border-right: 4px solid #2563eb;
+    border-top: 2px dashed #cbd5e1;
+    border-radius: 0 0 8px 8px;
+    padding: 6px 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+}
+
+.bottom-stations-flex {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 6px;
+    width: 100%;
+}
+.bottom-stations-flex .pc-unit-box {
+    min-width: 0;
+}
+
+/* =========================================================
+   DESIGN COMPACT ET RÉALISTE DES POSTES INFORMATIQUES (PC)
+   ========================================================= */
+.pc-unit-box {
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 6px;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    position: relative;
+    min-width: 0;
+    min-height: fit-content;
+    box-sizing: border-box;
+}
+.pc-unit-box:hover {
+    border-color: #2563eb;
+    box-shadow: 0 2px 6px rgba(37,99,235,0.12);
+}
+.pc-unit-box.status-broken {
+    border-color: #ef4444;
+    background: #fffafa;
+}
+.pc-unit-box.status-no_network {
+    border-color: #f59e0b;
+    background: #fffdf5;
+}
+.pc-unit-box.is-incomplete {
+    border-color: #f97316;
+    box-shadow: 0 0 0 1.5px rgba(249, 115, 22, 0.35);
+}
+.pc-unit-box.drag-target-over {
+    border: 2px dashed #2563eb !important;
+    background: #eff6ff !important;
+}
+
+/* Barre supérieure de l'ordinateur */
+.pc-unit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+    line-height: 1;
+}
+.pc-id-label {
+    font-weight: 800;
+    font-size: 0.7rem;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.pc-group-label {
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: #64748b;
+}
+.pc-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.pc-status-dot.dot-ok { background: #22c55e; }
+.pc-status-dot.dot-broken { background: #ef4444; }
+.pc-status-dot.dot-no_network { background: #f59e0b; }
+
+/* Conteneur des Élèves du Poste */
+.pc-students-row-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Ligne d'un Élève dans le Poste */
+.student-slot-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5px 3px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    min-width: 0;
+    line-height: 1.1;
+}
+.student-slot-line.is-student-absent {
+    background: #fef2f2 !important;
+    border-color: #fca5a5 !important;
+}
+
+.stu-avatar-circle {
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #e0e7ff;
+    color: #3730a3;
+    font-weight: 700;
+    font-size: 0.55rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.stu-name-inline {
+    font-weight: 700;
+    font-size: 0.68rem;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-left: 3px;
+    margin-right: 3px;
+    min-width: 0;
+    flex-grow: 1;
+}
+.stu-presence-pill {
+    padding: 1px 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    border-radius: 3px;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    line-height: 1.1;
+    transition: all 0.1s ease;
+    flex-shrink: 0;
+}
+.stu-presence-pill.status-present {
+    background: #dcfce7;
+    color: #15803d;
+}
+.stu-presence-pill.status-present:hover {
+    background: #bbf7d0;
+}
+.stu-presence-pill.status-absent {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+.stu-presence-pill.status-absent:hover {
+    background: #fecaca;
+}
+.stu-remove-btn {
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    padding: 0 1px;
+    margin-left: 1px;
+    cursor: pointer;
+    font-size: 0.65rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.stu-remove-btn:hover {
+    color: #dc2626;
+}
+
+/* Bouton Emplacement Vide */
+.empty-station-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px dashed #cbd5e1;
+    background: #ffffff;
+    color: #64748b;
+    font-size: 0.64rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+.empty-station-line:hover {
+    border-color: #2563eb;
+    color: #1d4ed8;
+    background: #eff6ff;
+}
+
+/* Volet Latéral Rétractable (Élèves à Placer) */
+.sidebar-unassigned-col {
+    flex: 0 0 215px;
+    width: 215px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    transition: all 0.2s ease;
+}
+.sidebar-unassigned-col.is-collapsed {
+    display: none !important;
+}
+
+.unassigned-card-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 5px;
+    border-radius: 5px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 3px;
+    background: #ffffff;
+    cursor: grab;
+    transition: border-color 0.15s ease;
+}
+.unassigned-card-item:hover {
+    border-color: #2563eb;
+    box-shadow: 0 1px 4px rgba(37,99,235,0.1);
+}
+
+/* Toast de Notification */
+#liveToast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1099;
+    min-width: 260px;
+    display: none;
+    animation: fadeInToast 0.25s ease-out;
+}
+@keyframes fadeInToast {
+    from { transform: translateY(-15px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Mode Vidéoprojection */
+body.projector-fullscreen #accordionSidebar,
+body.projector-fullscreen #content nav.navbar,
+body.projector-fullscreen .no-projector,
+body.projector-fullscreen footer {
+    display: none !important;
+}
+body.projector-fullscreen #content-wrapper {
+    background: #ffffff !important;
+    padding: 0 !important;
+}
+body.projector-fullscreen .container-fluid {
+    max-width: 100% !important;
+    padding: 4px 10px !important;
+}
+body.projector-fullscreen .lab-page-wrapper {
+    height: 100vh !important;
+    max-height: 100vh !important;
+}
+body.projector-fullscreen .sidebar-unassigned-col {
+    display: none !important;
+}
+body.projector-fullscreen .proj-banner-exit {
+    display: flex !important;
+}
+.proj-banner-exit {
+    display: none;
+    background: #0f172a;
+    color: #ffffff;
+    padding: 5px 14px;
+    border-radius: 8px;
+    margin-bottom: 4px;
+    align-items: center;
+    justify-content: space-between;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-2">
+
+    <!-- Toast Flottant -->
+    <div id="liveToast" class="alert alert-success shadow-lg border-0 d-flex align-items-center justify-content-between p-2 px-3">
+        <div class="small font-weight-bold">
+            <i class="fas fa-check-circle mr-1 text-white"></i>
+            <span id="liveToastText">Action validée</span>
+        </div>
+        <button type="button" class="close ml-2 text-white" style="font-size: 1.1rem;" onclick="hideLiveToast()">&times;</button>
+    </div>
+
+    <!-- Barre de Sortie Vidéoprojection -->
+    <div class="proj-banner-exit shadow-sm">
+        <span class="small font-weight-bold">
+            <i class="fas fa-tv text-primary mr-2"></i> Mode Vidéoprojection Salle en U &mdash; {{ classe.name }}
+        </span>
+        <button type="button" class="btn btn-xs btn-outline-light font-weight-bold" onclick="toggleProjectorMode()">
+            <i class="fas fa-times mr-1 text-danger"></i> Quitter Plein Écran
+        </button>
+    </div>
+
+    <div class="lab-page-wrapper">
+        <!-- En-tête Compact avec Actions -->
+        <div class="lab-top-header d-flex flex-wrap align-items-center justify-content-between no-projector">
+            <div class="d-flex align-items-center flex-wrap lab-header-info">
+                <a href="{{ url_for('absence.view_class', class_id=classe.id) }}" class="lab-pill-back" title="Revenir à la feuille d'appel">
+                    <i class="fas fa-arrow-left mr-1"></i> Appel
+                </a>
+                <span class="badge badge-primary px-2 py-1 font-weight-bold" style="font-size: 0.8rem; border-radius: 6px;">
+                    {{ classe.name }}
+                </span>
+                <span class="badge badge-light border text-muted px-2 py-1 small" style="border-radius: 6px;">
+                    <i class="fas fa-user-graduate mr-1"></i>{{ students|length }} Élèves
+                </span>
+                <span class="badge badge-info px-2 py-1 font-weight-bold small" style="border-radius: 6px;">
+                    <i class="fas fa-desktop mr-1"></i> Labo en U
+                </span>
+                <span class="small text-muted d-none d-md-inline-block">
+                    <i class="far fa-calendar-alt mr-1"></i> {{ today_date_fr }}
+                </span>
+                <span id="placedStatsBadge" class="badge badge-light border text-primary px-2 py-1 font-weight-bold" style="font-size: 0.78rem; border-radius: 6px;">
+                    0 placés
+                </span>
+            </div>
+
+            <!-- Barre de Boutons d'Action Harmonisée et Groupée -->
+            <div class="lab-action-toolbar">
+                <!-- Groupe Affichage / Outils -->
+                <div class="lab-btn-group">
+                    <button type="button" class="btn-lab-action" id="btnToggleSidebar" onclick="toggleSidebarPanel()" title="Masquer / Afficher les élèves à placer">
+                        <i class="fas fa-columns text-primary"></i> <span id="sidebarBtnLabel">Plein Écran</span>
+                    </button>
+                    <button type="button" class="btn-lab-action" onclick="toggleProjectorMode()" title="Afficher en grand pour les élèves">
+                        <i class="fas fa-tv text-info"></i> Projection
+                    </button>
+                    <button type="button" class="btn-lab-action" onclick="openModalConfig()" title="Configurer le nombre de postes du U">
+                        <i class="fas fa-sliders-h text-secondary"></i> Configurer
+                    </button>
+                    <button type="button" class="btn-lab-action" onclick="window.print()" title="Imprimer le plan">
+                        <i class="fas fa-print text-secondary"></i> Imprimer
+                    </button>
+                </div>
+
+                <!-- Groupe Auto-Placer -->
+                <div class="dropdown d-inline-block">
+                    <button type="button" class="btn-lab-action dropdown-toggle font-weight-bold" id="btnDropdownAssign" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="background:#fff; border:1px solid #cbd5e1;">
+                        <i class="fas fa-magic text-warning"></i> Auto-Placer
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right shadow-lg border-0 py-2" id="menuAssignDirect" aria-labelledby="btnDropdownAssign" style="border-radius: 10px; min-width: 250px;">
+                        <h6 class="dropdown-header text-uppercase font-weight-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">Répartition Automatique</h6>
+                        <a class="dropdown-item py-2 small font-weight-bold" href="javascript:void(0)" onclick="executeAutoAssign('alpha')">
+                            <i class="fas fa-sort-alpha-down text-primary mr-2"></i> Par Binômes Alphabétiques (A-Z)
+                        </a>
+                        <a class="dropdown-item py-2 small font-weight-bold" href="javascript:void(0)" onclick="executeAutoAssign('groups')">
+                            <i class="fas fa-users text-info mr-2"></i> Par Groupes TP (G1 puis G2)
+                        </a>
+                        <a class="dropdown-item py-2 small font-weight-bold" href="javascript:void(0)" onclick="executeAutoAssign('random')">
+                            <i class="fas fa-random text-warning mr-2"></i> Aléatoire (Mixage binômes)
+                        </a>
+                        <div class="dropdown-divider my-1"></div>
+                        <a class="dropdown-item text-danger py-2 small font-weight-bold" href="javascript:void(0)" onclick="executeAutoAssign('clear')">
+                            <i class="fas fa-trash-alt mr-2"></i> Vider tous les postes
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Enregistrer -->
+                <button type="button" class="btn-lab-action btn-lab-success" onclick="persistPlanToDatabase()" title="Sauvegarder le plan de salle">
+                    <i class="fas fa-save mr-1"></i> Enregistrer
+                </button>
+            </div>
+        </div>
+
+        <!-- Corps de la Page (Salle + Volet) -->
+        <div class="lab-main-layout">
+            <!-- Canvas de la Salle Informatique (Vue Spatiale en U Directe) -->
+            <div class="lab-canvas-screen" id="labCanvasScreen">
+                <!-- 1. Tableau Blanc & Bureau Professeur -->
+                <div class="lab-board-top">
+                    <div>
+                        <i class="fas fa-chalkboard mr-1 text-muted"></i> Tableau Blanc
+                    </div>
+                    <div style="letter-spacing: 0.3px;">
+                        <i class="fas fa-chalkboard-teacher text-warning mr-1"></i> ESTRADE &amp; BUREAU PROFESSEUR &mdash; VIDÉOPROJECTEUR
+                    </div>
+                    <div>
+                        <i class="fas fa-wifi text-success mr-1"></i> Réseau Labo OK
+                    </div>
+                </div>
+
+                <!-- 2. Corps du U (Ailes + Allée Centrale + Fond de Salle) -->
+                <div class="horseshoe-body">
+                    <!-- Aile Gauche | Allée Centrale | Aile Droite -->
+                    <div class="horseshoe-wings-row">
+                        <!-- Aile Gauche (Mur Ouest) -->
+                        <div class="wing-column wing-column-left">
+                            <div class="wing-title-strip">
+                                <span><i class="fas fa-arrow-left text-primary mr-1"></i> Aile Gauche</span>
+                                <span class="badge badge-light border" id="badgeCountLeft">0 PC</span>
+                            </div>
+                            <div id="containerWingLeft" class="wing-stations-list">
+                                <!-- Injecté par JS -->
+                            </div>
+                        </div>
+
+                        <!-- Allée Centrale de Circulation -->
+                        <div class="center-aisle-column">
+                            <div class="aisle-pill-badge">
+                                <i class="fas fa-walking text-primary mr-1"></i> Allée de Circulation
+                            </div>
+                            
+                            <div class="aisle-kpi-card">
+                                <div style="font-size:0.6rem; font-weight:800; text-transform:uppercase; color:#94a3b8; margin-bottom:2px;">
+                                    Occupation
+                                </div>
+                                <div class="font-weight-bold text-primary" style="font-size:1.15rem; line-height:1;" id="kpiOccupancyRate">
+                                    0 %
+                                </div>
+                                <div class="text-muted" style="font-size:0.64rem; margin-top:3px; margin-bottom:4px;" id="kpiCompleteCount">
+                                    0 binôme(s)
+                                </div>
+                                <div class="progress" style="height: 4px; border-radius: 3px;">
+                                    <div class="progress-bar bg-primary" id="kpiProgress" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Aile Droite (Mur Est) -->
+                        <div class="wing-column wing-column-right">
+                            <div class="wing-title-strip">
+                                <span><i class="fas fa-arrow-right text-primary mr-1"></i> Aile Droite</span>
+                                <span class="badge badge-light border" id="badgeCountRight">0 PC</span>
+                            </div>
+                            <div id="containerWingRight" class="wing-stations-list">
+                                <!-- Injecté par JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fond de Salle (Relie la gauche et la droite) -->
+                    <div class="bottom-wing-row">
+                        <div class="wing-title-strip" style="margin-bottom: 4px; padding-bottom: 2px;">
+                            <span><i class="fas fa-arrow-down text-primary mr-1"></i> Fond de Salle (Mur Arrière)</span>
+                            <span class="badge badge-light border" id="badgeCountBottom">0 PC</span>
+                        </div>
+                        <div id="containerWingBottom" class="bottom-stations-flex">
+                            <!-- Injecté par JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volet Latéral : Élèves Non Assignés -->
+            <div class="sidebar-unassigned-col no-projector" id="sidebarUnassignedPanel">
+                <div class="p-2 border-bottom d-flex align-items-center justify-content-between bg-light rounded-top">
+                    <span class="small font-weight-bold text-gray-800">
+                        <i class="fas fa-user-friends text-primary mr-1"></i> À Placer
+                    </span>
+                    <span class="badge badge-secondary" id="badgeUnassignedNumber">0</span>
+                </div>
+                <div class="p-2 border-bottom">
+                    <input type="text" id="inputSearchStudents" class="form-control form-control-sm rounded-pill" placeholder="🔍 Filtrer..." oninput="onFilterUnassignedInput()">
+                </div>
+                <div class="p-2 flex-grow-1" id="listUnassignedContainer" style="overflow-y: auto;">
+                    <!-- Injecté par JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL : SÉLECTION RAPIDE D'UN ÉLÈVE POUR UN POSTE -->
+<div class="modal fade" id="modalStudentSelector" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+            <div class="modal-header bg-light py-2 px-3">
+                <h6 class="modal-title font-weight-bold mb-0">
+                    <i class="fas fa-user-plus text-primary mr-2"></i> Assigner à <span id="labelTargetStationTitle" class="text-primary font-weight-bold">Poste 01</span>
+                </h6>
+                <button type="button" class="close" onclick="closeSafeModal('modalStudentSelector')">&times;</button>
+            </div>
+            <div class="modal-body p-3">
+                <input type="hidden" id="targetStationIdHidden">
+                <input type="text" id="filterModalStudentSearch" class="form-control form-control-sm rounded-pill mb-3" placeholder="🔍 Rechercher par nom, prénom ou CNE..." oninput="onFilterModalStudentList()">
+                <div id="containerModalStudentList" style="max-height: 320px; overflow-y: auto;">
+                    <!-- Injecté par JS -->
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeSafeModal('modalStudentSelector')">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL : CONFIGURATION DU NOMBRE DE POSTES DU U -->
+<div class="modal fade" id="modalConfigureU" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+            <div class="modal-header bg-light py-2 px-3">
+                <h6 class="modal-title font-weight-bold mb-0">
+                    <i class="fas fa-sliders-h text-primary mr-2"></i> Configuration du Laboratoire en U
+                </h6>
+                <button type="button" class="close" onclick="closeSafeModal('modalConfigureU')">&times;</button>
+            </div>
+            <div class="modal-body p-3">
+                <label class="font-weight-bold small text-muted mb-2 d-block">Préréglages Rapides :</label>
+                <div class="d-flex flex-wrap gap-1 mb-3">
+                    <button type="button" class="btn btn-xs btn-outline-secondary font-weight-bold" onclick="onSetPresetU(5, 6, 5)">16 PC (5 - 6 - 5)</button>
+                    <button type="button" class="btn btn-xs btn-outline-primary font-weight-bold" onclick="onSetPresetU(7, 6, 7)">20 PC (7 - 6 - 7)</button>
+                    <button type="button" class="btn btn-xs btn-outline-success font-weight-bold" onclick="onSetPresetU(8, 8, 8)">24 PC (8 - 8 - 8)</button>
+                    <button type="button" class="btn btn-xs btn-outline-info font-weight-bold" onclick="onSetPresetU(10, 10, 10)">30 PC (10 - 10 - 10)</button>
+                </div>
+
+                <div class="row">
+                    <div class="col-4 text-center">
+                        <label class="small font-weight-bold text-muted">Aile Gauche</label>
+                        <input type="number" id="inputULeft" class="form-control form-control-sm text-center font-weight-bold" min="2" max="25" oninput="onRecalcUTotal()">
+                    </div>
+                    <div class="col-4 text-center">
+                        <label class="small font-weight-bold text-muted">Fond de Salle</label>
+                        <input type="number" id="inputUBottom" class="form-control form-control-sm text-center font-weight-bold" min="2" max="25" oninput="onRecalcUTotal()">
+                    </div>
+                    <div class="col-4 text-center">
+                        <label class="small font-weight-bold text-muted">Aile Droite</label>
+                        <input type="number" id="inputURight" class="form-control form-control-sm text-center font-weight-bold" min="2" max="25" oninput="onRecalcUTotal()">
+                    </div>
+                </div>
+
+                <div class="alert alert-light border py-2 px-3 mt-3 mb-3 d-flex justify-content-between align-items-center">
+                    <span class="small font-weight-bold text-gray-700">Total Ordinateurs PC :</span>
+                    <strong class="h5 mb-0 text-primary font-weight-bold" id="labelTotalUStations">20</strong>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label class="small font-weight-bold text-gray-700">Capacité par poste :</label>
+                    <select id="selectMaxPerStation" class="form-control form-control-sm font-weight-bold">
+                        <option value="1">1 élève par poste (Monôme / Individuel)</option>
+                        <option value="2" selected>2 élèves par poste (Binôme standard)</option>
+                        <option value="3">3 élèves par poste (Trinôme / Îlot)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeSafeModal('modalConfigureU')">Annuler</button>
+                <button type="button" class="btn btn-primary btn-sm font-weight-bold px-3" onclick="onApplyUConfiguration()">
+                    <i class="fas fa-check mr-1"></i> Appliquer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL : ÉDITION DU POSTE (NOM & MATÉRIEL) -->
+<div class="modal fade" id="modalEditStationDetails" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+            <div class="modal-header bg-light py-2 px-3">
+                <h6 class="modal-title font-weight-bold mb-0">
+                    <i class="fas fa-desktop text-primary mr-2"></i> Paramètres du Poste
+                </h6>
+                <button type="button" class="close" onclick="closeSafeModal('modalEditStationDetails')">&times;</button>
+            </div>
+            <div class="modal-body p-3">
+                <input type="hidden" id="editModalHiddenStationId">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="form-group mb-2">
+                            <label class="small font-weight-bold">Nom du Poste</label>
+                            <input type="text" id="editInputStationName" class="form-control form-control-sm font-weight-bold">
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="form-group mb-2">
+                            <label class="small font-weight-bold">Nom du Groupe</label>
+                            <input type="text" id="editInputGroupName" class="form-control form-control-sm font-weight-bold text-primary">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group mb-2">
+                    <label class="small font-weight-bold">État du Matériel</label>
+                    <select id="editSelectStatus" class="form-control form-control-sm font-weight-bold">
+                        <option value="ok">✅ Opérationnel (Tout fonctionne)</option>
+                        <option value="broken">❌ En Panne (Écran HS, PC en panne...)</option>
+                        <option value="no_network">⚠️ Pas de Connexion Réseau</option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-0">
+                    <label class="small font-weight-bold">Mémo technique / Note</label>
+                    <textarea id="editInputStationNote" class="form-control form-control-sm" rows="2" placeholder="Ex: Câble souris défectueux..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeSafeModal('modalEditStationDetails')">Annuler</button>
+                <button type="button" class="btn btn-primary btn-sm font-weight-bold px-3" onclick="onSaveStationDetails()">
+                    <i class="fas fa-check mr-1"></i> Valider
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// =========================================================
+// ÉTAT GLOBAL DES DONNÉES DU LABORATOIRE EN U
+// =========================================================
+const CLASS_ID = {{ classe.id }};
+const RAW_STUDENT_DATA = {{ students | tojson if students else '[]' }};
+const ABSENCES_TODAY_DATA = {{ today_absences | tojson if today_absences else '[]' }};
+const G1_IDS_DATA = {{ g1_ids | tojson if g1_ids else '[]' }};
+const G2_IDS_DATA = {{ g2_ids | tojson if g2_ids else '[]' }};
+
+// Normalisation des élèves
+const ALL_STUDENTS = RAW_STUDENT_DATA.map(st => {
+    const fn = (st.first_name || '').trim();
+    const ln = (st.last_name || '').trim();
+    const sid = parseInt(st.id);
+    return {
+        id: sid,
+        cne: st.cne || '',
+        firstName: fn,
+        lastName: ln,
+        fullName: `${ln} ${fn}`,
+        initials: ((fn.charAt(0) || '') + (ln.charAt(0) || '')).toUpperCase() || 'E',
+        isAbsent: ABSENCES_TODAY_DATA.indexOf(sid) !== -1,
+        group: G1_IDS_DATA.indexOf(sid) !== -1 ? 1 : (G2_IDS_DATA.indexOf(sid) !== -1 ? 2 : 0)
+    };
+});
+
+let currentLabPlan = {{ plan_config | tojson if plan_config else '{}' }};
+
+// Structure en U par défaut
+if (!currentLabPlan.u_config) {
+    currentLabPlan.u_config = { total_stations: 20, wing_left: 7, bottom: 6, wing_right: 7, max_per_station: 2 };
+}
+if (!currentLabPlan.stations || currentLabPlan.stations.length === 0) {
+    currentLabPlan.stations = buildDefaultUStations(currentLabPlan.u_config);
+}
+
+// Nettoyage et typage des IDs
+currentLabPlan.stations.forEach(st => {
+    if (st.assigned_student_ids && Array.isArray(st.assigned_student_ids)) {
+        st.assigned_student_ids = st.assigned_student_ids.map(id => parseInt(id)).filter(id => !isNaN(id));
+    } else {
+        st.assigned_student_ids = [];
+    }
+});
+
+function buildDefaultUStations(cfg) {
+    const arr = [];
+    let num = 1;
+    const zones = [
+        ['left', cfg.wing_left || 7],
+        ['bottom', cfg.bottom || 6],
+        ['right', cfg.wing_right || 7]
+    ];
+    zones.forEach(([zoneKey, count]) => {
+        for (let i = 0; i < count; i++) {
+            arr.push({
+                id: `pc_${num}`,
+                station_number: num,
+                name: `Poste ${String(num).padStart(2, '0')}`,
+                group_name: `Groupe ${String(num).padStart(2, '0')}`,
+                zone: zoneKey,
+                status: 'ok',
+                note: '',
+                assigned_student_ids: []
+            });
+            num++;
+        }
+    });
+    return arr;
+}
+
+function getStudent(sid) {
+    const id = parseInt(sid);
+    return ALL_STUDENTS.find(s => s.id === id) || null;
+}
+
+// =========================================================
+// RENDU VISUEL DYNAMIQUE DU PLAN EN U
+// =========================================================
+function renderScreenLab() {
+    const containerL = document.getElementById('containerWingLeft');
+    const containerR = document.getElementById('containerWingRight');
+    const containerB = document.getElementById('containerWingBottom');
+
+    if (!containerL || !containerR || !containerB) return;
+
+    containerL.innerHTML = '';
+    containerR.innerHTML = '';
+    containerB.innerHTML = '';
+
+    const cfg = currentLabPlan.u_config || { max_per_station: 2 };
+    const maxPer = cfg.max_per_station || 2;
+    const assignedIdSet = new Set();
+
+    let countL = 0, countR = 0, countB = 0;
+    let occupiedCount = 0, completeCount = 0;
+
+    currentLabPlan.stations.forEach(st => {
+        const zone = st.zone || 'left';
+        if (zone === 'left') countL++;
+        else if (zone === 'right') countR++;
+        else countB++;
+
+        const ids = st.assigned_student_ids || [];
+        if (ids.length > 0) occupiedCount++;
+        if (ids.length >= maxPer) completeCount++;
+
+        let hasAbsent = false;
+        ids.forEach(sid => {
+            assignedIdSet.add(parseInt(sid));
+            const s = getStudent(sid);
+            if (s && s.isAbsent) hasAbsent = true;
+        });
+
+        const card = createStationUnitDOM(st, ids, maxPer, hasAbsent);
+        if (zone === 'left') containerL.appendChild(card);
+        else if (zone === 'right') containerR.appendChild(card);
+        else containerB.appendChild(card);
+    });
+
+    // Compteurs des Ailes
+    document.getElementById('badgeCountLeft').textContent = `${countL} PC`;
+    document.getElementById('badgeCountRight').textContent = `${countR} PC`;
+    document.getElementById('badgeCountBottom').textContent = `${countB} PC`;
+
+    // Métriques Allée Centrale
+    const totalCount = currentLabPlan.stations.length;
+    const pct = totalCount > 0 ? Math.round((occupiedCount / totalCount) * 100) : 0;
+    document.getElementById('kpiOccupancyRate').textContent = `${pct} %`;
+    document.getElementById('kpiCompleteCount').textContent = `${completeCount} binôme(s)`;
+    document.getElementById('kpiProgress').style.width = `${pct}%`;
+
+    // Badge En-tête
+    document.getElementById('placedStatsBadge').textContent = `${assignedIdSet.size} / ${ALL_STUDENTS.length} placés`;
+
+    // Volet des élèves à placer
+    renderUnassignedSidebarList(assignedIdSet);
+}
+
+function createStationUnitDOM(st, ids, maxPer, hasAbsent) {
+    const box = document.createElement('div');
+    box.className = `pc-unit-box status-${st.status || 'ok'} ${hasAbsent ? 'is-incomplete' : ''}`;
+    box.id = `pc_${st.id}`;
+
+    // Drag and drop target
+    box.addEventListener('dragover', e => { e.preventDefault(); box.classList.add('drag-target-over'); });
+    box.addEventListener('dragleave', () => box.classList.remove('drag-target-over'));
+    box.addEventListener('drop', e => {
+        e.preventDefault();
+        box.classList.remove('drag-target-over');
+        const sid = parseInt(e.dataTransfer.getData('text/plain'));
+        if (sid) assignStudentToSpecificStation(st.id, sid);
+    });
+
+    let statusDotClass = 'dot-ok';
+    if (st.status === 'broken') statusDotClass = 'dot-broken';
+    else if (st.status === 'no_network') statusDotClass = 'dot-no_network';
+
+    let html = `
+        <div class="pc-unit-header">
+            <span class="pc-id-label">
+                <span class="pc-status-dot ${statusDotClass}"></span>
+                ${escapeText(st.name)}
+            </span>
+            <span class="pc-group-label">${escapeText(st.group_name || 'Groupe')}</span>
+            <button type="button" class="btn btn-link text-muted p-0 no-projector" onclick="openModalStationDetails('${st.id}')" title="Configurer">
+                <i class="fas fa-cog" style="font-size: 0.65rem;"></i>
+            </button>
+        </div>
+        <div class="pc-students-row-container">
+    `;
+
+    if (ids.length === 0) {
+        html += `
+            <div class="empty-station-line" onclick="openModalStudentSelector('${st.id}')">
+                <i class="fas fa-plus-circle text-primary mr-1"></i> Poste Libre (${maxPer} pl.)
+            </div>
+        `;
+    } else {
+        ids.forEach(sid => {
+            const student = getStudent(sid);
+            if (!student) return;
+
+            const isAbs = student.isAbsent;
+            const presenceClass = isAbs ? 'status-absent' : 'status-present';
+            const presenceText = isAbs ? '<i class="fas fa-times mr-1"></i>Absent' : '<i class="fas fa-check mr-1"></i>Présent';
+            const groupBadge = student.group === 1 ? '<span class="badge badge-info py-0 px-1 ml-1" style="font-size:0.55rem;">G1</span>' :
+                              (student.group === 2 ? '<span class="badge badge-warning py-0 px-1 ml-1" style="font-size:0.55rem;">G2</span>' : '');
+
+            html += `
+                <div class="student-slot-line ${isAbs ? 'is-student-absent' : ''}">
+                    <div class="stu-avatar-circle">${student.initials}</div>
+                    <div class="stu-name-inline" title="${student.fullName} (${student.cne})">
+                        ${escapeText(student.lastName)} ${escapeText(student.firstName)} ${groupBadge}
+                    </div>
+                    <div class="d-flex align-items-center flex-shrink-0">
+                        <button type="button" class="stu-presence-pill ${presenceClass}" onclick="toggleStudentPresenceDirect(${student.id})" title="Cliquer pour basculer présence">
+                            ${presenceText}
+                        </button>
+                        <button type="button" class="stu-remove-btn no-projector" onclick="unassignStudentFromUnit('${st.id}', ${student.id})" title="Retirer">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        if (ids.length < maxPer) {
+            html += `
+                <div class="empty-station-line" style="padding: 1px 4px; font-size: 0.64rem;" onclick="openModalStudentSelector('${st.id}')">
+                    <i class="fas fa-plus mr-1 text-primary"></i> Ajouter (${ids.length}/${maxPer})
+                </div>
+            `;
+        }
+    }
+
+    html += `</div>`;
+    box.innerHTML = html;
+    return box;
+}
+
+// Volet latéral des élèves non assignés
+function renderUnassignedSidebarList(assignedIds) {
+    const listContainer = document.getElementById('listUnassignedContainer');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    const unassigned = ALL_STUDENTS.filter(s => !assignedIds.has(s.id));
+    document.getElementById('badgeUnassignedNumber').textContent = unassigned.length;
+
+    if (unassigned.length === 0) {
+        listContainer.innerHTML = `
+            <div class="text-center text-muted small py-4">
+                <i class="fas fa-check-circle text-success fa-2x d-block mb-1"></i>
+                Tous les élèves sont placés !
+            </div>
+        `;
+        return;
+    }
+
+    unassigned.forEach(s => {
+        const item = document.createElement('div');
+        item.className = 'unassigned-card-item';
+        item.draggable = true;
+        item.setAttribute('data-name', s.fullName.toLowerCase());
+        item.setAttribute('data-cne', s.cne.toLowerCase());
+
+        item.addEventListener('dragstart', e => {
+            e.dataTransfer.setData('text/plain', s.id);
+            item.style.opacity = '0.5';
+        });
+        item.addEventListener('dragend', () => item.style.opacity = '1');
+
+        const groupBadge = s.group === 1 ? '<span class="badge badge-info py-0 px-1 ml-1" style="font-size:0.55rem;">G1</span>' :
+                          (s.group === 2 ? '<span class="badge badge-warning py-0 px-1 ml-1" style="font-size:0.55rem;">G2</span>' : '');
+
+        item.innerHTML = `
+            <div class="d-flex align-items-center" style="gap:5px; min-width:0;">
+                <div class="stu-avatar-circle" style="width:20px; height:20px; font-size:0.58rem;">${s.initials}</div>
+                <div style="min-width:0;">
+                    <div class="font-weight-bold text-truncate" style="font-size:0.7rem; line-height:1.1;" title="${s.fullName}">
+                        ${escapeText(s.lastName)} ${escapeText(s.firstName)} ${groupBadge}
+                    </div>
+                    <div class="text-muted" style="font-size:0.6rem;">${escapeText(s.cne)}</div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-xs btn-outline-primary font-weight-bold ml-1 flex-shrink-0" onclick="assignToFirstFreeUnit(${s.id})" title="Placer au premier poste libre">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+        `;
+        listContainer.appendChild(item);
+    });
+}
+
+function onFilterUnassignedInput() {
+    const q = (document.getElementById('inputSearchStudents').value || '').toLowerCase().trim();
+    document.querySelectorAll('#listUnassignedContainer .unassigned-card-item').forEach(el => {
+        const name = el.getAttribute('data-name') || '';
+        const cne = el.getAttribute('data-cne') || '';
+        el.style.display = (name.includes(q) || cne.includes(q)) ? 'flex' : 'none';
+    });
+}
+
+// =========================================================
+// LOGIQUE DES INTERACTIONS ET ACTIONS
+// =========================================================
+
+// Basculer la présence d'un élève (instantané + optimistic UI)
+function toggleStudentPresenceDirect(studentId) {
+    const s = getStudent(studentId);
+    if (!s) return;
+
+    s.isAbsent = !s.isAbsent;
+    renderScreenLab();
+
+    fetch('/absence/api/toggle_student_absence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: studentId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data && data.success) {
+            s.isAbsent = data.is_absent;
+            renderScreenLab();
+            showLiveToast(`${s.fullName} marqué ${data.is_absent ? 'Absent' : 'Présent'}`);
+        } else {
+            s.isAbsent = !s.isAbsent; // Rollback
+            renderScreenLab();
+        }
+    })
+    .catch(() => {
+        s.isAbsent = !s.isAbsent; // Rollback
+        renderScreenLab();
+    });
+}
+
+// Assigner un élève à un poste
+function assignStudentToSpecificStation(stationId, studentId) {
+    const st = currentLabPlan.stations.find(u => u.id === stationId);
+    if (!st) return;
+
+    const sid = parseInt(studentId);
+    if (!st.assigned_student_ids) st.assigned_student_ids = [];
+    const maxPer = (currentLabPlan.u_config && currentLabPlan.u_config.max_per_station) || 2;
+
+    // Retirer de tout autre poste
+    currentLabPlan.stations.forEach(other => {
+        if (other.assigned_student_ids) {
+            other.assigned_student_ids = other.assigned_student_ids.filter(id => id !== sid);
+        }
+    });
+
+    if (st.assigned_student_ids.length < maxPer) {
+        st.assigned_student_ids.push(sid);
+        renderScreenLab();
+        showLiveToast(`Élève affecté à ${st.name}`);
+    } else {
+        alert('Ce poste est déjà au complet !');
+    }
+}
+
+function assignToFirstFreeUnit(studentId) {
+    const sid = parseInt(studentId);
+    const maxPer = (currentLabPlan.u_config && currentLabPlan.u_config.max_per_station) || 2;
+
+    for (let st of currentLabPlan.stations) {
+        if (!st.assigned_student_ids) st.assigned_student_ids = [];
+        if (st.assigned_student_ids.includes(sid)) return;
+        if (st.assigned_student_ids.length < maxPer) {
+            st.assigned_student_ids.push(sid);
+            renderScreenLab();
+            showLiveToast(`Élève placé sur ${st.name}`);
+            return;
+        }
+    }
+    alert('Tous les postes du laboratoire sont complets !');
+}
+
+function unassignStudentFromUnit(stationId, studentId) {
+    const sid = parseInt(studentId);
+    const st = currentLabPlan.stations.find(u => u.id === stationId);
+    if (st && st.assigned_student_ids) {
+        st.assigned_student_ids = st.assigned_student_ids.filter(id => id !== sid);
+        renderScreenLab();
+        showLiveToast(`Élève retiré de ${st.name}`);
+    }
+}
+
+// Modal Sélecteur d'Élève
+function openModalStudentSelector(stationId) {
+    const st = currentLabPlan.stations.find(u => u.id === stationId);
+    if (!st) return;
+
+    document.getElementById('targetStationIdHidden').value = stationId;
+    document.getElementById('labelTargetStationTitle').textContent = `${st.name} (${st.group_name || 'Groupe'})`;
+    document.getElementById('filterModalStudentSearch').value = '';
+
+    populateModalStudentSelector();
+    openSafeModal('modalStudentSelector');
+}
+
+function populateModalStudentSelector() {
+    const container = document.getElementById('containerModalStudentList');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const assignedSet = new Set();
+    currentLabPlan.stations.forEach(u => (u.assigned_student_ids || []).forEach(id => assignedSet.add(id)));
+    const unassigned = ALL_STUDENTS.filter(s => !assignedSet.has(s.id));
+
+    if (unassigned.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted small py-4">Tous les élèves de la classe sont déjà placés !</div>';
+        return;
+    }
+
+    unassigned.forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'd-flex align-items-center justify-content-between p-2 mb-2 rounded border bg-white';
+        row.setAttribute('data-search', `${s.fullName} ${s.cne}`.toLowerCase());
+
+        const groupBadge = s.group === 1 ? '<span class="badge badge-info py-0 px-1 ml-1" style="font-size:0.6rem;">G1</span>' :
+                          (s.group === 2 ? '<span class="badge badge-warning py-0 px-1 ml-1" style="font-size:0.6rem;">G2</span>' : '');
+
+        row.innerHTML = `
+            <div class="d-flex align-items-center" style="gap:6px; min-width:0;">
+                <div class="stu-avatar-circle" style="width:24px; height:24px; font-size:0.62rem;">${s.initials}</div>
+                <div style="min-width:0;">
+                    <div class="font-weight-bold text-truncate" style="font-size:0.75rem;">${escapeText(s.lastName)} ${escapeText(s.firstName)} ${groupBadge}</div>
+                    <div class="text-muted" style="font-size:0.64rem;">${escapeText(s.cne)}</div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-xs btn-primary font-weight-bold ml-2 flex-shrink-0" onclick="confirmModalStudentSelection(${s.id})">
+                <i class="fas fa-check mr-1"></i> Placer
+            </button>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function onFilterModalStudentList() {
+    const q = (document.getElementById('filterModalStudentSearch').value || '').toLowerCase().trim();
+    document.querySelectorAll('#containerModalStudentList > div').forEach(el => {
+        const text = el.getAttribute('data-search') || '';
+        el.style.display = text.includes(q) ? 'flex' : 'none';
+    });
+}
+
+function confirmModalStudentSelection(studentId) {
+    const stId = document.getElementById('targetStationIdHidden').value;
+    assignStudentToSpecificStation(stId, studentId);
+    closeSafeModal('modalStudentSelector');
+}
+
+// Modal Détails Poste
+function openModalStationDetails(stationId) {
+    const st = currentLabPlan.stations.find(u => u.id === stationId);
+    if (!st) return;
+
+    document.getElementById('editModalHiddenStationId').value = st.id;
+    document.getElementById('editInputStationName').value = st.name;
+    document.getElementById('editInputGroupName').value = st.group_name || `Groupe ${st.station_number}`;
+    document.getElementById('editSelectStatus').value = st.status || 'ok';
+    document.getElementById('editInputStationNote').value = st.note || '';
+
+    openSafeModal('modalEditStationDetails');
+}
+
+function onSaveStationDetails() {
+    const id = document.getElementById('editModalHiddenStationId').value;
+    const st = currentLabPlan.stations.find(u => u.id === id);
+    if (st) {
+        st.name = document.getElementById('editInputStationName').value.trim() || st.name;
+        st.group_name = document.getElementById('editInputGroupName').value.trim() || st.group_name;
+        st.status = document.getElementById('editSelectStatus').value;
+        st.note = document.getElementById('editInputStationNote').value.trim();
+        closeSafeModal('modalEditStationDetails');
+        renderScreenLab();
+        showLiveToast(`Paramètres de ${st.name} enregistrés`);
+    }
+}
+
+// Modal Configuration U
+function openModalConfig() {
+    const cfg = currentLabPlan.u_config || { wing_left: 7, bottom: 6, wing_right: 7, max_per_station: 2 };
+    document.getElementById('inputULeft').value = cfg.wing_left || 7;
+    document.getElementById('inputUBottom').value = cfg.bottom || 6;
+    document.getElementById('inputURight').value = cfg.wing_right || 7;
+    document.getElementById('selectMaxPerStation').value = cfg.max_per_station || 2;
+    onRecalcUTotal();
+    openSafeModal('modalConfigureU');
+}
+
+function onSetPresetU(l, b, r) {
+    document.getElementById('inputULeft').value = l;
+    document.getElementById('inputUBottom').value = b;
+    document.getElementById('inputURight').value = r;
+    onRecalcUTotal();
+}
+
+function onRecalcUTotal() {
+    const l = parseInt(document.getElementById('inputULeft').value) || 0;
+    const b = parseInt(document.getElementById('inputUBottom').value) || 0;
+    const r = parseInt(document.getElementById('inputURight').value) || 0;
+    document.getElementById('labelTotalUStations').textContent = l + b + r;
+}
+
+function onApplyUConfiguration() {
+    const l = parseInt(document.getElementById('inputULeft').value) || 7;
+    const b = parseInt(document.getElementById('inputUBottom').value) || 6;
+    const r = parseInt(document.getElementById('inputURight').value) || 7;
+    const maxPer = parseInt(document.getElementById('selectMaxPerStation').value) || 2;
+
+    const existingMap = new Map();
+    (currentLabPlan.stations || []).forEach(st => existingMap.set(st.station_number, st));
+
+    const newStations = [];
+    let num = 1;
+    const zones = [['left', l], ['bottom', b], ['right', r]];
+
+    zones.forEach(([zoneKey, count]) => {
+        for (let i = 0; i < count; i++) {
+            const old = existingMap.get(num);
+            newStations.push({
+                id: `pc_${num}`,
+                station_number: num,
+                name: old ? old.name : `Poste ${String(num).padStart(2, '0')}`,
+                group_name: old ? (old.group_name || `Groupe ${String(num).padStart(2, '0')}`) : `Groupe ${String(num).padStart(2, '0')}`,
+                zone: zoneKey,
+                status: old ? (old.status || 'ok') : 'ok',
+                note: old ? (old.note || '') : '',
+                assigned_student_ids: old ? (old.assigned_student_ids || []) : []
+            });
+            num++;
+        }
+    });
+
+    currentLabPlan.layout_type = 'u_shape';
+    currentLabPlan.u_config = { total_stations: l + b + r, wing_left: l, bottom: b, wing_right: r, max_per_station: maxPer };
+    currentLabPlan.stations = newStations;
+
+    closeSafeModal('modalConfigureU');
+    renderScreenLab();
+    persistPlanToDatabase();
+    showLiveToast('Configuration du laboratoire appliquée et enregistrée !');
+}
+
+// Menu Déroulant Auto-Placer
+function toggleDropdownMenu(id) {
+    if (window.$ && $.fn && $.fn.dropdown) {
+        $('#btnDropdownAssign').dropdown('toggle');
+    } else {
+        const m = document.getElementById(id);
+        if (m) m.classList.toggle('show');
+    }
+}
+document.addEventListener('click', e => {
+    const btn = document.getElementById('btnDropdownAssign');
+    const menu = document.getElementById('menuAssignDirect');
+    if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.remove('show');
+    }
+});
+
+function executeAutoAssign(mode) {
+    if (window.$ && $.fn && $.fn.dropdown) {
+        $('#btnDropdownAssign').dropdown('hide');
+    }
+    const menu = document.getElementById('menuAssignDirect');
+    if (menu) menu.classList.remove('show');
+
+    if (mode === 'clear' && !confirm('Voulez-vous libérer tous les ordinateurs du laboratoire ?')) return;
+
+    fetch(`/absence/api/class/${CLASS_ID}/quick_seating_assign`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: mode })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data && data.success && data.plan) {
+            currentLabPlan = data.plan;
+            renderScreenLab();
+            showLiveToast('Auto-assignation effectuée avec succès !');
+        }
+    })
+    .catch(() => alert("Erreur lors de l'auto-assignation"));
+}
+
+// Sauvegarde dans la base
+function persistPlanToDatabase() {
+    fetch(`/absence/api/class/${CLASS_ID}/save_seating_plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentLabPlan)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data && data.success) {
+            showLiveToast('Plan de salle enregistré avec succès !');
+        } else {
+            alert("Erreur lors de l'enregistrement.");
+        }
+    })
+    .catch(() => alert('Erreur de connexion lors de la sauvegarde.'));
+}
+
+// Bascule Panneau Latéral (Pour agrandir la salle)
+let isSidebarHidden = false;
+function toggleSidebarPanel(forcedState) {
+    if (typeof forcedState === 'boolean') {
+        isSidebarHidden = forcedState;
+    } else {
+        isSidebarHidden = !isSidebarHidden;
+    }
+    const panel = document.getElementById('sidebarUnassignedPanel');
+    const label = document.getElementById('sidebarBtnLabel');
+    if (panel) {
+        panel.classList.toggle('is-collapsed', isSidebarHidden);
+    }
+    if (label) {
+        label.textContent = isSidebarHidden ? "Afficher Élèves" : "Plein Écran Salle";
+    }
+}
+
+// Vidéoprojection
+function toggleProjectorMode() {
+    document.body.classList.toggle('projector-fullscreen');
+}
+
+// Helpers Toast
+function showLiveToast(text) {
+    const t = document.getElementById('liveToast');
+    const txt = document.getElementById('liveToastText');
+    if (t && txt) {
+        txt.textContent = text;
+        t.style.display = 'flex';
+        clearTimeout(window._toastTimeout);
+        window._toastTimeout = setTimeout(hideLiveToast, 3500);
+    }
+}
+function hideLiveToast() {
+    const t = document.getElementById('liveToast');
+    if (t) t.style.display = 'none';
+}
+
+// Gestionnaires de Modals 100% Fiables (Déplacés au body pour éviter tout blocage z-index)
+function openSafeModal(id) {
+    const modalEl = document.getElementById(id);
+    if (modalEl && modalEl.parentNode !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+    if (window.$ && $.fn && $.fn.modal) {
+        $('#' + id).modal('show');
+    } else if (modalEl) {
+        modalEl.style.display = 'block';
+        modalEl.classList.add('show');
+        let b = document.getElementById(id + '_backdrop');
+        if (!b) {
+            b = document.createElement('div');
+            b.className = 'modal-backdrop fade show';
+            b.id = id + '_backdrop';
+            b.onclick = () => closeSafeModal(id);
+            document.body.appendChild(b);
+        }
+        document.body.classList.add('modal-open');
+    }
+}
+
+function closeSafeModal(id) {
+    if (window.$ && $.fn && $.fn.modal) {
+        $('#' + id).modal('hide');
+    }
+    const m = document.getElementById(id);
+    if (m) {
+        m.style.display = 'none';
+        m.classList.remove('show');
+    }
+    const b = document.getElementById(id + '_backdrop');
+    if (b && b.parentNode) b.parentNode.removeChild(b);
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+}
+
+function escapeText(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Démarrage
+document.addEventListener('DOMContentLoaded', () => {
+    // Déplacer les modals au body pour un fonctionnement fluide et sans blocage backdrop
+    ['modalStudentSelector', 'modalConfigureU', 'modalEditStationDetails'].forEach(id => {
+        const m = document.getElementById(id);
+        if (m && m.parentNode !== document.body) document.body.appendChild(m);
+    });
+    renderScreenLab();
+});
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(renderScreenLab, 50);
+}
+</script>
+{% endblock %}

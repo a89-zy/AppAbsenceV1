@@ -1,0 +1,758 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .registration-panel {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    
+    .status-card {
+        border-radius: 16px;
+        border: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    .toggle-switch-container {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .switch-lg {
+        position: relative;
+        display: inline-block;
+        width: 68px;
+        height: 36px;
+    }
+    .switch-lg input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .slider-lg {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: .3s;
+        border-radius: 36px;
+    }
+    .slider-lg:before {
+        position: absolute;
+        content: "";
+        height: 28px;
+        width: 28px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    input:checked + .slider-lg {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+    input:checked + .slider-lg:before {
+        transform: translateX(32px);
+    }
+
+    .qr-box {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 16px;
+        display: inline-block;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    }
+    .qr-box img {
+        width: 170px;
+        height: 170px;
+        display: block;
+    }
+
+    .student-card {
+        background: #ffffff;
+        border-radius: 14px;
+        border: 1px solid rgba(0,0,0,0.06);
+        padding: 16px;
+        transition: all 0.2s ease;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+    }
+    .student-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+    }
+    .student-card.duplicate {
+        border-left: 4px solid #f59e0b;
+        background: #fffbeb;
+    }
+    .student-card-avatar {
+        width: 65px;
+        height: 65px;
+        border-radius: 12px;
+        object-fit: cover;
+        background: #f1f5f9;
+        border: 2px solid #e2e8f0;
+    }
+
+    .device-tag {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+    .device-mobile { background: #e0e7ff; color: #4338ca; }
+    .device-desktop { background: #f1f5f9; color: #475569; }
+
+    /* Modal Plein Écran Vidéoprojecteur */
+    .projector-modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
+        color: white;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+    }
+    .projector-qr {
+        background: white;
+        padding: 24px;
+        border-radius: 28px;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+        margin-bottom: 24px;
+    }
+    .projector-qr img {
+        width: 280px;
+        height: 280px;
+    }
+    .projector-close {
+        position: absolute;
+        top: 25px;
+        right: 35px;
+        font-size: 32px;
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    .projector-close:hover {
+        color: white;
+    }
+</style>
+
+<div class="container-fluid registration-panel">
+
+    <!-- En-tête -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800 font-weight-bold">
+                <i class="fas fa-satellite-dish text-primary mr-2"></i>Portail d'Auto-Inscription des Élèves
+            </h1>
+            <p class="text-muted small mb-0">Réseau Local Wi-Fi (Répéteur Huawei) & Salle Informatique</p>
+        </div>
+        <div class="mt-3 mt-sm-0">
+            <button class="btn btn-dark shadow-sm mr-2" onclick="openProjectorMode()">
+                <i class="fas fa-expand mr-1"></i> Mode Vidéoprojecteur
+            </button>
+            <button class="btn btn-success shadow-sm" onclick="approveAllStudents()" id="btnApproveAll">
+                <i class="fas fa-check-double mr-1"></i> Tout Valider (<span id="countBadge">{{ pending_students|length }}</span>)
+            </button>
+        </div>
+    </div>
+
+    <!-- Alertes -->
+    <div id="actionAlert" class="alert alert-success alert-dismissible fade show d-none" role="alert">
+        <span id="alertMessage"></span>
+        <button type="button" class="close" onclick="document.getElementById('actionAlert').classList.add('d-none')">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+
+    <!-- Ligne de Contrôle Principal -->
+    <div class="row mb-4">
+        <!-- Switch Publier / Dépublier -->
+        <div class="col-xl-4 col-md-6 mb-3">
+            <div class="card status-card h-100 p-4 border-left-primary">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-uppercase text-muted mb-1">État du Portail</div>
+                        <div class="h5 font-weight-bold mb-0" id="statusText">
+                            {% if is_enabled %}
+                                <span class="badge badge-success px-3 py-2"><i class="fas fa-circle mr-1"></i> OUVERT (Publié)</span>
+                            {% else %}
+                                <span class="badge badge-secondary px-3 py-2"><i class="fas fa-lock mr-1"></i> FERMÉ (Dépublié)</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="toggle-switch-container">
+                        <label class="switch-lg mb-0">
+                            <input type="checkbox" id="portalSwitch" {% if is_enabled %}checked{% endif %} onchange="togglePortal()">
+                            <span class="slider-lg"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="small text-muted mt-3">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Basculez sur Dépublier dès que la séance d'inscription est terminée.
+                </div>
+            </div>
+        </div>
+
+        <!-- Paramètres Session & PIN -->
+        <div class="col-xl-4 col-md-6 mb-3">
+            <div class="card status-card h-100 p-4 border-left-info">
+                <div class="text-xs font-weight-bold text-uppercase text-muted mb-2">Sécurité & Code PIN de Séance</div>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" id="sessionPinInput" placeholder="Ex: 4028 (ou laisser vide)" value="{{ pin }}">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-info" type="button" onclick="saveSessionPin()">
+                            <i class="fas fa-save mr-1"></i> Fixer PIN
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted">Si défini, les élèves devront saisir ce PIN affiché au tableau pour valider leur fiche.</small>
+            </div>
+        </div>
+
+        <!-- Statistiques et Trafic en direct -->
+        <div class="col-xl-4 col-md-12 mb-3">
+            <div class="card status-card h-100 p-4 border-left-success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs font-weight-bold text-uppercase text-muted mb-1">En attente de validation</div>
+                        <div class="h3 font-weight-bold text-success mb-0" id="livePendingCount">{{ pending_students|length }}</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs font-weight-bold text-uppercase text-muted mb-1">Total Élèves en Base</div>
+                        <div class="h4 font-weight-bold text-dark mb-0">{{ approved_count }}</div>
+                    </div>
+                </div>
+                <div class="progress mt-3" style="height: 6px;">
+                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- URL Locale & QR Code Inscription Initiale -->
+    <div class="card status-card mb-4 border-left-primary">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-3 text-center mb-3 mb-lg-0">
+                    <div class="qr-box">
+                        <img src="{{ url_for('registration.generate_qr') }}" alt="QR Code Inscription Réseau Local" id="localQrImg">
+                    </div>
+                </div>
+                <div class="col-lg-9">
+                    <h5 class="font-weight-bold text-dark mb-2">
+                        <i class="fas fa-user-plus text-primary mr-2"></i>1. Portail d'Auto-Inscription (Nouveaux Élèves)
+                    </h5>
+                    <p class="text-muted mb-3">
+                        Les nouveaux élèves se connectent au Wi-Fi de la salle et scannent ce QR Code avec leur smartphone pour s'inscrire :
+                    </p>
+                    <div class="input-group mb-3" style="max-width: 550px;">
+                        <input type="text" class="form-control font-weight-bold text-primary" id="regUrl" value="{{ registration_url }}" readonly>
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="button" onclick="copyUrl()">
+                                <i class="fas fa-copy mr-1"></i> Copier
+                            </button>
+                            <a href="{{ registration_url }}" target="_blank" class="btn btn-outline-primary">
+                                <i class="fas fa-external-link-alt mr-1"></i> Ouvrir
+                            </a>
+                            <button class="btn btn-dark" type="button" onclick="openProjectorMode()">
+                                <i class="fas fa-expand mr-1"></i> Projeter
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 text-muted small">
+                        <span class="mr-3"><i class="fas fa-server mr-1"></i> IP Machine : <strong>{{ local_ip }}</strong></span>
+                        <span class="mr-3"><i class="fas fa-network-wired mr-1"></i> Port : <strong>{{ port }}</strong></span>
+                        <span><i class="fas fa-bolt mr-1"></i> Auto-rafraîchissement actif</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- NOUVEAU MODULE : SESSION DE MISE À JOUR AUTONOME DES PROFILS PAR LES ÉLÈVES  -->
+    <!-- ========================================================================= -->
+    <div class="card status-card mb-4 border-left-warning shadow-sm">
+        <div class="card-header bg-white py-3 d-flex flex-wrap align-items-center justify-content-between">
+            <div>
+                <h5 class="m-0 font-weight-bold text-warning">
+                    <i class="fas fa-user-edit mr-2"></i>Session de Mise à Jour des Fiches Profil par les Élèves
+                </h5>
+                <small class="text-muted">Permet aux élèves de corriger leur photo, nom, date ou CNE en direct pendant le cours.</small>
+            </div>
+            <div class="mt-2 mt-md-0 d-flex align-items-center">
+                <span class="mr-3 font-weight-bold" id="updateSessionStatusBadge">
+                    {% if student_update_enabled %}
+                        <span class="badge badge-success px-3 py-2"><i class="fas fa-circle mr-1"></i> Session OUVERTE</span>
+                    {% else %}
+                        <span class="badge badge-secondary px-3 py-2"><i class="fas fa-lock mr-1"></i> Session FERMÉE</span>
+                    {% endif %}
+                </span>
+                <button type="button" class="btn {% if student_update_enabled %}btn-danger{% else %}btn-warning text-dark font-weight-bold{% endif %} shadow-sm" onclick="toggleStudentUpdateSession()" id="btnToggleUpdateSession">
+                    {% if student_update_enabled %}
+                        <i class="fas fa-stop-circle mr-1"></i> Fermer la Session
+                    {% else %}
+                        <i class="fas fa-play-circle mr-1"></i> Ouvrir la Session
+                    {% endif %}
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <div class="row">
+                <!-- Permissions et Réglages -->
+                <div class="col-lg-7 mb-3 mb-lg-0">
+                    <h6 class="font-weight-bold text-dark mb-3">
+                        <i class="fas fa-user-shield text-primary mr-1"></i> Champs que les élèves ont le droit de modifier :
+                    </h6>
+                    <div class="row mb-3">
+                        <div class="col-sm-6 mb-2">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input update-field-check" id="permPhoto" value="photo" {% if 'photo' in update_allowed_fields %}checked{% endif %}>
+                                <label class="custom-control-label font-weight-bold" for="permPhoto">
+                                    <i class="fas fa-camera text-primary mr-1"></i> Photo de profil (Selfie/Fichier)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-2">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input update-field-check" id="permName" value="name" {% if 'name' in update_allowed_fields %}checked{% endif %}>
+                                <label class="custom-control-label font-weight-bold" for="permName">
+                                    <i class="fas fa-signature text-info mr-1"></i> Nom & Prénom
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-2">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input update-field-check" id="permCNE" value="cne" {% if 'cne' in update_allowed_fields %}checked{% endif %}>
+                                <label class="custom-control-label font-weight-bold" for="permCNE">
+                                    <i class="fas fa-id-card text-success mr-1"></i> CNE / Code Massar
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-2">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input update-field-check" id="permBirthDate" value="birth_date" {% if 'birth_date' in update_allowed_fields %}checked{% endif %}>
+                                <label class="custom-control-label font-weight-bold" for="permBirthDate">
+                                    <i class="fas fa-calendar-alt text-warning mr-1"></i> Date de Naissance
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 mb-2">
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input update-field-check" id="permContact" value="contact" {% if 'contact' in update_allowed_fields %}checked{% endif %}>
+                                <label class="custom-control-label font-weight-bold" for="permContact">
+                                    <i class="fas fa-phone-alt text-secondary mr-1"></i> Téléphone & E-mail
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6 mb-2">
+                            <label class="small font-weight-bold text-muted">Classe ciblée :</label>
+                            <select id="updateTargetClassSelect" class="form-control form-control-sm">
+                                <option value="all" {% if student_update_target_class_id == 'all' %}selected{% endif %}>Toutes les classes</option>
+                                {% for c in classes %}
+                                <option value="{{ c.id }}" {% if student_update_target_class_id == (c.id|string) %}selected{% endif %}>{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-sm-6 mb-2">
+                            <label class="small font-weight-bold text-muted">Code PIN de protection (optionnel) :</label>
+                            <input type="text" id="updatePinInput" class="form-control form-control-sm" placeholder="Ex: 1234" value="{{ student_update_pin }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code de mise à jour & Accès rapide -->
+                <div class="col-lg-5 text-center border-left">
+                    <div class="qr-box mb-2">
+                        <img src="{{ url_for('registration.update_qr') }}" alt="QR Code Mise à jour" style="width: 140px; height: 140px;" id="updateQrImg">
+                    </div>
+                    <div>
+                        <button class="btn btn-sm btn-outline-warning text-dark font-weight-bold mr-1" onclick="openUpdateProjector()">
+                            <i class="fas fa-expand mr-1"></i> Projeter QR Plein Écran
+                        </button>
+                        <a href="{{ update_url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-external-link-alt mr-1"></i> Tester Lien
+                        </a>
+                    </div>
+                    <div class="small text-muted mt-2">
+                        URL : <code>{{ update_url }}</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- File de Modération des Inscriptions -->
+    <div class="card status-card mb-4">
+        <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-user-clock mr-1"></i> Fiches Élèves en Attente de Validation
+            </h6>
+            <button class="btn btn-sm btn-outline-secondary" onclick="fetchLiveData()">
+                <i class="fas fa-sync-alt mr-1"></i> Rafraîchir maintenant
+            </button>
+        </div>
+        <div class="card-body p-3">
+            <div id="emptyMessage" class="text-center py-5 {% if pending_students %}d-none{% endif %}">
+                <i class="fas fa-user-check text-gray-300 fa-3x mb-3"></i>
+                <h5 class="text-muted">Aucune fiche en attente pour le moment</h5>
+                <p class="small text-muted">Lorsque les élèves soumettront leur fiche via leur smartphone ou PC, elles s'afficheront ici instantanément.</p>
+            </div>
+
+            <div class="row" id="pendingGrid">
+                {% for p in pending_students %}
+                <div class="col-xl-4 col-md-6 mb-3" id="pending-card-{{ p.id }}">
+                    <div class="student-card {% if p.is_existing_student %}duplicate{% endif %}">
+                        <img src="{{ url_for('main.uploaded_file', filename=p.photo_path if p.photo_path else 'photos/Default.jpg') }}" alt="Photo" class="student-card-avatar" onerror="this.src='{{ url_for('main.uploaded_file', filename='photos/Default.jpg') }}'">
+                        
+                        <div class="flex-grow-1 overflow-hidden">
+                            <div class="d-flex align-items-center justify-content-between mb-1">
+                                <span class="badge badge-primary font-weight-bold">{{ p.class_name }}</span>
+                                <span class="device-tag {% if p.device_type == 'Smartphone' %}device-mobile{% else %}device-desktop{% endif %}">
+                                    <i class="fas {% if p.device_type == 'Smartphone' %}fa-mobile-alt{% else %}fa-desktop{% endif %}"></i> {{ p.device_type }}
+                                </span>
+                            </div>
+                            <h6 class="font-weight-bold text-dark mb-0 text-truncate">{{ p.last_name }} {{ p.first_name }}</h6>
+                            <div class="small text-muted text-truncate">CNE : <strong>{{ p.cne }}</strong></div>
+                            {% if p.birth_date %}
+                            <div class="small text-muted"><i class="fas fa-birthday-cake mr-1"></i>{{ p.birth_date }}</div>
+                            {% endif %}
+                            
+                            {% if p.is_existing_student %}
+                            <div class="small text-warning font-weight-bold mt-1">
+                                <i class="fas fa-exclamation-triangle"></i> Existe déjà dans : {{ p.existing_class }}
+                            </div>
+                            {% endif %}
+
+                            <div class="d-flex gap-2 mt-2">
+                                <button class="btn btn-sm btn-success flex-grow-1" onclick="approveStudent({{ p.id }})">
+                                    <i class="fas fa-check mr-1"></i> Valider
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="rejectStudent({{ p.id }})" title="Rejeter">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Mode Vidéoprojecteur Plein Écran -->
+<div id="projectorModal" class="projector-modal">
+    <span class="projector-close" onclick="closeProjectorMode()">&times;</span>
+    <h2 class="font-weight-bold mb-2">Inscription à la Séance</h2>
+    <p class="text-white-50 mb-4" style="font-size: 18px;">Connectez-vous au Wi-Fi de la salle et scannez le QR Code</p>
+
+    <div class="projector-qr">
+        <img src="{{ url_for('registration.generate_qr') }}" alt="QR Code Vidéoprojecteur">
+    </div>
+
+    <div class="h4 font-weight-bold text-warning mb-2" id="projectorPinDisplay">
+        {% if pin %}Code PIN de Session : <span class="badge badge-warning px-3 py-1">{{ pin }}</span>{% endif %}
+    </div>
+
+    <div class="h5 font-weight-light text-white-50">
+        Ou tapez l'adresse : <span class="font-weight-bold text-white">{{ registration_url }}</span>
+    </div>
+
+    <div class="mt-4">
+        <span class="badge badge-light px-4 py-2 font-weight-bold" style="font-size: 16px;">
+            <i class="fas fa-users mr-2 text-primary"></i>
+            <span id="projectorCounter">{{ pending_students|length }}</span> élève(s) en attente
+        </span>
+    </div>
+</div>
+
+<!-- Mode Vidéoprojecteur Plein Écran pour la Mise à Jour des Profils -->
+<div id="projectorUpdateModal" class="projector-modal" style="background: rgba(15, 23, 42, 0.98);">
+    <span class="projector-close" onclick="closeUpdateProjector()">&times;</span>
+    <h2 class="font-weight-bold mb-2 text-warning">Mise à Jour de Vos Informations</h2>
+    <p class="text-white-50 mb-4" style="font-size: 18px;">Scannez ce QR Code avec votre téléphone pour modifier votre photo, nom ou date</p>
+
+    <div class="projector-qr" style="border: 6px solid #f59e0b;">
+        <img src="{{ url_for('registration.update_qr') }}" alt="QR Code Mise à Jour">
+    </div>
+
+    <div class="h4 font-weight-bold text-warning mb-2" id="projectorUpdatePinDisplay">
+        {% if student_update_pin %}Code PIN requis : <span class="badge badge-warning px-3 py-1 text-dark">{{ student_update_pin }}</span>{% endif %}
+    </div>
+
+    <div class="h5 font-weight-light text-white-50">
+        Ou tapez l'adresse : <span class="font-weight-bold text-white">{{ update_url }}</span>
+    </div>
+</div>
+
+<script>
+    // BASCULER PUBLIER / DÉPUBLIER
+    async function togglePortal() {
+        const switchEl = document.getElementById('portalSwitch');
+        const statusText = document.getElementById('statusText');
+        
+        try {
+            const res = await fetch("{{ url_for('registration.toggle_registration') }}", { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.enabled) {
+                statusText.innerHTML = '<span class="badge badge-success px-3 py-2"><i class="fas fa-circle mr-1"></i> OUVERT (Publié)</span>';
+                showAlert("Le portail est maintenant OUVERT aux inscriptions.", "success");
+            } else {
+                statusText.innerHTML = '<span class="badge badge-secondary px-3 py-2"><i class="fas fa-lock mr-1"></i> FERMÉ (Dépublié)</span>';
+                showAlert("Le portail a été FERMÉ. Les élèves ne peuvent plus soumettre.", "warning");
+            }
+        } catch (e) {
+            alert("Erreur lors de la modification de l'état.");
+            switchEl.checked = !switchEl.checked;
+        }
+    }
+
+    // SAUVEGARDE DU CODE PIN
+    async function saveSessionPin() {
+        const pin = document.getElementById('sessionPinInput').value.trim();
+        try {
+            const res = await fetch("{{ url_for('registration.update_pin') }}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ pin: pin })
+            });
+            const data = await res.json();
+            showAlert(pin ? `Code PIN défini à : ${pin}` : "Code PIN désactivé.", "info");
+            
+            const pinDisplay = document.getElementById('projectorPinDisplay');
+            if (pin) {
+                pinDisplay.innerHTML = `Code PIN de Session : <span class="badge badge-warning px-3 py-1">${pin}</span>`;
+            } else {
+                pinDisplay.innerHTML = '';
+            }
+        } catch (e) {
+            alert("Erreur lors de l'enregistrement du code PIN.");
+        }
+    }
+
+    // VALIDER UN ÉLÈVE
+    async function approveStudent(id) {
+        try {
+            const res = await fetch(`{{ url_for('registration.approve_student', pending_id=0) }}`.replace('0', id), {
+                method: 'POST'
+            });
+            const data = await res.json();
+            if (data.success) {
+                const card = document.getElementById(`pending-card-${id}`);
+                if (card) card.remove();
+                updateCounts();
+                showAlert(data.message, "success");
+            }
+        } catch (e) {
+            alert("Erreur lors de la validation.");
+        }
+    }
+
+    // REJETER UN ÉLÈVE
+    async function rejectStudent(id) {
+        if (!confirm("Voulez-vous vraiment rejeter cette fiche ?")) return;
+        try {
+            const res = await fetch(`{{ url_for('registration.reject_student', pending_id=0) }}`.replace('0', id), {
+                method: 'POST'
+            });
+            const data = await res.json();
+            if (data.success) {
+                const card = document.getElementById(`pending-card-${id}`);
+                if (card) card.remove();
+                updateCounts();
+                showAlert(data.message, "secondary");
+            }
+        } catch (e) {
+            alert("Erreur lors du rejet.");
+        }
+    }
+
+    // TOUT VALIDER D'UN COUP
+    async function approveAllStudents() {
+        const count = document.querySelectorAll('#pendingGrid > div').length;
+        if (count === 0) {
+            alert("Aucune fiche en attente à valider.");
+            return;
+        }
+        if (!confirm(`Confirmez-vous la validation de TOUS les ${count} élèves en attente ?`)) return;
+
+        try {
+            const res = await fetch("{{ url_for('registration.approve_all') }}", { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('pendingGrid').innerHTML = '';
+                updateCounts();
+                showAlert(data.message, "success");
+            }
+        } catch (e) {
+            alert("Erreur lors de la validation collective.");
+        }
+    }
+
+    // LIVE POLLING : MISE À JOUR EN DIRECT (toutes les 4 secondes)
+    async function fetchLiveData() {
+        try {
+            const res = await fetch("{{ url_for('registration.live_data') }}");
+            const data = await res.json();
+            
+            const grid = document.getElementById('pendingGrid');
+            const emptyMsg = document.getElementById('emptyMessage');
+            
+            if (data.count === 0) {
+                grid.innerHTML = '';
+                emptyMsg.classList.remove('d-none');
+            } else {
+                emptyMsg.classList.add('d-none');
+                
+                // Reconstruction propre des fiches si le nombre a changé
+                let html = '';
+                data.pending.forEach(p => {
+                    const dupClass = p.is_existing_student ? 'duplicate' : '';
+                    const devClass = p.device_type === 'Smartphone' ? 'device-mobile' : 'device-desktop';
+                    const devIcon = p.device_type === 'Smartphone' ? 'fa-mobile-alt' : 'fa-desktop';
+                    const dupWarning = p.is_existing_student ? 
+                        `<div class="small text-warning font-weight-bold mt-1"><i class="fas fa-exclamation-triangle"></i> Existe déjà dans : ${p.existing_class || ''}</div>` : '';
+                    const birth = p.birth_date ? `<div class="small text-muted"><i class="fas fa-birthday-cake mr-1"></i>${p.birth_date}</div>` : '';
+
+                    html += `
+                        <div class="col-xl-4 col-md-6 mb-3" id="pending-card-${p.id}">
+                            <div class="student-card ${dupClass}">
+                                <img src="/uploads/${p.photo_path || 'photos/Default.jpg'}" alt="Photo" class="student-card-avatar" onerror="this.src='/uploads/photos/Default.jpg'">
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="badge badge-primary font-weight-bold">${p.class_name}</span>
+                                        <span class="device-tag ${devClass}">
+                                            <i class="fas ${devIcon}"></i> ${p.device_type}
+                                        </span>
+                                    </div>
+                                    <h6 class="font-weight-bold text-dark mb-0 text-truncate">${p.last_name} ${p.first_name}</h6>
+                                    <div class="small text-muted text-truncate">CNE : <strong>${p.cne}</strong></div>
+                                    ${birth}
+                                    ${dupWarning}
+                                    <div class="d-flex gap-2 mt-2">
+                                        <button class="btn btn-sm btn-success flex-grow-1" onclick="approveStudent(${p.id})">
+                                            <i class="fas fa-check mr-1"></i> Valider
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="rejectStudent(${p.id})" title="Rejeter">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                grid.innerHTML = html;
+            }
+
+            document.getElementById('livePendingCount').textContent = data.count;
+            document.getElementById('countBadge').textContent = data.count;
+            document.getElementById('projectorCounter').textContent = data.count;
+
+        } catch (e) {
+            console.error("Polling error:", e);
+        }
+    }
+
+    function updateCounts() {
+        const count = document.querySelectorAll('#pendingGrid > div').length;
+        document.getElementById('livePendingCount').textContent = count;
+        document.getElementById('countBadge').textContent = count;
+        document.getElementById('projectorCounter').textContent = count;
+        if (count === 0) {
+            document.getElementById('emptyMessage').classList.remove('d-none');
+        }
+    }
+
+    function showAlert(msg, type) {
+        const alert = document.getElementById('actionAlert');
+        const text = document.getElementById('alertMessage');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        text.textContent = msg;
+        alert.classList.remove('d-none');
+        setTimeout(() => alert.classList.add('d-none'), 4000);
+    }
+
+    function copyUrl() {
+        const copyText = document.getElementById("regUrl");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value);
+        showAlert("Lien copié dans le presse-papiers !", "info");
+    }
+
+    // MODE VIDÉOPROJECTEUR
+    function openProjectorMode() {
+        document.getElementById('projectorModal').style.display = 'flex';
+    }
+    // GESTION SESSION DE MISE À JOUR DES PROFILS
+    async function toggleStudentUpdateSession() {
+        const pin = document.getElementById('updatePinInput').value.trim();
+        const targetClass = document.getElementById('updateTargetClassSelect').value;
+        const checks = document.querySelectorAll('.update-field-check:checked');
+        
+        const formData = new FormData();
+        formData.append('pin', pin);
+        formData.append('target_class_id', targetClass);
+        checks.forEach(c => formData.append('allowed_fields', c.value));
+
+        try {
+            const res = await fetch('/registration/student-update/toggle', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAlert(data.message, data.enabled ? 'success' : 'secondary');
+                const badge = document.getElementById('updateSessionStatusBadge');
+                const btn = document.getElementById('btnToggleUpdateSession');
+                
+                if (data.enabled) {
+                    badge.innerHTML = '<span class="badge badge-success px-3 py-2"><i class="fas fa-circle mr-1"></i> Session OUVERTE</span>';
+                    btn.className = 'btn btn-danger shadow-sm';
+                    btn.innerHTML = '<i class="fas fa-stop-circle mr-1"></i> Fermer la Session';
+                } else {
+                    badge.innerHTML = '<span class="badge badge-secondary px-3 py-2"><i class="fas fa-lock mr-1"></i> Session FERMÉE</span>';
+                    btn.className = 'btn btn-warning text-dark font-weight-bold shadow-sm';
+                    btn.innerHTML = '<i class="fas fa-play-circle mr-1"></i> Ouvrir la Session';
+                }
+            }
+        } catch (e) {
+            showAlert("Erreur réseau lors de la modification du statut.", "danger");
+        }
+    }
+
+    function openUpdateProjector() {
+        document.getElementById('projectorUpdateModal').style.display = 'flex';
+    }
+    function closeUpdateProjector() {
+        document.getElementById('projectorUpdateModal').style.display = 'none';
+    }
+
+    // Lancement du rafraîchissement automatique toutes les 4 secondes
+    setInterval(fetchLiveData, 4000);
+</script>
+
+{% endblock %}

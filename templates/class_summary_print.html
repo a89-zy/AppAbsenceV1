@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Fiche Récapitulative — {{ classe.name }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm 15mm;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #1e293b;
+            font-size: 11pt;
+            line-height: 1.4;
+            background: #fff;
+            margin: 0;
+            padding: 20px;
+        }
+        .header-box {
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .title-main {
+            font-size: 16pt;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 0 0 4px 0;
+            text-transform: uppercase;
+        }
+        .subtitle {
+            font-size: 10pt;
+            color: #64748b;
+            margin: 0;
+        }
+        .kpi-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .kpi-card {
+            flex: 1;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 12px;
+            background: #f8fafc;
+            text-align: center;
+        }
+        .kpi-card .val {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        .kpi-card .lbl {
+            font-size: 8pt;
+            text-transform: uppercase;
+            color: #475569;
+            font-weight: 600;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 9pt;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 6px 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #1e293b;
+            color: #ffffff;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 8.5pt;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .score-good { font-weight: 700; color: #16a34a; }
+        .score-avg { font-weight: 700; color: #d97706; }
+        .score-bad { font-weight: 700; color: #dc2626; }
+        .badge-alert {
+            display: inline-block;
+            background: #fee2e2;
+            color: #b91c1c;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 7.5pt;
+            font-weight: 700;
+        }
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 40px;
+            page-break-inside: avoid;
+        }
+        .sig-block {
+            width: 45%;
+            border-top: 1px dashed #64748b;
+            padding-top: 8px;
+            text-align: center;
+            font-size: 9.5pt;
+        }
+        .no-print {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn-print {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 10pt;
+        }
+        .btn-back {
+            background: #64748b;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 10pt;
+        }
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <button onclick="window.print()" class="btn-print">🖨️ Imprimer / Enregistrer en PDF</button>
+        <a href="javascript:window.close()" class="btn-back">Fermer</a>
+    </div>
+
+    <div class="header-box">
+        <div>
+            <h1 class="title-main">Bilan Récapitulatif — {{ classe.name }}</h1>
+            <p class="subtitle">
+                Année Scolaire : <strong>{{ current_year.name if current_year else 'Non définie' }}</strong> | 
+                Enseignant : <strong>{{ teacher_name }}</strong>
+            </p>
+        </div>
+        <div class="text-right">
+            <div style="font-size: 9pt; color: #64748b;">Édité le {{ generated_at.strftime('%d/%m/%Y à %H:%M') }}</div>
+            <div style="font-size: 8.5pt; color: #94a3b8;">Règle : -{{ absence_penalty }} pt / absence non justifiée</div>
+        </div>
+    </div>
+
+    <!-- Indicateurs clés -->
+    <div class="kpi-row">
+        <div class="kpi-card">
+            <div class="val">{{ student_stats|length }}</div>
+            <div class="lbl">Effectif Total</div>
+        </div>
+        <div class="kpi-card">
+            <div class="val" style="color: #dc2626;">{{ total_unjustified_all }}</div>
+            <div class="lbl">Absences Non Justifiées (NJ)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="val" style="color: #d97706;">{{ total_justified_all }}</div>
+            <div class="lbl">Absences Justifiées (J)</div>
+        </div>
+        <div class="kpi-card">
+            <div class="val" style="color: {% if class_avg >= 16 %}#16a34a{% elif class_avg >= 10 %}#d97706{% else %}#dc2626{% endif %};">
+                {{ class_avg }} / 20
+            </div>
+            <div class="lbl">Moyenne Assiduité Classe</div>
+        </div>
+    </div>
+
+    <!-- Tableau -->
+    <table>
+        <thead>
+            <tr>
+                <th width="30" class="text-center">#</th>
+                <th width="110">CNE / Massar</th>
+                <th>Nom & Prénom</th>
+                <th width="85" class="text-center">Né(e) le</th>
+                <th width="75" class="text-center">Total Abs</th>
+                <th width="65" class="text-center">NJ</th>
+                <th width="65" class="text-center">J</th>
+                <th width="90" class="text-center">Note / 20</th>
+                <th width="90" class="text-center">Statut</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in student_stats %}
+            <tr>
+                <td class="text-center">{{ loop.index }}</td>
+                <td>{{ row.student.cne }}</td>
+                <td><strong>{{ row.student.last_name }}</strong> {{ row.student.first_name }}</td>
+                <td class="text-center">{{ row.student.birth_date.strftime('%d/%m/%Y') if row.student.birth_date else '-' }}</td>
+                <td class="text-center"><strong>{{ row.total }}</strong></td>
+                <td class="text-center" style="color:#b91c1c;">{{ row.unjustified }}</td>
+                <td class="text-center" style="color:#b45309;">{{ row.justified }}</td>
+                <td class="text-center">
+                    <span class="{% if row.score >= 16 %}score-good{% elif row.score >= 10 %}score-avg{% else %}score-bad{% endif %}">
+                        {{ row.score }}
+                    </span>
+                </td>
+                <td class="text-center">
+                    {% if row.is_alert %}
+                    <span class="badge-alert">Décrochage</span>
+                    {% elif row.total == 0 %}
+                    <span style="color:#16a34a; font-size:8pt;">Assidu(e)</span>
+                    {% else %}
+                    <span style="color:#64748b; font-size:8pt;">Normal</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="signatures">
+        <div class="sig-block">
+            <strong>L'Enseignant(e)</strong>
+            <br><br><br>
+            {{ teacher_name }}
+        </div>
+        <div class="sig-block">
+            <strong>Visa de l'Administration</strong>
+            <br><br><br>
+            Signature & Cachet
+        </div>
+    </div>
+
+</body>
+</html>

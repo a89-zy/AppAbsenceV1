@@ -1,0 +1,3451 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .student-name-hover {
+        cursor: help;
+        color: #4e73df;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .student-name-hover:hover {
+        color: #2e59d9;
+        text-decoration: underline;
+    }
+
+    #photo-tooltip {
+        position: fixed;
+        display: none;
+        z-index: 9999;
+        border: 3px solid #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        background: #fff;
+        pointer-events: none;
+        padding: 0;
+        overflow: hidden;
+    }
+
+    #photo-tooltip img {
+        max-width: 180px;
+        max-height: 240px;
+        display: block;
+    }
+
+    #photo-tooltip .no-photo {
+        width: 150px;
+        height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fc;
+        color: #b7b9cc;
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    #photo-tooltip .no-photo i {
+        font-size: 3rem;
+        margin-bottom: 10px;
+    }
+
+    /* Multi-select styling */
+    .student-select-col {
+        width: 42px;
+        text-align: center;
+        vertical-align: middle !important;
+    }
+    .custom-student-checkbox {
+        width: 22px;
+        height: 22px;
+        cursor: pointer;
+        accent-color: #2563eb;
+    }
+    tr.selected-row {
+        background-color: rgba(37, 99, 235, 0.08) !important;
+    }
+    tr.keyboard-focused {
+        outline: 2px solid #2563eb !important;
+        outline-offset: -2px;
+        background-color: rgba(37, 99, 235, 0.08) !important;
+        box-shadow: 0 0 12px rgba(37, 99, 235, 0.25) !important;
+        border-left: 4px solid #2563eb !important;
+    }
+    tr.keyboard-focused.selected-row {
+        background-color: rgba(37, 99, 235, 0.16) !important;
+    }
+
+    /* Floating / Sticky Bulk Action Bar */
+    .bulk-actions-bar {
+        display: none;
+        background: #1e293b;
+        color: #ffffff;
+        border-radius: 12px;
+        padding: 10px 18px;
+        margin-bottom: 15px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        animation: fadeInDown 0.25s ease;
+    }
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Trombinoscope Card Grid */
+    .trombi-grid {
+        display: none;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    .trombi-card {
+        background: #ffffff;
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 12px;
+        text-align: center;
+        transition: all 0.25s ease;
+        position: relative;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        user-select: none;
+    }
+    .trombi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        border-color: #cbd5e1;
+    }
+    .trombi-card.is-absent {
+        border-color: #ef4444 !important;
+        background-color: #fff5f5 !important;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15) !important;
+    }
+    .trombi-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 10px auto;
+        border: 3px solid #e2e8f0;
+        display: block;
+        transition: border-color 0.2s;
+    }
+    .trombi-card.is-absent .trombi-avatar {
+        border-color: #ef4444;
+        filter: grayscale(30%);
+    }
+    .trombi-status-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        font-size: 0.70rem;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 2px 8px;
+    }
+    .trombi-status-present {
+        background: #dcfce7;
+        color: #15803d;
+    }
+    .trombi-status-absent {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+    /* Floating Persistent Shortcuts Dock (When scrolling) */
+    .floating-shortcuts-dock {
+        position: fixed;
+        bottom: 18px;
+        right: 22px;
+        z-index: 1040;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: #f8fafc;
+        border-radius: 30px;
+        padding: 6px 14px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 0.78rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .floating-shortcuts-dock:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+    }
+    .floating-shortcuts-dock kbd {
+        background: #334155;
+        color: #38bdf8;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.72rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Barre d'outils moderne et aérée de la classe */
+    .class-header-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .toolbar-capsule-group {
+        display: inline-flex;
+        align-items: center;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 2px;
+        gap: 2px;
+    }
+
+    .btn-toolbar-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0 10px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #475569;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    .btn-toolbar-action:hover {
+        color: #0f172a;
+        background: #ffffff;
+        border-color: #cbd5e1;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        text-decoration: none;
+    }
+
+    .btn-toolbar-action.active,
+    .btn-toolbar-action:active {
+        color: #2563eb;
+        background: #eff6ff;
+        border-color: #bfdbfe;
+    }
+
+    .btn-toolbar-action i {
+        font-size: 0.8rem;
+    }
+
+    .btn-toolbar-save {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0 14px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #ffffff !important;
+        background: #2563eb;
+        border: 1px solid #2563eb;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(37, 99, 235, 0.25);
+        transition: all 0.15s ease;
+    }
+
+    .btn-toolbar-save:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+
+    .btn-toolbar-add {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0 12px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #059669;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .btn-toolbar-add:hover {
+        background: #059669;
+        color: #ffffff;
+        border-color: #059669;
+        box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);
+        text-decoration: none;
+    }
+</style>
+
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+        <h1 class="h4 mb-0 d-inline-flex align-items-center">
+            <span class="badge badge-primary px-3 py-2 shadow-sm font-weight-bold d-inline-flex align-items-center" style="font-size: 1rem; border-radius: 8px; letter-spacing: 0.3px;">
+                <i class="fas fa-chalkboard-teacher mr-2"></i>
+                Gestion : <span class="bg-white text-primary px-2 py-0.5 rounded ml-2 font-weight-bolder">{{ classe.name }}</span>
+            </span>
+        </h1>
+        {% if active_groups %}
+        <span class="badge badge-info px-2.5 py-1.5 shadow-sm font-weight-normal" id="activeGroupBadge" style="font-size: 0.82rem; border-radius: 6px;">
+            <i class="fas fa-layer-group mr-1"></i> Répartition active : <strong>{{ active_groups.criterion|capitalize }}</strong>
+        </span>
+        {% endif %}
+    </div>
+    <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+        <!-- Filtre de Visualisation par Groupe (Visible UNIQUEMENT si une répartition par groupe est appliquée) -->
+        <div id="groupFilterWrapper" class="align-items-center mr-2 {% if not active_groups %}d-none{% else %}d-flex{% endif %}">
+            <label class="mr-1 mb-0 font-weight-bold text-primary small"><i class="fas fa-filter mr-1"></i>Groupe:</label>
+            <div class="btn-group btn-group-sm shadow-sm" role="group" id="groupFilterBtnGroup">
+                <button type="button" class="btn btn-primary font-weight-bold active" data-group-filter="all" onclick="setGroupFilter('all')">
+                    Tous <span class="badge badge-light ml-1" id="filterCountAll">{{ students|length }}</span>
+                </button>
+                <button type="button" class="btn btn-outline-primary font-weight-bold" data-group-filter="1" onclick="setGroupFilter('1')">
+                    Groupe 1 <span class="badge badge-light ml-1" id="filterCountG1">0</span>
+                </button>
+                <button type="button" class="btn btn-outline-primary font-weight-bold" data-group-filter="2" onclick="setGroupFilter('2')">
+                    Groupe 2 <span class="badge badge-light ml-1" id="filterCountG2">0</span>
+                </button>
+            </div>
+        </div>
+
+        <label class="mr-1 mb-0 d-none d-md-inline small">Afficher:</label>
+        <select id="per-page-select" class="form-control form-control-sm mr-2" style="width: auto;">
+            <option value="15" {% if per_page=='15' %}selected{% endif %}>15</option>
+            <option value="25" {% if per_page=='25' %}selected{% endif %}>25</option>
+            <option value="50" {% if per_page=='50' %}selected{% endif %}>50</option>
+            <option value="all" {% if per_page=='all' %}selected{% endif %}>Tout</option>
+        </select>
+        <label class="mr-1 mb-0 small">Date:</label>
+        <input type="date" id="date-picker" value="{{ selected_date.strftime('%Y-%m-%d') }}"
+            class="form-control form-control-sm" style="width: auto;">
+    </div>
+</div>
+
+<!-- Barre d'actions groupées (visible dès qu'au moins 1 étudiant est coché) -->
+<div class="bulk-actions-bar" id="bulkActionsBar">
+    <div class="d-flex align-items-center">
+        <div class="badge badge-primary px-3 py-2 mr-3 font-weight-bold" style="font-size: 0.88rem;">
+            <i class="fas fa-user-check mr-1"></i>
+            <span id="bulkSelectedCount">0</span> sélectionné(s)
+        </div>
+        <small class="text-white-50 d-none d-md-inline">
+            Appliquez une action immédiate à la sélection
+        </small>
+    </div>
+    <div class="d-flex flex-wrap align-items-center" style="gap: 6px;">
+        <button type="button" class="btn btn-sm btn-outline-light" onclick="bulkMark('mark_present')" title="Marquer présents pour la date sélectionnée (Raccourci: P)">
+            <i class="fas fa-check-circle text-success mr-1"></i> Présents <kbd class="bg-dark text-white font-weight-bold px-1 ml-1 rounded small">P</kbd>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-light" onclick="bulkMark('mark_absent')" title="Marquer absents pour la date sélectionnée (Raccourci: A)">
+            <i class="fas fa-times-circle text-warning mr-1"></i> Absents <kbd class="bg-dark text-white font-weight-bold px-1 ml-1 rounded small">A</kbd>
+        </button>
+        {% if not is_year_read_only %}
+        {% if other_classes %}
+        <button type="button" class="btn btn-sm btn-info font-weight-bold" data-toggle="modal" data-target="#bulkTransferModal">
+            <i class="fas fa-exchange-alt mr-1"></i> Changer de classe
+        </button>
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-danger font-weight-bold" onclick="bulkDelete()" title="Supprimer les étudiants sélectionnés">
+            <i class="fas fa-trash-alt mr-1"></i> Supprimer
+        </button>
+        {% endif %}
+        <button type="button" class="btn btn-sm btn-outline-secondary text-white ml-2" onclick="deselectAllStudents()" title="Annuler la sélection">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Bandeau d'Aide Raccourcis Clavier Discret -->
+<div class="card border-0 mb-3 shadow-xs" style="border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0 !important;">
+    <div class="card-body py-1.5 px-3 d-flex flex-wrap align-items-center justify-content-between">
+        <div class="d-flex align-items-center mr-3 my-1">
+            <i class="fas fa-keyboard text-primary mr-2"></i>
+            <span class="font-weight-bold text-dark small mr-2" style="font-size: 0.78rem;">Raccourcis Prise Rapide :</span>
+        </div>
+        <div class="d-flex flex-wrap align-items-center my-1" style="gap: 6px;">
+            <span class="badge badge-white border py-0.5 px-2 text-dark font-weight-normal small">
+                <kbd class="bg-dark text-white px-1 rounded">S</kbd> Enregistrer
+            </span>
+            <span class="badge badge-white border py-0.5 px-2 text-dark font-weight-normal small">
+                <kbd class="bg-dark text-white px-1 rounded">P</kbd> Tous Présents
+            </span>
+            <span class="badge badge-white border py-0.5 px-2 text-dark font-weight-normal small">
+                <kbd class="bg-dark text-white px-1 rounded">A</kbd> Marquer Absents
+            </span>
+            <span class="badge badge-white border py-0.5 px-2 text-dark font-weight-normal small">
+                <kbd class="bg-dark text-white px-1 rounded">↑</kbd><kbd class="bg-dark text-white px-1 rounded">↓</kbd> Naviguer
+            </span>
+            <span class="badge badge-white border py-0.5 px-2 text-dark font-weight-normal small">
+                <kbd class="bg-dark text-white px-1 rounded">Espace</kbd> Sélectionner
+            </span>
+            <span class="badge badge-white border py-0.5 px-2 text-dark font-weight-normal small">
+                <kbd class="bg-dark text-white px-1 rounded">/</kbd> Chercher
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Alerte Séance Exceptionnelle (Grève / Événement / Neutralisation) si actif pour cette date -->
+{% if current_exceptional_event %}
+<div class="alert alert-{{ current_exceptional_event.badge_color }} shadow-sm border-0 d-flex flex-wrap align-items-center justify-content-between p-3 mb-3" style="border-radius: 12px; border-left: 6px solid #e11d48 !important;">
+    <div class="d-flex align-items-center mb-2 mb-md-0">
+        <div class="rounded-circle bg-white text-{{ current_exceptional_event.badge_color }} p-2 mr-3 shadow-xs d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+            <i class="fas {% if current_exceptional_event.event_type == 'greve' %}fa-bullhorn{% elif current_exceptional_event.event_type == 'evenement' %}fa-calendar-star{% else %}fa-exclamation-triangle{% endif %} fa-lg"></i>
+        </div>
+        <div>
+            <div class="font-weight-bold" style="font-size: 0.95rem;">
+                {{ current_exceptional_event.title }} &mdash; <span class="badge badge-light border font-weight-bold ml-1">{{ current_exceptional_event.period_display }}</span>
+            </div>
+            <div class="small mt-0.5 opacity-90">
+                <strong>Motif :</strong> {{ current_exceptional_event.type_display }}
+                {% if current_exceptional_event.description %} &bull; {{ current_exceptional_event.description }}{% endif %}
+                &bull; <span class="text-success font-weight-bold"><i class="fas fa-check-circle mr-1"></i>Séance neutralisée (les élèves ne sont pas pénalisés)</span>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex align-items-center" style="gap: 8px;">
+        <a href="{{ url_for('textbook.index') }}" class="btn btn-sm btn-light border font-weight-bold shadow-xs">
+            <i class="fas fa-book-open text-primary mr-1"></i> Voir au Cahier de Texte
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-danger bg-white font-weight-bold shadow-xs" onclick="deleteExceptionalEvent({{ current_exceptional_event.id }})">
+            <i class="fas fa-trash-alt mr-1"></i> Annuler l'événement
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<div class="card shadow mb-4">
+    <div class="card-header py-2 px-3 d-flex flex-wrap align-items-center justify-content-between" style="gap: 8px;">
+        <div class="d-flex align-items-center flex-shrink-0">
+            <h6 class="m-0 font-weight-bold text-primary text-nowrap">
+                <i class="fas fa-user-graduate mr-1"></i>
+                <span class="d-none d-sm-inline">Liste des Étudiants</span>
+                <span class="d-inline d-sm-none">Étudiants</span>
+                <span class="badge badge-light border text-primary ml-1 font-weight-bold">{{ students|length }}</span>
+            </h6>
+        </div>
+        <div class="class-header-toolbar">
+            <!-- 1. Groupe Affichage (Tableau / Trombinoscope / Aide) -->
+            <div class="toolbar-capsule-group" title="Mode d'affichage de la classe">
+                <button type="button" class="btn-toolbar-action active" id="btn-view-table" onclick="setViewMode('table')" title="Vue Tableau">
+                    <i class="fas fa-list mr-1"></i> Tableau
+                </button>
+                <button type="button" class="btn-toolbar-action" id="btn-view-grid" onclick="setViewMode('grid')" title="Vue Trombinoscope">
+                    <i class="fas fa-th-large mr-1"></i> Trombi
+                </button>
+            </div>
+
+            <!-- 2. Actions Rapides de Présence -->
+            <div class="toolbar-capsule-group">
+                <button type="button" class="btn-toolbar-action" id="btn-all-present" title="Décocher tous les absents pour marquer tout le monde présent (Raccourci: P)">
+                    <i class="fas fa-user-check text-success mr-1"></i> Tous Présents
+                </button>
+                <button type="button" class="btn-toolbar-action" id="btn-invert-selection" title="Inverser la sélection actuelle">
+                    <i class="fas fa-exchange-alt text-muted mr-1"></i> Inverser
+                </button>
+            </div>
+
+            <!-- 3. Rituels & Outils Pédagogiques Clés -->
+            <div class="toolbar-capsule-group">
+                <button type="button" class="btn-toolbar-action font-weight-bold" style="color: #d97706;" onclick="openClassFlashModal()" title="Rituel Début de Séance : Question Flash aux élèves présents">
+                    <i class="fas fa-bolt text-warning mr-1"></i> Question Flash
+                </button>
+                <a href="{{ url_for('absence.seating_plan', class_id=classe.id) }}" class="btn-toolbar-action" title="Plan de Salle & Postes du Laboratoire d'Informatique">
+                    <i class="fas fa-desktop text-primary mr-1"></i> Plan Salle
+                </a>
+                <button type="button" class="btn-toolbar-action" onclick="redirectToTextbookBridge()" title="Créer une entrée du Cahier de Texte avec les absents du jour">
+                    <i class="fas fa-book-open text-success mr-1"></i> Cahier Texte
+                </button>
+            </div>
+
+            <!-- 4. Menu Déroulant « Plus d'actions » (Exports, Groupes, Événements, QR) -->
+            <div class="dropdown d-inline-block">
+                <button class="btn-toolbar-action dropdown-toggle font-weight-bold" type="button" id="moreActionsDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:8px;">
+                    <i class="fas fa-ellipsis-h mr-1 text-secondary"></i> Plus
+                </button>
+                <div class="dropdown-menu dropdown-menu-right shadow-lg border-0 py-2" aria-labelledby="moreActionsDropdown" style="border-radius: 10px; min-width: 250px;">
+                    <!-- Sous-section Organisation & Pédagogie -->
+                    <h6 class="dropdown-header text-uppercase font-weight-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">Organisation de la Classe</h6>
+                    <a class="dropdown-item py-2 small font-weight-bold" href="javascript:void(0)" data-toggle="modal" data-target="#splitGroupsModal" onclick="if(typeof renderModalGroupColumns==='function') renderModalGroupColumns();">
+                        <i class="fas fa-users-cog text-info mr-2"></i> Répartition en 2 Groupes (TP)
+                    </a>
+                    <a class="dropdown-item py-2 small font-weight-bold text-danger" href="javascript:void(0)" data-toggle="modal" data-target="#exceptionalEventModal">
+                        <i class="fas fa-calendar-times mr-2"></i> Déclarer Grève / Événement
+                    </a>
+                    <a class="dropdown-item py-2 small font-weight-bold" href="{{ url_for('registration.manage') }}">
+                        <i class="fas fa-qrcode text-warning mr-2"></i> Session QR Fiches Élèves
+                    </a>
+                    <a class="dropdown-item py-2 small" href="javascript:void(0)" data-toggle="modal" data-target="#keyboardHelpModal">
+                        <i class="fas fa-keyboard text-secondary mr-2"></i> Raccourcis Clavier
+                    </a>
+
+                    <div class="dropdown-divider my-1"></div>
+
+                    <!-- Sous-section Documents & Exports -->
+                    <h6 class="dropdown-header text-uppercase font-weight-bold" style="font-size: 0.68rem; letter-spacing: 0.5px;">Documents &amp; Exports</h6>
+                    <a class="dropdown-item py-2 small" href="{{ url_for('absence.print_class_summary', class_id=classe.id) }}" target="_blank">
+                        <i class="fas fa-file-pdf text-danger mr-2"></i> Fiche Récapitulative (PDF)
+                    </a>
+                    <a class="dropdown-item py-2 small" href="{{ url_for('absence.export_class_attendance_excel', class_id=classe.id) }}">
+                        <i class="fas fa-table text-success mr-2"></i> Grille d'Assiduité (.xlsx)
+                    </a>
+                    <a class="dropdown-item py-2 small" href="{{ url_for('absence.export_class_grades_excel', class_id=classe.id) }}">
+                        <i class="fas fa-file-excel text-success mr-2"></i> Bilan Notes Assiduité (.xlsx)
+                    </a>
+                    {% if active_groups %}
+                    <a class="dropdown-item py-2 small" href="{{ url_for('absence.export_groups_pdf', class_id=classe.id) }}" target="_blank">
+                        <i class="fas fa-layer-group text-primary mr-2"></i> Fiche Groupes 1 &amp; 2 (PDF)
+                    </a>
+                    {% endif %}
+                    <a class="dropdown-item py-2 small text-info" href="{{ url_for('absence.class_grades_report', class_id=classe.id) }}">
+                        <i class="fas fa-chart-line mr-2"></i> Analyse des Notes
+                    </a>
+                </div>
+            </div>
+
+            <!-- 5. Actions Principales (Ajouter & Enregistrer) -->
+            {% if is_year_read_only %}
+            <span class="badge badge-warning text-dark px-3 py-2 shadow-sm font-weight-bold" style="border-radius: 8px;">
+                <i class="fas fa-lock mr-1"></i> Année Archivée
+            </span>
+            {% else %}
+            <button type="button" class="btn-toolbar-add" data-toggle="modal" data-target="#addStudentModal" title="Ajouter un nouvel étudiant dans cette classe">
+                <i class="fas fa-user-plus mr-1"></i> Ajouter
+            </button>
+            <button id="save-btn" class="btn-toolbar-save" title="Enregistrer les présences et absences (Raccourci: S)">
+                <i class="fas fa-save mr-1"></i> Enregistrer
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <form id="bulkActionForm" action="{{ url_for('absence.bulk_students_action', class_id=classe.id) }}" method="POST">
+            <input type="hidden" name="bulk_action" id="bulkActionInput" value="">
+            <input type="hidden" name="action_date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+            <input type="hidden" name="target_class_id" id="bulkTargetClassId" value="">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sticky-first" id="attendanceTable" width="100%" cellspacing="0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="student-select-col">
+                                <input type="checkbox" id="selectAllStudents" class="custom-student-checkbox" title="Tout sélectionner / désélectionner">
+                            </th>
+                            <th width="40">#</th>
+                            <th>CNE</th>
+                            <th>Nom & Prénom</th>
+                            <th>Date Naiss.</th>
+                            <th width="120" class="text-center">Note Assiduité</th>
+                            <th width="120" class="text-center">
+                                Présence
+                                <div class="small font-weight-normal text-muted" style="font-size: 0.7rem;">Coché = Absent</div>
+                            </th>
+                            <th width="100" class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        {% set stat = student_stats.get(student.id, {'total': 0, 'unjustified': 0, 'justified': 0, 'score': 20.0}) %}
+                        {% set student_group = '0' %}
+                        {% if active_groups and active_groups.groups %}
+                            {% if student.id|string in active_groups.groups.get('1', []) or student.id in active_groups.groups.get('1', []) %}
+                                {% set student_group = '1' %}
+                            {% elif student.id|string in active_groups.groups.get('2', []) or student.id in active_groups.groups.get('2', []) %}
+                                {% set student_group = '2' %}
+                            {% endif %}
+                        {% endif %}
+                        <tr id="row-student-{{ student.id }}" 
+                            class="student-item-row" 
+                            data-index="{{ loop.index0 }}"
+                            data-student-id="{{ student.id }}"
+                            data-group="{{ student_group }}"
+                            data-cne="{{ student.cne }}"
+                            data-lastname="{{ student.last_name|lower }}"
+                            data-firstname="{{ student.first_name|lower }}"
+                            data-birthdate="{{ student.birth_date.strftime('%Y-%m-%d') if student.birth_date else '' }}"
+                            data-gender="{{ student.gender or '' }}"
+                            data-absences="{{ stat.total }}"
+                            data-unjustified="{{ stat.unjustified }}">
+                            <td class="student-select-col">
+                                <input type="checkbox" name="selected_student_ids" value="{{ student.id }}" 
+                                       class="custom-student-checkbox student-row-checkbox"
+                                       data-student-name="{{ student.first_name }} {{ student.last_name }}">
+                            </td>
+                            <td class="student-row-number">
+                                <span class="badge-row-number">{{ loop.index }}</span>
+                                {% if student_group == '1' %}
+                                <span class="badge badge-primary badge-group-indicator ml-1" title="Groupe 1">G1</span>
+                                {% elif student_group == '2' %}
+                                <span class="badge badge-success badge-group-indicator ml-1" title="Groupe 2">G2</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ student.cne }}</td>
+                            <td class="student-name-hover font-weight-bold"
+                                data-photo="{{ url_for('main.uploaded_file', filename=student.photo_path if student.photo_path else 'photos/Default.jpg') }}">
+                                <img src="{{ url_for('main.uploaded_file', filename=student.photo_path if student.photo_path else 'photos/Default.jpg') }}" 
+                                     alt="{{ student.first_name }}" class="student-avatar-inline d-none" loading="lazy" decoding="async" onerror="this.src='{{ url_for('main.uploaded_file', filename='photos/Default.jpg') }}'">
+                                <span>{{ student.last_name }} {{ student.first_name }}</span>
+                                {% if stat.unjustified >= absence_alert_threshold %}
+                                <span class="badge badge-danger ml-1" title="Alerte décrochage ({{ stat.unjustified }} absences non justifiées)">
+                                    <i class="fas fa-exclamation-triangle"></i> Décrochage
+                                </span>
+                                {% elif stat.unjustified >= (absence_alert_threshold - 1) and stat.unjustified > 0 %}
+                                <span class="badge badge-warning ml-1 text-dark" title="À surveiller ({{ stat.unjustified }} absence non justifiée)">
+                                    <i class="fas fa-bell"></i>
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>{{ student.birth_date.strftime('%d/%m/%Y') if student.birth_date else '-' }}</td>
+                            <td class="text-center align-middle">
+                                <span class="badge badge-pill {% if stat.score >= 16 %}badge-success{% elif stat.score >= 10 %}badge-warning{% else %}badge-danger{% endif %} px-2 py-1 font-weight-bold" style="font-size: 0.9rem;">
+                                    {{ stat.score }} / 20
+                                </span>
+                                <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                                    {{ stat.unjustified }} NJ {% if stat.justified > 0 %}(+{{ stat.justified }} J){% endif %}
+                                </div>
+                            </td>
+                            <td class="text-center align-middle">
+                                <label class="switch mb-0">
+                                    <input type="checkbox" class="absence-checkbox" data-student-id="{{ student.id }}" {% if
+                                        student.id in absent_student_ids %}checked{% endif %}>
+                                    <span class="slider round"></span>
+                                </label>
+                            </td>
+                            <td class="text-center align-middle text-nowrap">
+                                <button type="button" class="btn btn-warning btn-circle btn-sm mr-1 text-dark" 
+                                    onclick="quickClassFlash({{ student.id }}, '{{ student.first_name }} {{ student.last_name }}')" 
+                                    title="Question Flash (+1 / +0.5 pt)">
+                                    <i class="fas fa-bolt"></i>
+                                </button>
+                                <button type="button" class="btn btn-circle btn-sm mr-1 text-white font-weight-bold" 
+                                    style="background: #7c3aed; border-color: #6d28d9;"
+                                    onclick="openAwardBadgeModal({{ student.id }}, '{{ student.first_name }} {{ student.last_name }}')" 
+                                    title="Décerner un Badge Pédagogique (Bug Hunter, Code Mentor...)">
+                                    <i class="fas fa-award"></i>
+                                </button>
+                                <a href="{{ url_for('absence.student_detail', student_id=student.id) }}"
+                                    class="btn btn-info btn-circle btn-sm mr-1" title="Historique">
+                                    <i class="fas fa-history"></i>
+                                </a>
+                                <form action="{{ url_for('absence.delete_student', student_id=student.id) }}" method="POST"
+                                    onsubmit="return confirm('Voulez-vous vraiment supprimer cet étudiant ?');"
+                                    style="margin: 0; display: inline-block;">
+                                    <button type="submit" class="btn btn-danger btn-circle btn-sm" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+
+        <!-- Vue Trombinoscope (Grille de photos interactives avec marquage au clic) -->
+        <div class="trombi-grid mt-2" id="trombiGridContainer">
+            {% for student in students %}
+            {% set is_absent = student.id in absent_student_ids %}
+            {% set student_group = '0' %}
+            {% if active_groups and active_groups.groups %}
+                {% if student.id|string in active_groups.groups.get('1', []) or student.id in active_groups.groups.get('1', []) %}
+                    {% set student_group = '1' %}
+                {% elif student.id|string in active_groups.groups.get('2', []) or student.id in active_groups.groups.get('2', []) %}
+                    {% set student_group = '2' %}
+                {% endif %}
+            {% endif %}
+            <div class="trombi-card student-item-card {% if is_absent %}is-absent{% endif %}" 
+                 id="trombi-card-{{ student.id }}" 
+                 data-index="{{ loop.index0 }}" 
+                 data-student-id="{{ student.id }}"
+                 data-student-name="{{ student.first_name }} {{ student.last_name }}"
+                 data-group="{{ student_group }}"
+                 onclick="toggleTrombiStudent({{ student.id }})">
+                <span class="trombi-status-badge {% if is_absent %}trombi-status-absent{% else %}trombi-status-present{% endif %}" id="trombi-badge-{{ student.id }}">
+                    {{ 'ABSENT' if is_absent else 'PRÉSENT' }}
+                </span>
+                {% if student_group == '1' %}
+                <span class="badge badge-primary position-absolute" style="top: 8px; left: 8px; font-size: 0.75rem; z-index: 2;">G1</span>
+                {% elif student_group == '2' %}
+                <span class="badge badge-success position-absolute" style="top: 8px; left: 8px; font-size: 0.75rem; z-index: 2;">G2</span>
+                {% endif %}
+                <img src="{{ url_for('main.uploaded_file', filename=student.photo_path if student.photo_path else 'photos/Default.jpg') }}" 
+                     alt="{{ student.first_name }}" class="trombi-avatar" loading="lazy" decoding="async" onerror="this.src='{{ url_for('main.uploaded_file', filename='photos/Default.jpg') }}'">
+                <div class="font-weight-bold text-dark text-truncate" style="font-size: 0.90rem;">
+                    {{ student.last_name }} {{ student.first_name }}
+                </div>
+                <div class="small text-muted">{{ student.cne }}</div>
+                <div class="mt-2 d-flex justify-content-center" style="gap: 4px;">
+                    <button type="button" class="btn btn-sm btn-warning text-dark py-0 px-2 small font-weight-bold" 
+                        onclick="event.stopPropagation(); quickClassFlash({{ student.id }}, '{{ student.first_name }} {{ student.last_name }}')" 
+                        title="Question Flash (+1 / +0.5 pt)">
+                        <i class="fas fa-bolt"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm text-white py-0 px-2 small font-weight-bold" 
+                        style="background: #7c3aed;"
+                        onclick="event.stopPropagation(); openAwardBadgeModal({{ student.id }}, '{{ student.first_name }} {{ student.last_name }}')" 
+                        title="Décerner un Badge Pédagogique">
+                        <i class="fas fa-award"></i>
+                    </button>
+                    <a href="{{ url_for('absence.student_detail', student_id=student.id) }}" class="btn btn-sm btn-outline-info py-0 px-2 small" onclick="event.stopPropagation();" title="Voir Historique">
+                        <i class="fas fa-history mr-1"></i> Fiche
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination Links (Client-Side sans aucun rechargement) -->
+        <nav aria-label="Page navigation" class="mt-4" id="clientPaginationNav" style="display: none;">
+            <ul class="pagination justify-content-center" id="clientPaginationList">
+                <!-- Rempli dynamiquement en JavaScript -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Tooltip Container -->
+<div id="photo-tooltip"></div>
+
+<!-- Toast Flottant Navigation Clavier Élève Actif -->
+<div id="keyboardNavToast" style="display: none; position: fixed; bottom: 25px; left: 50%; transform: translateX(-50%); z-index: 1050; background: #0f172a; color: #fff; padding: 8px 20px; border-radius: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.35); font-size: 0.88rem; pointer-events: none; border: 1px solid rgba(255,255,255,0.18); transition: opacity 0.2s ease;">
+    <i class="fas fa-keyboard text-primary mr-2"></i>
+    <span id="keyboardNavToastContent">Élève actif</span>
+</div>
+
+<!-- Floating Save Button pour Mobile & Tablette -->
+<div id="mobileFloatingSave" style="display: none; position: fixed; bottom: 22px; right: 22px; z-index: 1040;">
+    <button type="button" class="btn btn-primary rounded-pill shadow-lg d-flex align-items-center px-3 py-2 font-weight-bold" onclick="document.getElementById('save-btn').click();" title="Enregistrer les absences">
+        <i class="fas fa-save mr-2"></i>
+        <span>Enregistrer</span>
+    </button>
+</div>
+
+<!-- Modal Raccourcis Clavier -->
+<div class="modal fade" id="keyboardHelpModal" tabindex="-1" role="dialog" aria-labelledby="keyboardHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0 rounded-lg">
+            <div class="modal-header bg-gradient-primary text-white py-3">
+                <h5 class="modal-title font-weight-bold" id="keyboardHelpModalLabel">
+                    <i class="fas fa-keyboard mr-2"></i>Raccourcis Clavier pour l'Appel
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fermer">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">
+                    Effectuez l'appel en classe ultra-rapidement sans jamais avoir besoin de la souris :
+                </p>
+                <div class="list-group list-group-flush mb-3">
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+                        <span class="text-gray-800 small font-weight-bold"><i class="fas fa-arrows-alt-v mr-2 text-primary"></i>Naviguer entre élèves</span>
+                        <div><kbd class="bg-dark text-white px-2 py-1 shadow-sm">↓</kbd> / <kbd class="bg-dark text-white px-2 py-1 shadow-sm">↑</kbd></div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+                        <span class="text-gray-800 small font-weight-bold"><i class="fas fa-check-square mr-2 text-warning"></i>Basculer Présent ⇄ Absent</span>
+                        <div><kbd class="bg-dark text-white px-2 py-1 shadow-sm">Espace</kbd> ou <kbd class="bg-dark text-white px-2 py-1 shadow-sm">Entrée</kbd></div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+                        <span class="text-gray-800 small font-weight-bold"><i class="fas fa-user-times mr-2 text-danger"></i>Marquer Absent(s)</span>
+                        <div><kbd class="bg-dark text-white px-2 py-1 shadow-sm">A</kbd></div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+                        <span class="text-gray-800 small font-weight-bold"><i class="fas fa-user-check mr-2 text-success"></i>Marquer Tous Présents</span>
+                        <div><kbd class="bg-dark text-white px-2 py-1 shadow-sm">P</kbd></div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+                        <span class="text-gray-800 small font-weight-bold"><i class="fas fa-save mr-2 text-info"></i>Enregistrer immédiatement</span>
+                        <div><kbd class="bg-primary text-white px-2 py-1 shadow-sm">S</kbd> ou <kbd class="bg-dark text-white px-2 py-1 shadow-sm">Ctrl+S</kbd></div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+                        <span class="text-gray-800 small font-weight-bold"><i class="fas fa-search mr-2 text-secondary"></i>Recherche élève / CNE</span>
+                        <div><kbd class="bg-dark text-white px-2 py-1 shadow-sm">/</kbd></div>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
+                        <span class="text-gray-800 small font-weight-bold"><i class="fas fa-times-circle mr-2 text-muted"></i>Annuler la sélection</span>
+                        <div><kbd class="bg-dark text-white px-2 py-1 shadow-sm">Échap</kbd></div>
+                    </div>
+                </div>
+                <div class="alert alert-light border small text-muted mb-0">
+                    <i class="fas fa-lightbulb text-warning mr-1"></i>
+                    <strong>Gain de temps :</strong> Cliquez sur le premier élève, puis appuyez sur <kbd>↓</kbd> et <kbd>Espace</kbd> pour pointer les absents, puis <kbd>S</kbd> pour valider !
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-primary btn-sm px-4 font-weight-bold" data-dismiss="modal">Compris !</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Transfert Groupé de Classe -->
+<div class="modal fade" id="bulkTransferModal" tabindex="-1" role="dialog" aria-labelledby="bulkTransferModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0 rounded-lg">
+            <div class="modal-header bg-gradient-info text-white py-3">
+                <h5 class="modal-title font-weight-bold" id="bulkTransferModalLabel">
+                    <i class="fas fa-exchange-alt mr-2"></i>Déplacer les Étudiants Sélectionnés
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-gray-700 mb-3">
+                    Vous êtes sur le point de transférer <strong id="transferCountDisplay">0</strong> étudiant(s) de la classe <strong>{{ classe.name }}</strong> vers :
+                </p>
+                <div class="form-group mb-0">
+                    <label class="font-weight-bold small text-gray-700">Classe de destination :</label>
+                    <select id="bulkModalTargetClassSelect" class="form-control" required>
+                        <option value="">-- Choisir la classe de destination --</option>
+                        {% for oc in other_classes %}
+                        <option value="{{ oc.id }}">{{ oc.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-info btn-sm font-weight-bold" onclick="executeBulkTransfer()">
+                    <i class="fas fa-check mr-1"></i>Confirmer le transfert
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Smart Modal pour ajouter un étudiant -->
+<div class="modal fade" id="addStudentModal" tabindex="-1" role="dialog" aria-labelledby="addStudentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0 rounded-lg">
+            <div class="modal-header bg-gradient-primary text-white py-3">
+                <h5 class="modal-title font-weight-bold d-flex align-items-center" id="addStudentModalLabel">
+                    <i class="fas fa-user-plus mr-2"></i> Nouvel Étudiant — <span class="badge badge-light text-primary ml-2 font-weight-bold">{{ classe.name }}</span>
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" style="opacity: 0.9;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="addStudentForm" action="{{ url_for('absence.add_student', class_id=classe.id) }}" method="POST" enctype="multipart/form-data">
+                <input type="hidden" name="add_another" id="add_another_field" value="0">
+                <div class="modal-body p-4">
+                    <div class="row">
+                        <!-- Colonne Gauche : Photo / Avatar avec Drag & Drop & Live Preview -->
+                        <div class="col-md-4 text-center border-right pr-md-4 mb-3 mb-md-0 d-flex flex-column align-items-center justify-content-center">
+                            <label class="small font-weight-bold text-gray-700 mb-2">Photo de profil</label>
+                            
+                            <div id="photoDropArea" class="position-relative d-flex flex-column align-items-center justify-content-center border rounded-circle bg-light shadow-sm"
+                                 style="width: 150px; height: 150px; cursor: pointer; overflow: hidden; border: 2px dashed #4e73df !important; transition: all 0.25s ease;">
+                                <img id="avatarPreview" src="{{ url_for('static', filename='img/undraw_profile.svg') }}" 
+                                     alt="Aperçu" class="w-100 h-100" style="object-fit: cover; display: none;">
+                                <div id="avatarPlaceholder" class="text-center p-2">
+                                    <i class="fas fa-camera fa-2x text-primary mb-1"></i>
+                                    <div class="small font-weight-bold text-muted" style="font-size: 0.75rem;">Glisser ou Cliquer</div>
+                                </div>
+                                <input type="file" class="d-none" id="student_photo" name="photo" accept="image/jpeg,image/jpg,image/png">
+                            </div>
+                            
+                            <small class="text-muted mt-2" style="font-size: 0.72rem;">
+                                <i class="fas fa-info-circle mr-1"></i>JPG, JPEG ou PNG (max 5Mo)
+                            </small>
+                            <button type="button" id="removePhotoBtn" class="btn btn-outline-danger btn-sm mt-2 py-0 px-2" style="display: none; font-size: 0.75rem;">
+                                <i class="fas fa-times mr-1"></i> Supprimer
+                            </button>
+                        </div>
+
+                        <!-- Colonne Droite : Formulaire complet avec contrôles intelligents -->
+                        <div class="col-md-8 pl-md-4">
+                            <!-- Ligne 1 : CNE et Date de Naissance -->
+                            <div class="form-row">
+                                <div class="form-group col-sm-6 mb-3">
+                                    <label for="cne" class="small font-weight-bold text-gray-700">
+                                        CNE <span class="text-danger">*</span>
+                                        <span id="cneBadge" class="ml-1 badge badge-pill badge-secondary" style="font-size: 0.7rem; display: none;"></span>
+                                    </label>
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-id-card text-muted"></i></span>
+                                        </div>
+                                        <input type="text" class="form-control form-control-user" id="cne" name="cne" required
+                                            placeholder="Ex: R134567890" autocomplete="off">
+                                    </div>
+                                    <small id="cneFeedback" class="form-text" style="font-size: 0.72rem; min-height: 1rem;"></small>
+                                </div>
+
+                                <div class="form-group col-sm-6 mb-3">
+                                    <label for="birth_date" class="small font-weight-bold text-gray-700">Date de naissance</label>
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-calendar-alt text-muted"></i></span>
+                                        </div>
+                                        <input type="date" class="form-control" id="birth_date" name="birth_date">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Ligne 2 : Nom et Prénom -->
+                            <div class="form-row">
+                                <div class="form-group col-sm-6 mb-3">
+                                    <label for="last_name" class="small font-weight-bold text-gray-700">Nom <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-user text-muted"></i></span>
+                                        </div>
+                                        <input type="text" class="form-control text-uppercase" id="last_name" name="last_name" required
+                                            placeholder="ALAMI">
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-sm-6 mb-3">
+                                    <label for="first_name" class="small font-weight-bold text-gray-700">Prénom <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-user text-muted"></i></span>
+                                        </div>
+                                        <input type="text" class="form-control text-capitalize" id="first_name" name="first_name" required
+                                            placeholder="Ahmed">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Ligne 3 : Coordonnées (Email et N° Téléphone) -->
+                            <div class="form-row">
+                                <div class="form-group col-sm-6 mb-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <label for="email" class="small font-weight-bold text-gray-700 mb-1">Adresse Email</label>
+                                        <span id="suggestEmailBtn" class="badge badge-light text-primary border" style="cursor: pointer; font-size: 0.7rem; display: none;" title="Générer d'après le nom et prénom">
+                                            <i class="fas fa-magic mr-1"></i>Suggérer
+                                        </span>
+                                    </div>
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-envelope text-muted"></i></span>
+                                        </div>
+                                        <input type="email" class="form-control" id="email" name="email"
+                                            placeholder="ahmed.alami@exemple.com">
+                                    </div>
+                                </div>
+
+                                <div class="form-group col-sm-6 mb-3">
+                                    <label for="phone" class="small font-weight-bold text-gray-700">N° Téléphone</label>
+                                    <div class="input-group input-group-sm">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text"><i class="fas fa-phone text-muted"></i></span>
+                                        </div>
+                                        <input type="tel" class="form-control" id="phone" name="phone"
+                                            placeholder="06 12 34 56 78">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i> Annuler
+                    </button>
+                    <div class="d-flex">
+                        <button type="button" id="saveAndAddAnotherBtn" class="btn btn-outline-primary btn-sm mr-2 font-weight-bold">
+                            <i class="fas fa-redo-alt mr-1"></i> Enregistrer & Ajouter un autre
+                        </button>
+                        <button type="submit" id="submitStudentBtn" class="btn btn-success btn-sm px-4 font-weight-bold shadow-sm">
+                            <i class="fas fa-check mr-1"></i> Enregistrer
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- MODAL DE DIVISION EN 2 GROUPES (TP / ACTIVITÉS)        -->
+<!-- ======================================================= -->
+<div class="modal fade" id="splitGroupsModal" tabindex="-1" role="dialog" aria-labelledby="splitGroupsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header text-white" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);">
+                <h5 class="modal-title font-weight-bold d-flex align-items-center" id="splitGroupsModalLabel">
+                    <i class="fas fa-users-cog mr-2"></i> Division de la classe en 2 Groupes ({{ classe.name }})
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fermer" style="opacity: 0.9;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <!-- Barre de choix du critère -->
+                <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <div class="row align-items-center">
+                            <div class="col-lg-7 col-md-12 mb-2 mb-lg-0">
+                                <label class="small font-weight-bold text-gray-700 mb-1 d-block">
+                                    <i class="fas fa-magic text-primary mr-1"></i> Choisissez un critère de répartition automatique :
+                                </label>
+                                <div class="input-group">
+                                    <select id="splitCriterionSelect" class="form-control font-weight-bold text-primary" onchange="applySplitAlgorithm()">
+                                        <option value="list_order">1. Ordre de la liste (Moitié 1ère partie / Moitié 2nde partie)</option>
+                                        <option value="even_odd">2. Pair / Impair (Alterné 1 sur 2)</option>
+                                        <option value="random">3. Aléatoire (Tirage au sort 50/50)</option>
+                                        <option value="alphabetical">4. Ordre Alphabétique (Nom de famille A-Z)</option>
+                                        <option value="attendance">5. Assiduité / Taux d'absence (Équilibrage des absents)</option>
+                                        <option value="age">6. Par Âge (Date de naissance)</option>
+                                        <option value="gender">7. Par Sexe / Genre (Équilibrage filles / garçons)</option>
+                                    </select>
+                                    <div class="input-group-append">
+                                        <button id="btnTriggerSplitAlgorithm" class="btn btn-primary font-weight-bold px-3 shadow-sm" type="button" onclick="if(typeof window.applySplitAlgorithm==='function'){window.applySplitAlgorithm();}else{alert('Erreur: fonction non disponible. Vérifiez la console.');console.error('applySplitAlgorithm non définie sur window', typeof applySplitAlgorithm);}">
+                                            <i class="fas fa-bolt mr-1"></i> Répartir
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-5 col-md-12 d-flex justify-content-lg-end align-items-center flex-wrap" style="gap: 8px;">
+                                <button type="button" class="btn btn-outline-danger btn-sm font-weight-bold" onclick="resetClassGroupsAction()" title="Supprimer la division et revenir à la classe entière">
+                                    <i class="fas fa-undo-alt mr-1"></i> Réinitialiser
+                                </button>
+                                <a href="{{ url_for('absence.export_groups_pdf', class_id=classe.id) }}" target="_blank" class="btn btn-outline-secondary btn-sm font-weight-bold" id="modalExportPdfBtn">
+                                    <i class="fas fa-file-pdf text-danger mr-1"></i> Fiche PDF
+                                </a>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-muted small d-flex align-items-center">
+                            <i class="fas fa-info-circle text-info mr-2"></i>
+                            <span>Vous pouvez aussi <strong>glisser-déposer (Drag & Drop)</strong> n'importe quel élève d'une colonne à l'autre pour affiner manuellement.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deux Colonnes : Groupe 1 et Groupe 2 -->
+                <div class="row">
+                    <!-- Colonne GROUPE 1 -->
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; border-top: 4px solid #4e73df !important;">
+                            <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom">
+                                <h6 class="m-0 font-weight-bold text-primary d-flex align-items-center">
+                                    <span class="badge badge-primary mr-2 px-2 py-1">Groupe 1</span>
+                                    <span class="small text-muted font-weight-normal">Liste des étudiants</span>
+                                </h6>
+                                <span class="badge badge-pill badge-light border font-weight-bold text-primary px-3 py-1" style="font-size: 0.85rem;" id="modalG1Count">0 élève(s)</span>
+                            </div>
+                            <div class="card-body p-2 group-drop-zone" id="groupDropZone1" data-group="1" style="min-height: 380px; max-height: 520px; overflow-y: auto; background-color: #f8fafc; border-radius: 0 0 12px 12px;">
+                                <!-- Cartes draggable générées ici -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Colonne GROUPE 2 -->
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; border-top: 4px solid #1cc88a !important;">
+                            <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom">
+                                <h6 class="m-0 font-weight-bold text-success d-flex align-items-center">
+                                    <span class="badge badge-success mr-2 px-2 py-1">Groupe 2</span>
+                                    <span class="small text-muted font-weight-normal">Liste des étudiants</span>
+                                </h6>
+                                <span class="badge badge-pill badge-light border font-weight-bold text-success px-3 py-1" style="font-size: 0.85rem;" id="modalG2Count">0 élève(s)</span>
+                            </div>
+                            <div class="card-body p-2 group-drop-zone" id="groupDropZone2" data-group="2" style="min-height: 380px; max-height: 520px; overflow-y: auto; background-color: #f8fafc; border-radius: 0 0 12px 12px;">
+                                <!-- Cartes draggable générées ici -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white py-3 px-4 d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal">
+                    Fermer
+                </button>
+                <div class="d-flex align-items-center">
+                    <span id="splitSaveFeedback" class="text-success small font-weight-bold mr-3" style="display: none;">
+                        <i class="fas fa-check-circle mr-1"></i> Répartition enregistrée !
+                    </span>
+                    <button type="button" class="btn btn-success px-4 font-weight-bold shadow-sm" onclick="saveSplitGroupsAction()">
+                        <i class="fas fa-save mr-1"></i> Valider & Appliquer cette Répartition
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- MODAL RITUEL DÉBUT DE SÉANCE : QUESTION FLASH (IDÉES 1 & 2) -->
+<!-- ======================================================= -->
+<div class="modal fade" id="classFlashModal" tabindex="-1" role="dialog" aria-labelledby="classFlashModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header text-dark" style="background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);">
+                <h5 class="modal-title font-weight-bold d-flex align-items-center" id="classFlashModalLabel">
+                    <i class="fas fa-bolt mr-2 text-dark"></i> Rituel Début de Séance : Question Flash ({{ classe.name }})
+                </h5>
+                <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Fermer" style="opacity: 0.85;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <!-- Filtres intelligents & Équité pédagogique (Idées 1 & 2) -->
+                <div class="card border-0 shadow-sm mb-3" style="border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+                            <h6 class="font-weight-bold text-dark mb-0">
+                                <i class="fas fa-sliders-h text-warning mr-1"></i> Filtres Intelligents & Équité Pédagogique
+                            </h6>
+                            <span class="badge badge-primary px-2 py-1" id="flashEligibleBadge">
+                                Initialisation...
+                            </span>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-2 mb-md-0">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="flashExcludeAbsents" checked onchange="updateFlashCandidatesCount()">
+                                    <label class="custom-control-label small font-weight-bold" for="flashExcludeAbsents">
+                                        <i class="fas fa-user-slash text-danger mr-1"></i> Exclure les absents de la séance
+                                    </label>
+                                    <div class="text-muted small ml-4" id="flashAbsentLiveText">Synchronisé en temps réel avec l'appel</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="flashEquityPriority" checked onchange="updateFlashCandidatesCount()">
+                                    <label class="custom-control-label small font-weight-bold" for="flashEquityPriority">
+                                        <i class="fas fa-balance-scale text-success mr-1"></i> Priorité aux moins interrogés
+                                    </label>
+                                    <div class="text-muted small ml-4">Équité : cible ceux qui ont le moins d'interrogations</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tirage au sort interactif & Roulette -->
+                <div class="card border-0 shadow-sm mb-3 text-center" style="border-radius: 12px; background: #ffffff;">
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-warning btn-lg px-4 py-2 font-weight-bold shadow-sm text-dark" id="btnRouletteDraw" onclick="triggerFlashRoulette()">
+                                <i class="fas fa-dice mr-2"></i> Tirer au sort un élève présent
+                            </button>
+                        </div>
+
+                        <!-- Zone d'affichage roulette de l'élève -->
+                        <div id="flashSelectedDisplay" class="p-3 rounded border" style="background: #f8f9fc; min-height: 90px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                            <div id="flashRouletteName" class="font-weight-bold text-primary" style="font-size: 1.35rem;">
+                                Cliquez sur le dé pour lancer le tirage
+                            </div>
+                            <div id="flashRouletteSub" class="small text-muted mt-1">
+                                ou sélectionnez manuellement un élève ci-dessous
+                            </div>
+                        </div>
+
+                        <!-- Choix manuel direct -->
+                        <div class="form-group mt-3 mb-0 text-left">
+                            <label class="small font-weight-bold text-gray-700 mb-1">
+                                <i class="fas fa-user-graduate text-primary mr-1"></i> Élève interrogé pour la question :
+                            </label>
+                            <select id="flashStudentSelect" class="form-control font-weight-bold text-dark" onchange="onFlashStudentSelectChange()">
+                                <!-- Rempli dynamiquement -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulaire d'attribution immédiate du point flash (Idée 3) -->
+                <div class="card border-0 shadow-sm mb-3" style="border-radius: 12px;">
+                    <div class="card-body p-3">
+                        <label class="small font-weight-bold text-gray-700 mb-2 d-block">
+                            <i class="fas fa-star text-warning mr-1"></i> Attribuer le point en 1 clic :
+                        </label>
+                        <div class="d-flex flex-wrap" style="gap: 8px;">
+                            <button type="button" class="btn btn-success font-weight-bold flex-fill py-2" onclick="recordFlashPoint(1.0)">
+                                <i class="fas fa-star mr-1"></i> +1.0 pt <span class="small font-weight-normal d-block">Excellente réponse</span>
+                            </button>
+                            <button type="button" class="btn btn-info font-weight-bold flex-fill py-2" onclick="recordFlashPoint(0.5)">
+                                <i class="fas fa-star-half-alt mr-1"></i> +0.5 pt <span class="small font-weight-normal d-block">Bonne tentative</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary font-weight-bold flex-fill py-2" onclick="recordFlashPoint(0.0)">
+                                <i class="fas fa-comment mr-1"></i> 0 pt <span class="small font-weight-normal d-block">Passé / Pas de rép.</span>
+                            </button>
+                        </div>
+
+                        <div class="row mt-3">
+                            <div class="col-md-8 mb-2 mb-md-0">
+                                <input type="text" id="flashCustomLabel" class="form-control form-control-sm" placeholder="Intitulé (ex: Rituel Question Flash Début de séance)">
+                            </div>
+                            <div class="col-md-4">
+                                <select id="flashSemesterSelect" class="form-control form-control-sm font-weight-bold" onchange="loadClassFlashStats(this.value); updateFlashCandidatesCount(); loadClassFlashRecentHistory();">
+                                    <option value="1">Semestre 1</option>
+                                    <option value="2">Semestre 2</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Historique récent des questions flash -->
+                <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+                    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                        <span class="small font-weight-bold text-dark">
+                            <i class="fas fa-history text-secondary mr-1"></i> Historique récent du semestre
+                        </span>
+                        <button type="button" class="btn btn-sm btn-link p-0 text-primary small" onclick="loadClassFlashRecentHistory()">
+                            <i class="fas fa-sync-alt mr-1"></i> Actualiser
+                        </button>
+                    </div>
+                    <div class="card-body p-0" style="max-height: 180px; overflow-y: auto;">
+                        <table class="table table-sm table-hover mb-0 small">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Élève</th>
+                                    <th>Points</th>
+                                    <th>Intitulé</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flashRecentHistoryBody">
+                                <tr><td colspan="5" class="text-center text-muted py-3">Chargement de l'historique...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white py-2">
+                <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================================================= -->
+<!-- MODAL D'ATTRIBUTION RAPIDE DU POINT FLASH (IDÉE 3)      -->
+<!-- ======================================================= -->
+<div class="modal fade" id="quickPointModal" tabindex="-1" role="dialog" aria-labelledby="quickPointModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header py-2 text-dark" style="background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);">
+                <h6 class="modal-title font-weight-bold d-flex align-items-center" id="quickPointModalLabel">
+                    <i class="fas fa-bolt mr-2"></i> Question Flash Rapide
+                </h6>
+                <button type="button" class="close text-dark" data-dismiss="modal" aria-label="Fermer" style="opacity: 0.85;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-3 text-center bg-light">
+                <input type="hidden" id="quickStudentId" value="">
+                <h6 class="font-weight-bold text-dark mb-1" id="quickStudentName">-</h6>
+                <div id="quickStudentStatusAlert" class="small mb-3" style="display: none;"></div>
+                
+                <div class="d-flex flex-column" style="gap: 8px;">
+                    <button type="button" class="btn btn-success font-weight-bold py-2 shadow-sm" onclick="submitQuickPoint(1.0)">
+                        <i class="fas fa-star mr-1"></i> +1.0 pt <span class="small font-weight-normal d-block">(Excellente Réponse)</span>
+                    </button>
+                    <button type="button" class="btn btn-info font-weight-bold py-2 shadow-sm" onclick="submitQuickPoint(0.5)">
+                        <i class="fas fa-star-half-alt mr-1"></i> +0.5 pt <span class="small font-weight-normal d-block">(Bonne Tentative)</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary font-weight-bold py-2" onclick="submitQuickPoint(0.0)">
+                        <i class="fas fa-comment mr-1"></i> 0 pt <span class="small font-weight-normal d-block">(Non Répondu)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL : DÉCERNER UN BADGE PÉDAGOGIQUE (OPTION C) -->
+<div class="modal fade" id="awardBadgeModal" tabindex="-1" role="dialog" aria-labelledby="awardBadgeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg rounded-xl">
+            <div class="modal-header bg-light py-3">
+                <h5 class="modal-title font-weight-bold text-gray-900" id="awardBadgeModalLabel">
+                    <i class="fas fa-award mr-2" style="color: #7c3aed;"></i> Décerner un Badge Pédagogique
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body p-3">
+                <input type="hidden" id="badgeTargetStudentId">
+                <div class="alert alert-light border mb-3 py-2 px-3 d-flex align-items-center justify-content-between">
+                    <span class="small font-weight-bold text-muted">Élève sélectionné :</span>
+                    <strong id="badgeTargetStudentName" class="text-primary"></strong>
+                </div>
+
+                <div class="list-group">
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="submitAwardBadge('bug_hunter')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-danger p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-bug"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Bug Hunter</h6>
+                                <small class="text-muted">A résolu un bogue ou une erreur algorithmique complexe</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-danger font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="submitAwardBadge('mentor')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-info p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-hands-helping"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Code Mentor</h6>
+                                <small class="text-muted">Entraide remarquable et soutien technique aux camarades</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-info font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="submitAwardBadge('fast_coder')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-warning text-dark p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-bolt"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Fast Coder</h6>
+                                <small class="text-muted">A achevé le TP ou défi avec rapidité et précision</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-warning text-dark font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="submitAwardBadge('clean_code')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-success p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-shield-alt"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Clean Code</h6>
+                                <small class="text-muted">Code impeccable, indenté et rigoureusement commenté</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-success font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="submitAwardBadge('active')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-primary p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-star"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Super Actif</h6>
+                                <small class="text-muted">Participation constante et dynamisme exemplaire</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-primary font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const saveBtn = document.getElementById('save-btn');
+    const datePicker = document.getElementById('date-picker');
+    const perPageSelect = document.getElementById('per-page-select');
+    const checkboxes = document.querySelectorAll('.absence-checkbox');
+    const classId = {{ classe.id }};
+
+    // Client-side pagination and group filter state
+    let currentPage = 1;
+    let currentPerPage = perPageSelect ? perPageSelect.value : '15';
+    let activeGroupFilter = 'all'; // 'all', '1', or '2'
+
+    const allTableRows = Array.from(document.querySelectorAll('.student-item-row'));
+    const allTrombiCards = Array.from(document.querySelectorAll('.student-item-card'));
+    const paginationNav = document.getElementById('clientPaginationNav');
+    const paginationList = document.getElementById('clientPaginationList');
+
+    // ─── Déclarations anticipées (évite le TDZ pour les fonctions appelées tôt) ─
+    let focusedStudentIndex = -1;
+    let studentRows = [];
+    let currentSplitG1 = [];
+    let currentSplitG2 = [];
+    let rawStudentsData = [];
+
+    // Initialisation des infobulles (tooltips)
+    if (window.jQuery && typeof jQuery.fn.tooltip === 'function') {
+        $('[data-toggle="tooltip"]').tooltip({ boundary: 'window' });
+    }
+
+    function getVisibleRows() {
+        return allTableRows.filter(row => {
+            if (activeGroupFilter === 'all') return true;
+            return row.dataset.group === activeGroupFilter;
+        });
+    }
+
+    function getVisibleCards() {
+        return allTrombiCards.filter(card => {
+            if (activeGroupFilter === 'all') return true;
+            return card.dataset.group === activeGroupFilter;
+        });
+    }
+
+    function applyClientPagination() {
+        const visibleRows = getVisibleRows();
+        const visibleCards = getVisibleCards();
+        const totalItems = visibleRows.length;
+
+        // Cacher d'abord tous les éléments exclus par le filtre de groupe
+        allTableRows.forEach(row => {
+            if (activeGroupFilter !== 'all' && row.dataset.group !== activeGroupFilter) {
+                row.style.display = 'none';
+            }
+        });
+        allTrombiCards.forEach(card => {
+            if (activeGroupFilter !== 'all' && card.dataset.group !== activeGroupFilter) {
+                card.style.display = 'none';
+            }
+        });
+
+        if (totalItems === 0) {
+            if (paginationNav) paginationNav.style.display = 'none';
+            return;
+        }
+
+        let pageSize = (currentPerPage === 'all') ? totalItems : parseInt(currentPerPage, 10);
+        if (isNaN(pageSize) || pageSize <= 0) pageSize = totalItems;
+
+        const totalPages = Math.ceil(totalItems / pageSize);
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+
+        // Afficher ou masquer les lignes du tableau qui correspondent à la page courante
+        visibleRows.forEach((row, idx) => {
+            if (idx >= startIndex && idx < endIndex) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Afficher ou masquer les cartes trombinoscope de la page courante
+        visibleCards.forEach((card, idx) => {
+            if (idx >= startIndex && idx < endIndex) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Rendu des boutons de pagination
+        if (totalPages <= 1) {
+            if (paginationNav) paginationNav.style.display = 'none';
+        } else {
+            if (paginationNav) paginationNav.style.display = 'block';
+            renderPaginationControls(totalPages);
+        }
+
+        // Mettre à jour l'indexation clavier
+        updateKeyboardStudentRows();
+    }
+
+    function renderPaginationControls(totalPages) {
+        if (!paginationList) return;
+        paginationList.innerHTML = '';
+
+        // Bouton Précédent
+        const prevLi = document.createElement('li');
+        prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+        prevLi.innerHTML = `<a class="page-link" href="javascript:void(0)" aria-label="Précédent">Précédent</a>`;
+        if (currentPage > 1) {
+            prevLi.querySelector('a').addEventListener('click', (e) => {
+                e.preventDefault();
+                goToPage(currentPage - 1);
+            });
+        }
+        paginationList.appendChild(prevLi);
+
+        // Numéros de page avec ellipses si beaucoup de pages
+        for (let i = 1; i <= totalPages; i++) {
+            if (totalPages > 7) {
+                if (i !== 1 && i !== totalPages && Math.abs(i - currentPage) > 1) {
+                    if (i === 2 || i === totalPages - 1) {
+                        const dotsLi = document.createElement('li');
+                        dotsLi.className = 'page-item disabled';
+                        dotsLi.innerHTML = `<span class="page-link">...</span>`;
+                        paginationList.appendChild(dotsLi);
+                    }
+                    continue;
+                }
+            }
+
+            const pageLi = document.createElement('li');
+            pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+            pageLi.innerHTML = `<a class="page-link" href="javascript:void(0)">${i}</a>`;
+            if (i !== currentPage) {
+                pageLi.querySelector('a').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    goToPage(i);
+                });
+            }
+            paginationList.appendChild(pageLi);
+        }
+
+        // Bouton Suivant
+        const nextLi = document.createElement('li');
+        nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+        nextLi.innerHTML = `<a class="page-link" href="javascript:void(0)" aria-label="Suivant">Suivant</a>`;
+        if (currentPage < totalPages) {
+            nextLi.querySelector('a').addEventListener('click', (e) => {
+                e.preventDefault();
+                goToPage(currentPage + 1);
+            });
+        }
+        paginationList.appendChild(nextLi);
+    }
+
+    function goToPage(page) {
+        currentPage = page;
+        applyClientPagination();
+    }
+
+    // Changement de pagination (Afficher 15, 25, 50, Tout) : 100% côté client sans rechargement
+    if (perPageSelect) {
+        perPageSelect.addEventListener('change', () => {
+            currentPerPage = perPageSelect.value;
+            currentPage = 1;
+            applyClientPagination();
+        });
+    }
+
+    // Le sélecteur de date recharge la page avec les absences de la date choisie
+    if (datePicker) {
+        datePicker.addEventListener('change', () => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('date', datePicker.value);
+            window.location.href = url.pathname + url.search;
+        });
+    }
+
+    // Initialiser la pagination client dès le chargement
+    applyClientPagination();
+
+    const btnAllPresent = document.getElementById('btn-all-present');
+    const btnInvert = document.getElementById('btn-invert-selection');
+
+    if (btnAllPresent) {
+        btnAllPresent.addEventListener('click', () => {
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+                const sid = cb.dataset.studentId;
+                const card = document.getElementById(`trombi-card-${sid}`);
+                const badge = document.getElementById(`trombi-badge-${sid}`);
+                if (card && badge) {
+                    card.classList.remove('is-absent');
+                    badge.className = 'trombi-status-badge trombi-status-present';
+                    badge.textContent = 'PRÉSENT';
+                }
+            });
+        });
+    }
+
+    if (btnInvert) {
+        btnInvert.addEventListener('click', () => {
+            checkboxes.forEach(cb => {
+                cb.checked = !cb.checked;
+                const sid = cb.dataset.studentId;
+                const card = document.getElementById(`trombi-card-${sid}`);
+                const badge = document.getElementById(`trombi-badge-${sid}`);
+                if (card && badge) {
+                    if (cb.checked) {
+                        card.classList.add('is-absent');
+                        badge.className = 'trombi-status-badge trombi-status-absent';
+                        badge.textContent = 'ABSENT';
+                    } else {
+                        card.classList.remove('is-absent');
+                        badge.className = 'trombi-status-badge trombi-status-present';
+                        badge.textContent = 'PRÉSENT';
+                    }
+                }
+            });
+        });
+    }
+
+    // Enregistrement des absences de TOUTE la classe (sur toutes les pages)
+    async function saveAllAbsences() {
+        const studentIds = [];
+        const scopeIds = [];
+
+        checkboxes.forEach(cb => {
+            const sid = parseInt(cb.dataset.studentId, 10);
+            scopeIds.push(sid);
+            if (cb.checked) {
+                studentIds.push(sid);
+            }
+        });
+
+        const originalHtml = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+        saveBtn.disabled = true;
+
+        try {
+            const response = await fetch('/absence/api/save_absence', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    class_id: classId,
+                    date: datePicker.value,
+                    student_ids: studentIds,
+                    scope_student_ids: scopeIds
+                })
+            });
+
+            if (response.ok) {
+                saveBtn.classList.remove('btn-primary');
+                saveBtn.classList.add('btn-success');
+                saveBtn.innerHTML = '<i class="fas fa-check"></i> Enregistré avec succès !';
+                setTimeout(() => {
+                    saveBtn.classList.remove('btn-success');
+                    saveBtn.classList.add('btn-primary');
+                    saveBtn.innerHTML = originalHtml;
+                    saveBtn.disabled = false;
+                }, 2000);
+                return true;
+            } else {
+                alert('Erreur lors de l\'enregistrement des absences.');
+                saveBtn.innerHTML = originalHtml;
+                saveBtn.disabled = false;
+                return false;
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erreur réseau lors de l\'enregistrement.');
+            saveBtn.innerHTML = originalHtml;
+            saveBtn.disabled = false;
+            return false;
+        }
+    }
+
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveAllAbsences);
+    }
+
+    // Student Photo Tooltip Logic
+    const tooltip = document.getElementById('photo-tooltip');
+    const nameHovers = document.querySelectorAll('.student-name-hover');
+
+    nameHovers.forEach(hover => {
+        hover.addEventListener('mouseenter', (e) => {
+            const photoUrl = hover.dataset.photo;
+            console.log("Hovering student, photoUrl:", photoUrl);
+            if (photoUrl) {
+                tooltip.innerHTML = `<img src="${photoUrl}" alt="Photo">`;
+            } else {
+                tooltip.innerHTML = `
+                    <div class="no-photo">
+                        <i class="fas fa-user"></i>
+                        <span class="small">Pas de photo</span>
+                    </div>
+                `;
+            }
+            tooltip.style.display = 'block';
+        });
+
+        hover.addEventListener('mousemove', (e) => {
+            const padding = 15;
+            let top = e.clientY + padding;
+            let left = e.clientX + padding;
+
+            // Check viewport boundaries
+            const tooltipRect = tooltip.getBoundingClientRect();
+            if (top + tooltipRect.height > window.innerHeight) {
+                top = e.clientY - tooltipRect.height - padding;
+            }
+            if (left + tooltipRect.width > window.innerWidth) {
+                left = e.clientX - tooltipRect.width - padding;
+            }
+
+            tooltip.style.top = top + 'px';
+            tooltip.style.left = left + 'px';
+        });
+
+        hover.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+    });
+
+    // ============================================
+    // SMART MODAL ADD STUDENT LOGIC
+    // ============================================
+    document.addEventListener('DOMContentLoaded', function () {
+        // Rouvrir automatiquement le modal si demandé après "Enregistrer & Ajouter un autre"
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('open_add_modal') === '1') {
+            $('#addStudentModal').modal('show');
+            // Nettoyer l'URL pour ne pas réouvrir en boucle sur un reload manuel
+            window.history.replaceState({}, document.title, window.location.pathname + (window.location.search.replace(/[?&]open_add_modal=1/, '').replace(/^&/, '?')));
+        }
+
+        const dropArea = document.getElementById('photoDropArea');
+        const photoInput = document.getElementById('student_photo');
+        const avatarPreview = document.getElementById('avatarPreview');
+        const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+        const removePhotoBtn = document.getElementById('removePhotoBtn');
+
+        // Déclenchement input file au clic sur l'avatar
+        dropArea.addEventListener('click', () => photoInput.click());
+
+        // Drag & Drop visuel
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.style.borderColor = '#1cc88a';
+                dropArea.style.backgroundColor = '#eaecf4';
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropArea.style.borderColor = '#4e73df';
+                dropArea.style.backgroundColor = '#f8f9fc';
+            }, false);
+        });
+
+        dropArea.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                photoInput.files = files;
+                showPreview(files[0]);
+            }
+        });
+
+        photoInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                showPreview(this.files[0]);
+            }
+        });
+
+        function showPreview(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Veuillez sélectionner un fichier image valide.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                avatarPreview.src = e.target.result;
+                avatarPreview.style.display = 'block';
+                avatarPlaceholder.style.display = 'none';
+                removePhotoBtn.style.display = 'inline-block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        removePhotoBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            photoInput.value = '';
+            avatarPreview.src = '';
+            avatarPreview.style.display = 'none';
+            avatarPlaceholder.style.display = 'block';
+            removePhotoBtn.style.display = 'none';
+        });
+
+        // --------------------------------------------
+        // Live CNE Check (Vérification en temps réel)
+        // --------------------------------------------
+        const cneInput = document.getElementById('cne');
+        const cneFeedback = document.getElementById('cneFeedback');
+        const cneBadge = document.getElementById('cneBadge');
+        let cneTimeout = null;
+
+        cneInput.addEventListener('input', function () {
+            clearTimeout(cneTimeout);
+            const val = this.value.trim().toUpperCase();
+            this.value = val;
+
+            if (!val) {
+                cneFeedback.textContent = '';
+                cneBadge.style.display = 'none';
+                return;
+            }
+
+            cneBadge.style.display = 'inline-block';
+            cneBadge.className = 'ml-1 badge badge-pill badge-secondary';
+            cneBadge.textContent = 'Vérification...';
+
+            cneTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`{{ url_for('absence.check_cne') }}?cne=${encodeURIComponent(val)}`);
+                    const data = await res.json();
+                    if (data.available) {
+                        cneBadge.className = 'ml-1 badge badge-pill badge-success';
+                        cneBadge.textContent = 'Disponible';
+                        cneFeedback.className = 'form-text text-success';
+                        cneFeedback.textContent = 'Ce CNE est unique et valide.';
+                    } else {
+                        cneBadge.className = 'ml-1 badge badge-pill badge-danger';
+                        cneBadge.textContent = 'Déjà utilisé';
+                        cneFeedback.className = 'form-text text-danger font-weight-bold';
+                        cneFeedback.textContent = 'Attention: ce CNE existe déjà dans la base !';
+                    }
+                } catch (err) {
+                    cneBadge.style.display = 'none';
+                }
+            }, 350);
+        });
+
+        // --------------------------------------------
+        // Suggestion automatique d'adresse email
+        // --------------------------------------------
+        const firstNameInput = document.getElementById('first_name');
+        const lastNameInput = document.getElementById('last_name');
+        const emailInput = document.getElementById('email');
+        const suggestEmailBtn = document.getElementById('suggestEmailBtn');
+
+        function cleanString(str) {
+            return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, '');
+        }
+
+        function checkCanSuggestEmail() {
+            const first = firstNameInput.value.trim();
+            const last = lastNameInput.value.trim();
+            if (first.length >= 2 && last.length >= 2 && !emailInput.value.trim()) {
+                suggestEmailBtn.style.display = 'inline-block';
+            } else if (emailInput.value.trim()) {
+                suggestEmailBtn.style.display = 'none';
+            }
+        }
+
+        firstNameInput.addEventListener('input', checkCanSuggestEmail);
+        lastNameInput.addEventListener('input', checkCanSuggestEmail);
+        emailInput.addEventListener('input', () => {
+            if (emailInput.value.trim()) {
+                suggestEmailBtn.style.display = 'none';
+            } else {
+                checkCanSuggestEmail();
+            }
+        });
+
+        suggestEmailBtn.addEventListener('click', () => {
+            const firstClean = cleanString(firstNameInput.value.trim());
+            const lastClean = cleanString(lastNameInput.value.trim());
+            if (firstClean && lastClean) {
+                emailInput.value = `${firstClean}.${lastClean}@etudiant.ac.ma`;
+                suggestEmailBtn.style.display = 'none';
+            }
+        });
+
+        // --------------------------------------------
+        // Formatage automatique du numéro de téléphone
+        // --------------------------------------------
+        const phoneInput = document.getElementById('phone');
+        phoneInput.addEventListener('input', function () {
+            let val = this.value.replace(/\D/g, ''); // garder uniquement les chiffres
+            if (val.startsWith('212')) {
+                val = '0' + val.substring(3);
+            }
+            if (val.length > 10) {
+                val = val.substring(0, 10);
+            }
+            // Formater par groupes de 2 chiffres : 06 12 34 56 78
+            let formatted = '';
+            for (let i = 0; i < val.length; i++) {
+                if (i > 0 && i % 2 === 0) formatted += ' ';
+                formatted += val[i];
+            }
+            this.value = formatted;
+        });
+
+        // --------------------------------------------
+        // Bouton "Enregistrer & Ajouter un autre"
+        // --------------------------------------------
+        const addStudentForm = document.getElementById('addStudentForm');
+        const addAnotherField = document.getElementById('add_another_field');
+        const saveAndAddAnotherBtn = document.getElementById('saveAndAddAnotherBtn');
+
+        saveAndAddAnotherBtn.addEventListener('click', function () {
+            if (addStudentForm.checkValidity()) {
+                addAnotherField.value = '1';
+                addStudentForm.submit();
+            } else {
+                addStudentForm.reportValidity();
+            }
+        });
+    });
+
+    // ============================================
+    // GESTION DE LA SÉLECTION MULTIPLE DES ÉTUDIANTS
+    // ============================================
+    const selectAllStudents = document.getElementById('selectAllStudents');
+    const studentRowCheckboxes = document.querySelectorAll('.student-row-checkbox');
+    const bulkActionsBar = document.getElementById('bulkActionsBar');
+    const bulkSelectedCount = document.getElementById('bulkSelectedCount');
+    const bulkActionForm = document.getElementById('bulkActionForm');
+    const bulkActionInput = document.getElementById('bulkActionInput');
+    const bulkTargetClassId = document.getElementById('bulkTargetClassId');
+    const transferCountDisplay = document.getElementById('transferCountDisplay');
+
+    function updateBulkUI() {
+        const checked = document.querySelectorAll('.student-row-checkbox:checked');
+        const count = checked.length;
+        
+        if (bulkSelectedCount) {
+            bulkSelectedCount.textContent = count;
+        }
+
+        if (count > 0) {
+            bulkActionsBar.style.display = 'flex';
+        } else {
+            bulkActionsBar.style.display = 'none';
+        }
+
+        // Mettre à jour l'état du selectAll (coché / indéterminé / non coché)
+        if (selectAllStudents) {
+            if (count === 0) {
+                selectAllStudents.checked = false;
+                selectAllStudents.indeterminate = false;
+            } else if (count === studentRowCheckboxes.length) {
+                selectAllStudents.checked = true;
+                selectAllStudents.indeterminate = false;
+            } else {
+                selectAllStudents.checked = false;
+                selectAllStudents.indeterminate = true;
+            }
+        }
+
+        // Mettre à jour les surlignages de ligne
+        studentRowCheckboxes.forEach(cb => {
+            const tr = document.getElementById('row-student-' + cb.value);
+            if (tr) {
+                if (cb.checked) {
+                    tr.classList.add('selected-row');
+                } else {
+                    tr.classList.remove('selected-row');
+                }
+            }
+        });
+
+        if (transferCountDisplay) {
+            transferCountDisplay.textContent = count;
+        }
+    }
+
+    if (selectAllStudents) {
+        selectAllStudents.addEventListener('change', function () {
+            const isChecked = this.checked;
+            studentRowCheckboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+            updateBulkUI();
+        });
+    }
+
+    studentRowCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateBulkUI);
+    });
+
+    function deselectAllStudents() {
+        studentRowCheckboxes.forEach(cb => cb.checked = false);
+        if (selectAllStudents) {
+            selectAllStudents.checked = false;
+            selectAllStudents.indeterminate = false;
+        }
+        updateBulkUI();
+    }
+
+    function bulkMark(actionType) {
+        const count = document.querySelectorAll('.student-row-checkbox:checked').length;
+        if (count === 0) return;
+        bulkActionInput.value = actionType;
+        bulkActionForm.submit();
+    }
+
+    // Bascule l'état de présence à Absent (Présence Coché = Absent) pour les étudiants sélectionnés
+    function markSelectedStudentsAbsent() {
+        const checkedBoxes = Array.from(document.querySelectorAll('.student-row-checkbox:checked'));
+        let targetStudentIds = [];
+
+        if (checkedBoxes.length > 0) {
+            targetStudentIds = checkedBoxes.map(cb => cb.value);
+        } else if (focusedStudentIndex >= 0 && focusedStudentIndex < studentRows.length) {
+            // Si aucun étudiant n'est coché via la sélection multiple, on applique à l'étudiant sous le curseur
+            const currentRow = studentRows[focusedStudentIndex];
+            const cb = currentRow.querySelector('.student-row-checkbox');
+            if (cb) {
+                targetStudentIds = [cb.value];
+            }
+        }
+
+        if (targetStudentIds.length === 0) {
+            return;
+        }
+
+        targetStudentIds.forEach(sid => {
+            const tableCheckbox = document.querySelector(`.absence-checkbox[data-student-id="${sid}"]`);
+            const card = document.getElementById(`trombi-card-${sid}`);
+            const badge = document.getElementById(`trombi-badge-${sid}`);
+
+            if (tableCheckbox) {
+                tableCheckbox.checked = true; // Coché = Absent
+            }
+            if (card && badge) {
+                card.classList.add('is-absent');
+                badge.className = 'trombi-status-badge trombi-status-absent';
+                badge.textContent = 'ABSENT';
+            }
+        });
+
+        // Feedback visuel rapide sur le bouton Enregistrer pour signaler qu'il y a des modifications à sauvegarder
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) {
+            saveBtn.classList.remove('btn-primary');
+            saveBtn.classList.add('btn-warning');
+            setTimeout(() => {
+                saveBtn.classList.remove('btn-warning');
+                saveBtn.classList.add('btn-primary');
+            }, 600);
+        }
+    }
+
+    // Bascule l'état de présence à Présent (Présence Décoché = Présent) pour les étudiants sélectionnés (ou toute la classe si rien de sélectionné)
+    function markSelectedStudentsPresent() {
+        const checkedBoxes = Array.from(document.querySelectorAll('.student-row-checkbox:checked'));
+        let targetStudentIds = [];
+
+        if (checkedBoxes.length > 0) {
+            targetStudentIds = checkedBoxes.map(cb => cb.value);
+        } else if (focusedStudentIndex >= 0 && focusedStudentIndex < studentRows.length) {
+            // Si aucun étudiant n'est coché via la sélection multiple, on applique à l'étudiant sous le curseur
+            const currentRow = studentRows[focusedStudentIndex];
+            const cb = currentRow.querySelector('.student-row-checkbox');
+            if (cb) {
+                targetStudentIds = [cb.value];
+            }
+        }
+
+        // Si des étudiants spécifiques sont ciblés/sélectionnés, on ne marque que ceux-ci présents
+        if (targetStudentIds.length > 0) {
+            targetStudentIds.forEach(sid => {
+                const tableCheckbox = document.querySelector(`.absence-checkbox[data-student-id="${sid}"]`);
+                const card = document.getElementById(`trombi-card-${sid}`);
+                const badge = document.getElementById(`trombi-badge-${sid}`);
+
+                if (tableCheckbox) {
+                    tableCheckbox.checked = false; // Décoché = Présent
+                }
+                if (card && badge) {
+                    card.classList.remove('is-absent');
+                    badge.className = 'trombi-status-badge trombi-status-present';
+                    badge.textContent = 'PRÉSENT';
+                }
+            });
+        } else {
+            // Si rien n'est sélectionné, marquer TOUS les étudiants présents
+            const btnAllPres = document.getElementById('btn-all-present');
+            if (btnAllPres) {
+                btnAllPres.click();
+            }
+        }
+
+        // Feedback visuel rapide sur le bouton Enregistrer
+        const saveBtn = document.getElementById('save-btn');
+        if (saveBtn) {
+            saveBtn.classList.remove('btn-primary');
+            saveBtn.classList.add('btn-info');
+            setTimeout(() => {
+                saveBtn.classList.remove('btn-info');
+                saveBtn.classList.add('btn-primary');
+            }, 600);
+        }
+    }
+
+    function bulkDelete() {
+        const count = document.querySelectorAll('.student-row-checkbox:checked').length;
+        if (count === 0) return;
+        if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement ces ${count} étudiant(s) ? Cette action est irréversible.`)) {
+            bulkActionInput.value = 'delete';
+            bulkActionForm.submit();
+        }
+    }
+
+    function executeBulkTransfer() {
+        const select = document.getElementById('bulkModalTargetClassSelect');
+        const targetClassId = select.value;
+        if (!targetClassId) {
+            alert('Veuillez sélectionner une classe de destination.');
+            return;
+        }
+        bulkTargetClassId.value = targetClassId;
+        bulkActionInput.value = 'change_class';
+        bulkActionForm.submit();
+    }
+
+    // ============================================
+    // FILTRE DE VISUALISATION PAR GROUPE (GROUPE 1 / GROUPE 2 / TOUS)
+    // ============================================
+    function setGroupFilter(group) {
+        activeGroupFilter = group;
+        currentPage = 1;
+
+        // Mise à jour de l'apparence des boutons du groupe de filtres
+        const groupBtns = document.querySelectorAll('#groupFilterBtnGroup button');
+        groupBtns.forEach(btn => {
+            if (btn.dataset.groupFilter === group) {
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-primary', 'active');
+            } else {
+                btn.classList.remove('btn-primary', 'active');
+                btn.classList.add('btn-outline-primary');
+            }
+        });
+
+        // Appliquer la pagination et réindexer
+        applyClientPagination();
+    }
+
+    // ============================================
+    // NAVIGATION CLAVIER (FLÈCHES ET ESPACE)
+    // ============================================
+
+    let keyboardToastTimer = null;
+    function showKeyboardToast(message, current, total) {
+        const toast = document.getElementById('keyboardNavToast');
+        const content = document.getElementById('keyboardNavToastContent');
+        if (!toast || !content) return;
+
+        content.innerHTML = `${message} &nbsp;•&nbsp; <span class="text-muted small">${current}/${total}</span>`;
+        toast.style.display = 'block';
+        toast.style.opacity = '1';
+
+        clearTimeout(keyboardToastTimer);
+        keyboardToastTimer = setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => { if (toast.style.opacity === '0') toast.style.display = 'none'; }, 250);
+        }, 3000);
+    }
+
+    function hideKeyboardToast() {
+        const toast = document.getElementById('keyboardNavToast');
+        if (toast) {
+            toast.style.opacity = '0';
+            toast.style.display = 'none';
+        }
+    }
+
+    function updateKeyboardStudentRows() {
+        studentRows = Array.from(document.querySelectorAll('#attendanceTable tbody tr.student-item-row')).filter(row => row.style.display !== 'none');
+        if (focusedStudentIndex >= studentRows.length) {
+            focusedStudentIndex = -1;
+        }
+    }
+
+    function setRowFocus(newIndex) {
+        updateKeyboardStudentRows();
+        if (studentRows.length === 0) return;
+
+        // Retirer l'ancien focus
+        studentRows.forEach(r => r.classList.remove('keyboard-focused'));
+
+        // Bloquer dans les bornes [0, length-1]
+        focusedStudentIndex = Math.max(0, Math.min(newIndex, studentRows.length - 1));
+
+        const targetRow = studentRows[focusedStudentIndex];
+        if (targetRow) {
+            targetRow.classList.add('keyboard-focused');
+            targetRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+            const nameEl = targetRow.querySelector('.student-name-hover');
+            const studentName = nameEl ? nameEl.innerText.trim() : `Élève #${focusedStudentIndex + 1}`;
+            const absCb = targetRow.querySelector('.absence-checkbox');
+            const statusBadge = (absCb && absCb.checked)
+                ? '<span class="badge badge-danger ml-1">Absent</span>'
+                : '<span class="badge badge-success ml-1">Présent</span>';
+            showKeyboardToast(`<b>${studentName}</b> ${statusBadge}`, focusedStudentIndex + 1, studentRows.length);
+        }
+    }
+
+    // Clic sur une ligne donne le focus clavier
+    studentRows.forEach((row, idx) => {
+        row.addEventListener('click', (e) => {
+            // Ne pas écraser si on clique sur un lien ou un bouton d'action
+            if (['A', 'BUTTON', 'I', 'INPUT', 'LABEL'].includes(e.target.tagName)) return;
+            setRowFocus(idx);
+        });
+    });
+
+    // Écouteur global des touches Flèches, Espace, Entrée, S, A, P
+    document.addEventListener('keydown', function (e) {
+        // Ignorer si l'utilisateur est en train d'écrire dans un input / textarea / select ou dans un modal ouvert
+        const activeTag = document.activeElement ? document.activeElement.tagName : '';
+        const isEditing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag) && document.activeElement.type !== 'checkbox';
+        const isModalOpen = document.body.classList.contains('modal-open');
+
+        if (isEditing || isModalOpen) {
+            return;
+        }
+
+        // Flèche Bas : descendre sur l'étudiant suivant
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (focusedStudentIndex === -1) {
+                setRowFocus(0);
+            } else {
+                setRowFocus(focusedStudentIndex + 1);
+            }
+        }
+        // Flèche Haut : monter sur l'étudiant précédent
+        else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (focusedStudentIndex === -1) {
+                setRowFocus(studentRows.length - 1);
+            } else {
+                setRowFocus(focusedStudentIndex - 1);
+            }
+        }
+        // Touche Espace ou Entrée : basculer l'absence de l'étudiant ciblé (Présent ⇄ Absent)
+        else if (e.key === ' ' || e.code === 'Space' || e.key === 'Enter') {
+            if (focusedStudentIndex >= 0 && focusedStudentIndex < studentRows.length) {
+                e.preventDefault();
+                const currentRow = studentRows[focusedStudentIndex];
+
+                // Si Shift enfoncé, basculer la sélection groupée
+                if (e.shiftKey) {
+                    const cb = currentRow.querySelector('.student-row-checkbox');
+                    if (cb) {
+                        cb.checked = !cb.checked;
+                        updateBulkUI();
+                    }
+                } else {
+                    // Sinon basculer directement le statut d'absence (Présent ⇄ Absent)
+                    const absCb = currentRow.querySelector('.absence-checkbox');
+                    if (absCb) {
+                        absCb.checked = !absCb.checked;
+                        absCb.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        const nameEl = currentRow.querySelector('.student-name-hover');
+                        const studentName = nameEl ? nameEl.innerText.trim() : `Élève #${focusedStudentIndex + 1}`;
+                        const statusBadge = absCb.checked
+                            ? '<span class="badge badge-danger ml-1">ABSENT</span>'
+                            : '<span class="badge badge-success ml-1">PRÉSENT</span>';
+                        showKeyboardToast(`<b>${studentName}</b> : ${statusBadge}`, focusedStudentIndex + 1, studentRows.length);
+                    }
+                }
+            }
+        }
+        // Touche S (ou s / Ctrl+S / Cmd+S) : Enregistrer les absences rapidement
+        else if (e.key === 's' || e.key === 'S') {
+            e.preventDefault();
+            const saveButton = document.getElementById('save-btn');
+            if (typeof saveAllAbsences === 'function') {
+                if (!saveButton || !saveButton.disabled) {
+                    saveAllAbsences();
+                }
+            } else if (saveButton && !saveButton.disabled) {
+                saveButton.click();
+            }
+        }
+        // Touche A (ou a) : Marquer les étudiants sélectionnés absents (ou l'élève ciblé)
+        else if (e.key === 'a' || e.key === 'A') {
+            if (!e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                const selectedCount = document.querySelectorAll('.student-row-checkbox:checked').length;
+                if (selectedCount > 0) {
+                    markSelectedStudentsAbsent();
+                } else if (focusedStudentIndex >= 0 && focusedStudentIndex < studentRows.length) {
+                    const currentRow = studentRows[focusedStudentIndex];
+                    const absCb = currentRow.querySelector('.absence-checkbox');
+                    if (absCb && !absCb.checked) {
+                        absCb.checked = true;
+                        absCb.dispatchEvent(new Event('change', { bubbles: true }));
+                        const nameEl = currentRow.querySelector('.student-name-hover');
+                        const studentName = nameEl ? nameEl.innerText.trim() : `Élève #${focusedStudentIndex + 1}`;
+                        showKeyboardToast(`<b>${studentName}</b> : <span class="badge badge-danger ml-1">ABSENT</span>`, focusedStudentIndex + 1, studentRows.length);
+                    }
+                }
+            }
+        }
+        // Touche P (ou p) : Marquer présents les étudiants sélectionnés (ou tous si rien sélectionné)
+        else if (e.key === 'p' || e.key === 'P') {
+            if (!e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                markSelectedStudentsPresent();
+            }
+        }
+        // Touche / : Focus direct sur la recherche globale
+        else if (e.key === '/') {
+            e.preventDefault();
+            const topSearch = document.getElementById('topbarSearchInput');
+            if (topSearch) {
+                topSearch.focus();
+                topSearch.select();
+            }
+        }
+        // Touche Échap : désélectionner tout
+        else if (e.key === 'Escape') {
+            deselectAllStudents();
+            hideKeyboardToast();
+            if (focusedStudentIndex >= 0 && focusedStudentIndex < studentRows.length) {
+                studentRows[focusedStudentIndex].classList.remove('keyboard-focused');
+                focusedStudentIndex = -1;
+            }
+        }
+    });
+
+    // Affichage du bouton flottant Enregistrer lors du défilement
+    window.addEventListener('scroll', function() {
+        const floatSave = document.getElementById('mobileFloatingSave');
+        const mainSave = document.getElementById('save-btn');
+        if (floatSave && mainSave && !mainSave.disabled) {
+            if (window.scrollY > 250) {
+                floatSave.style.display = 'block';
+            } else {
+                floatSave.style.display = 'none';
+            }
+        }
+    });
+
+    // ============================================
+    // MODE TROMBINOSCOPE (GRILLE DE PHOTOS)
+    // ============================================
+    function setViewMode(mode) {
+        const tableWrapper = document.querySelector('.table-responsive');
+        const gridContainer = document.getElementById('trombiGridContainer');
+        const btnTable = document.getElementById('btn-view-table');
+        const btnGrid = document.getElementById('btn-view-grid');
+
+        if (mode === 'grid') {
+            tableWrapper.style.display = 'none';
+            gridContainer.style.display = 'grid';
+            btnGrid.classList.remove('btn-outline-primary');
+            btnGrid.classList.add('btn-primary');
+            btnTable.classList.remove('btn-primary');
+            btnTable.classList.add('btn-outline-primary');
+            localStorage.setItem('view_class_mode', 'grid');
+        } else {
+            tableWrapper.style.display = 'block';
+            gridContainer.style.display = 'none';
+            btnTable.classList.remove('btn-outline-primary');
+            btnTable.classList.add('btn-primary');
+            btnGrid.classList.remove('btn-primary');
+            btnGrid.classList.add('btn-outline-primary');
+            localStorage.setItem('view_class_mode', 'table');
+        }
+    }
+
+    // Basculer l'absence d'un étudiant depuis le trombinoscope
+    function toggleTrombiStudent(studentId) {
+        const tableCheckbox = document.querySelector(`.absence-checkbox[data-student-id="${studentId}"]`);
+        const card = document.getElementById(`trombi-card-${studentId}`);
+        const badge = document.getElementById(`trombi-badge-${studentId}`);
+
+        if (tableCheckbox) {
+            tableCheckbox.checked = !tableCheckbox.checked;
+            const isNowAbsent = tableCheckbox.checked;
+            
+            if (isNowAbsent) {
+                card.classList.add('is-absent');
+                badge.className = 'trombi-status-badge trombi-status-absent';
+                badge.textContent = 'ABSENT';
+            } else {
+                card.classList.remove('is-absent');
+                badge.className = 'trombi-status-badge trombi-status-present';
+                badge.textContent = 'PRÉSENT';
+            }
+        }
+    }
+
+    // Synchroniser l'état initial des cases tableau avec les cartes trombinoscope
+    document.querySelectorAll('.absence-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const sid = this.dataset.studentId;
+            const card = document.getElementById(`trombi-card-${sid}`);
+            const badge = document.getElementById(`trombi-badge-${sid}`);
+            if (card && badge) {
+                if (this.checked) {
+                    card.classList.add('is-absent');
+                    badge.className = 'trombi-status-badge trombi-status-absent';
+                    badge.textContent = 'ABSENT';
+                } else {
+                    card.classList.remove('is-absent');
+                    badge.className = 'trombi-status-badge trombi-status-present';
+                    badge.textContent = 'PRÉSENT';
+                }
+            }
+        });
+    });
+
+    // =======================================================
+    // LOGIQUE DE RÉPARTITION EN 2 GROUPES & DRAG AND DROP
+    // =======================================================
+    rawStudentsData = [
+        {% for s in students %}
+        {% set stat = student_stats.get(s.id, {'total': 0, 'unjustified': 0}) %}
+        {
+            id: {{ s.id }},
+            cne: {{ s.cne|tojson }},
+            last_name: {{ s.last_name|tojson }},
+            first_name: {{ s.first_name|tojson }},
+            birth_date: {{ (s.birth_date.strftime('%Y-%m-%d') if s.birth_date else '')|tojson }},
+            gender: {{ (s.gender or '')|tojson }},
+            photo_url: {{ url_for('main.uploaded_file', filename=s.photo_path if s.photo_path else 'photos/Default.jpg')|tojson }},
+            absences: {{ stat.total }},
+            unjustified: {{ stat.unjustified }}
+        },
+        {% endfor %}
+    ];
+    console.log('[Groupes] rawStudentsData chargé:', rawStudentsData.length, 'élève(s)');
+
+    // Initialiser les groupes depuis la configuration du serveur si existante
+    {% if active_groups and active_groups.groups %}
+    (function() {
+        var g1ids = {{ active_groups.groups.get('1', [])|tojson }}.map(function(x){ return parseInt(x, 10); });
+        var g2ids = {{ active_groups.groups.get('2', [])|tojson }}.map(function(x){ return parseInt(x, 10); });
+        currentSplitG1 = rawStudentsData.filter(function(s){ return g1ids.includes(s.id); });
+        currentSplitG2 = rawStudentsData.filter(function(s){ return g2ids.includes(s.id); });
+        rawStudentsData.forEach(function(s) {
+            if (!g1ids.includes(s.id) && !g2ids.includes(s.id)) {
+                if (currentSplitG1.length <= currentSplitG2.length) currentSplitG1.push(s);
+                else currentSplitG2.push(s);
+            }
+        });
+    })();
+    {% else %}
+    (function() {
+        var mid = Math.ceil(rawStudentsData.length / 2);
+        currentSplitG1 = rawStudentsData.slice(0, mid);
+        currentSplitG2 = rawStudentsData.slice(mid);
+    })();
+    {% endif %}
+    console.log('[Groupes] Init OK — G1:', currentSplitG1.length, 'G2:', currentSplitG2.length);
+
+    function updateModalCounters() {
+        const countG1 = document.getElementById('modalG1Count');
+        const countG2 = document.getElementById('modalG2Count');
+        const filterAll = document.getElementById('filterCountAll');
+        const filterG1 = document.getElementById('filterCountG1');
+        const filterG2 = document.getElementById('filterCountG2');
+
+        if (countG1) countG1.textContent = `${currentSplitG1.length} élève(s)`;
+        if (countG2) countG2.textContent = `${currentSplitG2.length} élève(s)`;
+        if (filterAll) filterAll.textContent = rawStudentsData.length;
+        if (filterG1) filterG1.textContent = currentSplitG1.length;
+        if (filterG2) filterG2.textContent = currentSplitG2.length;
+    }
+
+    function createDraggableCard(student, groupNum) {
+        const div = document.createElement('div');
+        div.className = 'card border shadow-xs mb-2 p-2 split-draggable-card';
+        div.draggable = true;
+        div.dataset.studentId = student.id;
+        div.style.cursor = 'grab';
+        div.style.borderRadius = '8px';
+        div.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
+
+        const genderBadge = student.gender ? `<span class="badge ${student.gender === 'F' ? 'badge-danger' : 'badge-primary'} ml-1" style="font-size:0.65rem;">${student.gender}</span>` : '';
+        const absBadge = student.absences > 0 ? `<span class="badge badge-warning text-dark ml-1" style="font-size:0.65rem;" title="${student.absences} absences">${student.absences} abs</span>` : '';
+
+        div.innerHTML = `
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center text-truncate mr-2">
+                    <img src="${student.photo_url}" class="rounded-circle mr-2 border" width="32" height="32" style="object-fit:cover;" onerror="this.src='/uploads/photos/Default.jpg'">
+                    <div class="text-truncate">
+                        <div class="font-weight-bold text-dark text-truncate small" style="line-height:1.2;">
+                            ${student.last_name} ${student.first_name} ${genderBadge} ${absBadge}
+                        </div>
+                        <div class="text-muted" style="font-size: 0.72rem;">${student.cne}</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-1" title="Déplacer vers l'autre groupe" onclick="moveStudentToOtherGroup(${student.id}, ${groupNum})">
+                    <i class="fas fa-arrows-alt-h"></i>
+                </button>
+            </div>
+        `;
+
+        div.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', JSON.stringify({ studentId: student.id, fromGroup: groupNum }));
+            div.style.opacity = '0.5';
+        });
+
+        div.addEventListener('dragend', () => {
+            div.style.opacity = '1';
+        });
+
+        return div;
+    }
+
+    function renderModalGroupColumns() {
+        const zone1 = document.getElementById('groupDropZone1');
+        const zone2 = document.getElementById('groupDropZone2');
+        console.log('[Groupes] renderModalGroupColumns — zone1:', !!zone1, 'zone2:', !!zone2, 'G1:', currentSplitG1.length, 'G2:', currentSplitG2.length);
+        if (!zone1 || !zone2) return;
+
+        zone1.innerHTML = '';
+        zone2.innerHTML = '';
+
+        currentSplitG1.forEach(s => zone1.appendChild(createDraggableCard(s, 1)));
+        currentSplitG2.forEach(s => zone2.appendChild(createDraggableCard(s, 2)));
+
+        updateModalCounters();
+    }
+
+    function moveStudentToOtherGroup(studentId, fromGroup) {
+        if (fromGroup === 1) {
+            const idx = currentSplitG1.findIndex(s => s.id === studentId);
+            if (idx !== -1) {
+                const s = currentSplitG1.splice(idx, 1)[0];
+                currentSplitG2.push(s);
+            }
+        } else {
+            const idx = currentSplitG2.findIndex(s => s.id === studentId);
+            if (idx !== -1) {
+                const s = currentSplitG2.splice(idx, 1)[0];
+                currentSplitG1.push(s);
+            }
+        }
+        renderModalGroupColumns();
+    }
+
+    // Configuration des Drop Zones
+    document.querySelectorAll('.group-drop-zone').forEach(zone => {
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.style.backgroundColor = '#e2e8f0';
+        });
+
+        zone.addEventListener('dragleave', () => {
+            zone.style.backgroundColor = '#f8fafc';
+        });
+
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            zone.style.backgroundColor = '#f8fafc';
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                const targetGroup = parseInt(zone.dataset.group, 10);
+                if (data && data.fromGroup !== targetGroup) {
+                    moveStudentToOtherGroup(data.studentId, data.fromGroup);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+    });
+
+    // ============================================
+    // ALGORITHMES DE DIVISION SELON LES CRITÈRES
+    // ============================================
+    function applySplitAlgorithm() {
+        const select = document.getElementById('splitCriterionSelect');
+        const criterion = select ? select.value : 'list_order';
+        let list = [...rawStudentsData];
+        console.log('[Groupes] applySplitAlgorithm — critère:', criterion, '| élèves:', list.length);
+        if (criterion === 'list_order') {
+            // 1. Ordre de la liste (50/50)
+            const mid = Math.ceil(list.length / 2);
+            currentSplitG1 = list.slice(0, mid);
+            currentSplitG2 = list.slice(mid);
+        } else if (criterion === 'even_odd') {
+            // 2. Pair / Impair (1 sur 2)
+            currentSplitG1 = [];
+            currentSplitG2 = [];
+            list.forEach((s, idx) => {
+                if (idx % 2 === 0) currentSplitG1.push(s);
+                else currentSplitG2.push(s);
+            });
+        } else if (criterion === 'random') {
+            // 3. Aléatoire (Fisher-Yates shuffle)
+            for (let i = list.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [list[i], list[j]] = [list[j], list[i]];
+            }
+            const mid = Math.ceil(list.length / 2);
+            currentSplitG1 = list.slice(0, mid);
+            currentSplitG2 = list.slice(mid);
+        } else if (criterion === 'alphabetical') {
+            // 4. Ordre Alphabétique par Nom de famille
+            list.sort((a, b) => (a.last_name || '').localeCompare(b.last_name || '', 'fr', { sensitivity: 'base' }));
+            const mid = Math.ceil(list.length / 2);
+            currentSplitG1 = list.slice(0, mid);
+            currentSplitG2 = list.slice(mid);
+        } else if (criterion === 'attendance') {
+            // 5. Par Assiduité / Absences (Alternance en serpentin)
+            list.sort((a, b) => (b.absences || 0) - (a.absences || 0));
+            currentSplitG1 = [];
+            currentSplitG2 = [];
+            list.forEach((s, idx) => {
+                if (idx % 2 === 0) currentSplitG1.push(s);
+                else currentSplitG2.push(s);
+            });
+        } else if (criterion === 'age') {
+            // 6. Par Date de Naissance (du plus âgé au plus jeune équilibré)
+            list.sort((a, b) => {
+                if (!a.birth_date) return 1;
+                if (!b.birth_date) return -1;
+                return a.birth_date.localeCompare(b.birth_date);
+            });
+            currentSplitG1 = [];
+            currentSplitG2 = [];
+            list.forEach((s, idx) => {
+                if (idx % 2 === 0) currentSplitG1.push(s);
+                else currentSplitG2.push(s);
+            });
+        } else if (criterion === 'gender') {
+            // 7. Par Genre / Sexe (Équilibrage filles et garçons dans chaque groupe)
+            const females = list.filter(s => s.gender === 'F');
+            const males = list.filter(s => s.gender !== 'F');
+            currentSplitG1 = [];
+            currentSplitG2 = [];
+
+            females.forEach((s, idx) => {
+                if (idx % 2 === 0) currentSplitG1.push(s);
+                else currentSplitG2.push(s);
+            });
+            males.forEach((s, idx) => {
+                if (idx % 2 === 0) currentSplitG1.push(s);
+                else currentSplitG2.push(s);
+            });
+        }
+
+        renderModalGroupColumns();
+
+        // Feedback visuel sur le bouton Répartir et les colonnes
+        const repartirBtn = document.getElementById('btnTriggerSplitAlgorithm');
+        if (repartirBtn) {
+            const originalText = repartirBtn.innerHTML;
+            repartirBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Réparti !';
+            repartirBtn.classList.remove('btn-primary');
+            repartirBtn.classList.add('btn-success');
+            setTimeout(() => {
+                repartirBtn.innerHTML = originalText;
+                repartirBtn.classList.remove('btn-success');
+                repartirBtn.classList.add('btn-primary');
+            }, 700);
+        }
+
+        // Effet de surbrillance légère sur les colonnes
+        const zone1 = document.getElementById('groupDropZone1');
+        const zone2 = document.getElementById('groupDropZone2');
+        if (zone1 && zone2) {
+            zone1.style.transition = 'background-color 0.2s';
+            zone2.style.transition = 'background-color 0.2s';
+            zone1.style.backgroundColor = '#e0e7ff';
+            zone2.style.backgroundColor = '#dcfce7';
+            setTimeout(() => {
+                zone1.style.backgroundColor = '#f8fafc';
+                zone2.style.backgroundColor = '#f8fafc';
+            }, 300);
+        }
+    }
+    window.applySplitAlgorithm = applySplitAlgorithm;
+
+    // Sauvegarder la répartition côté serveur et l'appliquer immédiatement
+    async function saveSplitGroupsAction() {
+        const criterion = document.getElementById('splitCriterionSelect').value;
+        const g1Ids = currentSplitG1.map(s => s.id);
+        const g2Ids = currentSplitG2.map(s => s.id);
+
+        try {
+            const resp = await fetch(`/absence/api/class/${classId}/save_groups`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    criterion: criterion,
+                    groups: {
+                        '1': g1Ids,
+                        '2': g2Ids
+                    }
+                })
+            });
+
+            if (resp.ok) {
+                // Mettre à jour les attributs data-group dans le DOM immédiatement sans rechargement
+                allTableRows.forEach(row => {
+                    const sid = parseInt(row.dataset.studentId, 10);
+                    const numCell = row.querySelector('.student-row-number');
+                    let groupIndicator = row.querySelector('.badge-group-indicator');
+
+                    if (g1Ids.includes(sid)) {
+                        row.dataset.group = '1';
+                        if (!groupIndicator && numCell) {
+                            groupIndicator = document.createElement('span');
+                            groupIndicator.className = 'badge badge-primary badge-group-indicator ml-1';
+                            groupIndicator.textContent = 'G1';
+                            numCell.appendChild(groupIndicator);
+                        } else if (groupIndicator) {
+                            groupIndicator.className = 'badge badge-primary badge-group-indicator ml-1';
+                            groupIndicator.textContent = 'G1';
+                        }
+                    } else if (g2Ids.includes(sid)) {
+                        row.dataset.group = '2';
+                        if (!groupIndicator && numCell) {
+                            groupIndicator = document.createElement('span');
+                            groupIndicator.className = 'badge badge-success badge-group-indicator ml-1';
+                            groupIndicator.textContent = 'G2';
+                            numCell.appendChild(groupIndicator);
+                        } else if (groupIndicator) {
+                            groupIndicator.className = 'badge badge-success badge-group-indicator ml-1';
+                            groupIndicator.textContent = 'G2';
+                        }
+                    } else {
+                        row.dataset.group = '0';
+                        if (groupIndicator) groupIndicator.remove();
+                    }
+                });
+
+                allTrombiCards.forEach(card => {
+                    const sid = parseInt(card.dataset.studentId, 10);
+                    if (g1Ids.includes(sid)) card.dataset.group = '1';
+                    else if (g2Ids.includes(sid)) card.dataset.group = '2';
+                    else card.dataset.group = '0';
+                });
+
+                // Afficher le sélecteur de filtre dans la barre supérieure
+                const filterWrapper = document.getElementById('groupFilterWrapper');
+                if (filterWrapper) {
+                    filterWrapper.classList.remove('d-none');
+                    filterWrapper.classList.add('d-flex');
+                }
+
+                // Afficher le lien d'export PDF dans le menu
+                const exportPdfLink = document.getElementById('exportGroupsPdfLink');
+                if (exportPdfLink) exportPdfLink.style.display = 'block';
+
+                updateModalCounters();
+                applyClientPagination();
+
+                const feedback = document.getElementById('splitSaveFeedback');
+                if (feedback) {
+                    feedback.style.display = 'inline-block';
+                    setTimeout(() => { feedback.style.display = 'none'; }, 2500);
+                }
+
+                // Fermer le modal
+                $('#splitGroupsModal').modal('hide');
+            } else {
+                alert("Erreur lors de l'enregistrement de la répartition des groupes.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erreur réseau lors de l'enregistrement des groupes.");
+        }
+    }
+
+    // Réinitialiser la répartition
+    async function resetClassGroupsAction() {
+        if (!confirm("Voulez-vous vraiment réinitialiser la répartition en groupes pour cette classe ?")) return;
+
+        try {
+            const resp = await fetch(`/absence/api/class/${classId}/reset_groups`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (resp.ok) {
+                // Réinitialiser tous les data-group à 0
+                allTableRows.forEach(row => {
+                    row.dataset.group = '0';
+                    const ind = row.querySelector('.badge-group-indicator');
+                    if (ind) ind.remove();
+                });
+                allTrombiCards.forEach(card => { card.dataset.group = '0'; });
+
+                // Masquer le filtre de groupe et revenir à 'all'
+                activeGroupFilter = 'all';
+                const filterWrapper = document.getElementById('groupFilterWrapper');
+                if (filterWrapper) {
+                    filterWrapper.classList.add('d-none');
+                    filterWrapper.classList.remove('d-flex');
+                }
+
+                const exportPdfLink = document.getElementById('exportGroupsPdfLink');
+                if (exportPdfLink) exportPdfLink.style.display = 'none';
+
+                // Masquer le badge actif en titre
+                const activeBadge = document.getElementById('activeGroupBadge');
+                if (activeBadge) activeBadge.remove();
+
+                // Réinitialiser dans le modal
+                const mid = Math.ceil(rawStudentsData.length / 2);
+                currentSplitG1 = rawStudentsData.slice(0, mid);
+                currentSplitG2 = rawStudentsData.slice(mid);
+                renderModalGroupColumns();
+
+                applyClientPagination();
+                $('#splitGroupsModal').modal('hide');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // ─── Exports globaux (nécessaires pour les onclick= HTML) ───────────────────
+    window.renderModalGroupColumns = renderModalGroupColumns;
+    window.applySplitAlgorithm = applySplitAlgorithm;
+    window.saveSplitGroupsAction = saveSplitGroupsAction;
+    window.resetClassGroupsAction = resetClassGroupsAction;
+    window.moveStudentToOtherGroup = moveStudentToOtherGroup;
+    window.setGroupFilter = setGroupFilter;
+
+    // ─── Initialisation synchrone (DOM déjà prêt dans le bloc scripts) ─────────
+    // Mémoriser la vue choisie ou basculer en Trombinoscope sur Tablette/Mobile
+    (function initViewMode() {
+        const savedMode = localStorage.getItem('view_class_mode');
+        const isDeviceMobile = document.body.classList.contains('device-mobile-mode');
+        if (savedMode === 'grid' || (!savedMode && isDeviceMobile)) {
+            setViewMode('grid');
+        }
+    })();
+
+    // ─── Liaison du modal Bootstrap : remplir les colonnes à l'ouverture ────────
+    // Utilise UNIQUEMENT jQuery (qui est chargé avant le bloc scripts)
+    $(document).on('show.bs.modal', '#splitGroupsModal', function() {
+        renderModalGroupColumns();
+        updateModalCounters();
+    });
+
+    // Pré-remplir les compteurs dès maintenant (les zones du modal sont dans le DOM)
+    updateModalCounters();
+
+    // ─── Module Question Flash & Rituels (Idées 1, 2, 3) ───────────────────────
+    let classFlashStatsCache = {};
+    let flashRouletteInterval = null;
+
+    async function loadClassFlashStats(semester = 1) {
+        try {
+            const resp = await fetch(`/activity/api/class-flash-stats?class_id=${classId}&semester=${semester}`);
+            if (resp.ok) {
+                const data = await resp.json();
+                classFlashStatsCache = data.stats || {};
+                return classFlashStatsCache;
+            }
+        } catch (e) {
+            console.error("Erreur chargement flash stats:", e);
+        }
+        return classFlashStatsCache;
+    }
+
+    function getAllClassStudents() {
+        const students = [];
+        document.querySelectorAll('.student-item-row').forEach(row => {
+            const sid = parseInt(row.dataset.studentId, 10);
+            const nameEl = row.querySelector('.student-name-hover span');
+            const name = nameEl ? nameEl.textContent.trim() : ((row.dataset.firstname || '') + ' ' + (row.dataset.lastname || ''));
+            const cne = row.dataset.cne || '';
+            const chk = row.querySelector('.absence-checkbox');
+            const isAbsent = chk ? chk.checked : false;
+            students.push({
+                id: sid,
+                name: name,
+                cne: cne,
+                isAbsent: isAbsent
+            });
+        });
+        return students;
+    }
+
+    function getEligibleFlashCandidates() {
+        const allStudents = getAllClassStudents();
+        const excludeAbsents = document.getElementById('flashExcludeAbsents') ? document.getElementById('flashExcludeAbsents').checked : true;
+        const equityPriority = document.getElementById('flashEquityPriority') ? document.getElementById('flashEquityPriority').checked : true;
+
+        let candidates = allStudents;
+        if (excludeAbsents) {
+            candidates = candidates.filter(s => !s.isAbsent);
+        }
+
+        // Associer les stats de flash questions
+        candidates = candidates.map(s => {
+            const st = classFlashStatsCache[s.id] || { count: 0, raw_points: 0.0, capped_points: 0.0 };
+            return {
+                ...s,
+                flashCount: st.count || 0,
+                flashPoints: st.raw_points || 0.0
+            };
+        });
+
+        if (equityPriority && candidates.length > 0) {
+            const minCount = Math.min(...candidates.map(s => s.flashCount));
+            const priorityGroup = candidates.filter(s => s.flashCount === minCount);
+            if (priorityGroup.length > 0) {
+                return { pool: priorityGroup, allEligible: candidates, isPriorityFiltered: true, minCount: minCount };
+            }
+        }
+
+        return { pool: candidates, allEligible: candidates, isPriorityFiltered: false, minCount: 0 };
+    }
+
+    function updateFlashCandidatesCount() {
+        const { pool, allEligible, isPriorityFiltered, minCount } = getEligibleFlashCandidates();
+        const badge = document.getElementById('flashEligibleBadge');
+        const absentLiveText = document.getElementById('flashAbsentLiveText');
+        const absentsCount = getAllClassStudents().filter(s => s.isAbsent).length;
+
+        if (absentLiveText) {
+            absentLiveText.textContent = `${absentsCount} élève(s) actuellement absent(s) exclu(s)`;
+        }
+
+        if (badge) {
+            if (isPriorityFiltered) {
+                badge.className = 'badge badge-success px-2 py-1';
+                badge.innerHTML = `<i class="fas fa-balance-scale mr-1"></i> ${pool.length} prioritaire(s) (${minCount} interro.) / ${allEligible.length} présents`;
+            } else {
+                badge.className = 'badge badge-primary px-2 py-1';
+                badge.innerHTML = `<i class="fas fa-users mr-1"></i> ${allEligible.length} élève(s) présent(s) éligible(s)`;
+            }
+        }
+
+        // Mettre à jour la liste déroulante des élèves
+        const select = document.getElementById('flashStudentSelect');
+        if (select) {
+            const currentVal = select.value;
+            select.innerHTML = '<option value="">-- Sélectionner un élève manuellement --</option>';
+            allEligible.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                const statusTag = s.isAbsent ? ' [ABSENT]' : '';
+                opt.textContent = `${s.name} (${s.flashCount} interro., ${s.flashPoints} pts)${statusTag}`;
+                if (String(s.id) === String(currentVal)) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+    }
+
+    async function openClassFlashModal() {
+        const semSelect = document.getElementById('flashSemesterSelect');
+        const sem = semSelect ? semSelect.value : 1;
+        await loadClassFlashStats(sem);
+        updateFlashCandidatesCount();
+        loadClassFlashRecentHistory();
+        $('#classFlashModal').modal('show');
+    }
+
+    function triggerFlashRoulette() {
+        if (flashRouletteInterval) clearInterval(flashRouletteInterval);
+
+        const { pool } = getEligibleFlashCandidates();
+        const display = document.getElementById('flashRouletteName');
+        const subDisplay = document.getElementById('flashRouletteSub');
+        const btn = document.getElementById('btnRouletteDraw');
+
+        if (!pool || pool.length === 0) {
+            if (display) display.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle mr-1"></i> Aucun élève présent éligible</span>';
+            if (subDisplay) subDisplay.textContent = "Vérifiez l'appel ou décochez les filtres d'exclusion.";
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Tirage en cours...';
+
+        let iterations = 0;
+        const maxIterations = 18;
+        let speed = 50;
+
+        function step() {
+            iterations++;
+            const randomPick = pool[Math.floor(Math.random() * pool.length)];
+            display.textContent = randomPick.name;
+            display.className = "font-weight-bold text-warning";
+            subDisplay.textContent = `🎲 Tirage au sort en cours (${iterations}/${maxIterations})...`;
+
+            if (iterations < maxIterations) {
+                setTimeout(step, speed + (iterations * 15));
+            } else {
+                const winner = pool[Math.floor(Math.random() * pool.length)];
+                display.innerHTML = `<i class="fas fa-award text-warning mr-2"></i> ${winner.name}`;
+                display.className = "font-weight-bold text-success";
+                subDisplay.innerHTML = `<span class="badge badge-success px-2 py-1 mr-1">Tiré au sort !</span> Déjà interrogé : <b>${winner.flashCount} fois</b> (${winner.flashPoints} pts)`;
+
+                const select = document.getElementById('flashStudentSelect');
+                if (select) select.value = winner.id;
+
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-dice mr-2"></i> Relancer le tirage';
+            }
+        }
+        step();
+    }
+
+    function onFlashStudentSelectChange() {
+        const select = document.getElementById('flashStudentSelect');
+        const studentId = select.value;
+        const display = document.getElementById('flashRouletteName');
+        const subDisplay = document.getElementById('flashRouletteSub');
+
+        if (!studentId) {
+            display.textContent = "Cliquez sur le dé pour lancer le tirage";
+            display.className = "font-weight-bold text-primary";
+            subDisplay.textContent = "ou choisissez manuellement un élève ci-dessous";
+            return;
+        }
+
+        const student = getAllClassStudents().find(s => String(s.id) === String(studentId));
+        if (student) {
+            const st = classFlashStatsCache[student.id] || { count: 0, raw_points: 0.0 };
+            display.innerHTML = `<i class="fas fa-user-check text-primary mr-2"></i> ${student.name}`;
+            display.className = "font-weight-bold text-primary";
+            subDisplay.innerHTML = `${student.isAbsent ? '<span class="badge badge-danger mr-1">ABSENT</span>' : '<span class="badge badge-success mr-1">PRÉSENT</span>'} Déjà interrogé : <b>${st.count} fois</b> (${st.raw_points} pts)`;
+        }
+    }
+
+    async function recordFlashPoint(points) {
+        const select = document.getElementById('flashStudentSelect');
+        const studentId = select ? select.value : '';
+        if (!studentId) {
+            alert("Veuillez sélectionner ou tirer au sort un élève d'abord.");
+            return;
+        }
+
+        const labelInput = document.getElementById('flashCustomLabel');
+        const label = (labelInput && labelInput.value.trim()) ? labelInput.value.trim() : "Question Flash Rituel Début de Séance";
+        const semSelect = document.getElementById('flashSemesterSelect');
+        const semester = semSelect ? semSelect.value : 1;
+
+        try {
+            const formData = new FormData();
+            formData.append('student_id', studentId);
+            formData.append('class_id', classId);
+            formData.append('points', points);
+            formData.append('label', label);
+            formData.append('semester', semester);
+
+            const resp = await fetch('/activity/api/flash-question', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            if (data.success) {
+                const student = getAllClassStudents().find(s => String(s.id) === String(studentId));
+                const sname = student ? student.name : 'Élève';
+                if (typeof showKeyboardToast === 'function') {
+                    showKeyboardToast(`⚡ <b>+${points} pt</b> attribué à <b>${sname}</b> (Total bonus: ${data.total_bonus} pts)`);
+                }
+
+                await loadClassFlashStats(semester);
+                updateFlashCandidatesCount();
+                loadClassFlashRecentHistory();
+
+                if (labelInput) labelInput.value = '';
+            } else {
+                alert("Erreur: " + (data.error || "Impossible d'enregistrer le point"));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erreur lors de l'enregistrement du point.");
+        }
+    }
+
+    async function loadClassFlashRecentHistory() {
+        const tbody = document.getElementById('flashRecentHistoryBody');
+        if (!tbody) return;
+
+        const semSelect = document.getElementById('flashSemesterSelect');
+        const semester = semSelect ? semSelect.value : 1;
+
+        try {
+            const resp = await fetch(`/activity/api/flash-history?class_id=${classId}&semester=${semester}`);
+            if (resp.ok) {
+                const data = await resp.json();
+                const records = data.records || [];
+                if (records.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Aucune question flash enregistrée pour ce semestre.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = '';
+                records.slice(0, 10).forEach(r => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="align-middle">${r.created_at || '-'}</td>
+                        <td class="align-middle font-weight-bold text-dark">${r.student_name}</td>
+                        <td class="align-middle">
+                            <span class="badge ${r.points > 0 ? 'badge-warning text-dark font-weight-bold' : 'badge-secondary'}">
+                                +${r.points} pt
+                            </span>
+                        </td>
+                        <td class="align-middle text-muted">${r.label || 'Question Flash'}</td>
+                        <td class="align-middle text-right">
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1" title="Supprimer" onclick="deleteClassFlashQuestion(${r.id})">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function deleteClassFlashQuestion(id) {
+        if (!confirm("Voulez-vous supprimer cette question flash ?")) return;
+        try {
+            const resp = await fetch(`/activity/api/delete-flash-question/${id}`, { method: 'POST' });
+            if (resp.ok) {
+                const semSelect = document.getElementById('flashSemesterSelect');
+                const sem = semSelect ? semSelect.value : 1;
+                await loadClassFlashStats(sem);
+                updateFlashCandidatesCount();
+                loadClassFlashRecentHistory();
+                if (typeof showKeyboardToast === 'function') {
+                    showKeyboardToast(`Question flash supprimée.`);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    // ─── Idée 3 : Attribution ultra-rapide sur la ligne de l'élève ──────────────
+    function quickClassFlash(studentId, studentName) {
+        const hid = document.getElementById('quickStudentId');
+        const hname = document.getElementById('quickStudentName');
+        const alertBox = document.getElementById('quickStudentStatusAlert');
+
+        if (hid) hid.value = studentId;
+        if (hname) hname.textContent = studentName;
+
+        const chk = document.querySelector(`.absence-checkbox[data-student-id="${studentId}"]`);
+        const isAbsent = chk ? chk.checked : false;
+
+        if (alertBox) {
+            if (isAbsent) {
+                alertBox.className = "alert alert-warning py-1 px-2 small mb-3";
+                alertBox.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Attention : Cet élève est noté <b>ABSENT</b> aujourd\'hui.';
+                alertBox.style.display = "block";
+            } else {
+                alertBox.className = "alert alert-success py-1 px-2 small mb-3";
+                alertBox.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Élève <b>PRÉSENT</b> à la séance.';
+                alertBox.style.display = "block";
+            }
+        }
+
+        $('#quickPointModal').modal('show');
+    }
+
+    async function submitQuickPoint(points) {
+        const hid = document.getElementById('quickStudentId');
+        const hname = document.getElementById('quickStudentName');
+        const studentId = hid ? hid.value : '';
+        const studentName = hname ? hname.textContent : 'Élève';
+
+        if (!studentId) return;
+
+        try {
+            const formData = new FormData();
+            formData.append('student_id', studentId);
+            formData.append('class_id', classId);
+            formData.append('points', points);
+            formData.append('label', 'Question flash rapide');
+            formData.append('semester', 1);
+
+            const resp = await fetch('/activity/api/flash-question', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            if (data.success) {
+                $('#quickPointModal').modal('hide');
+                if (typeof showKeyboardToast === 'function') {
+                    showKeyboardToast(`⚡ <b>+${points} pt</b> accordé à <b>${studentName}</b> ! (Total bonus: ${data.total_bonus} pts)`);
+                }
+            } else {
+                alert("Erreur: " + (data.error || "Impossible d'attribuer"));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erreur lors de l'enregistrement");
+        }
+    }
+
+    // ─── Pont Appel -> Cahier de Texte (Option B) ───────────────────────────
+    function redirectToTextbookBridge() {
+        const absentNames = [];
+        document.querySelectorAll('.absence-checkbox:checked').forEach(cb => {
+            const row = cb.closest('tr') || cb.closest('.trombi-card');
+            if (row) {
+                const nameEl = row.querySelector('.student-name') || row.querySelector('.font-weight-bold');
+                if (nameEl) {
+                    const cleanName = nameEl.textContent.replace(/\s+/g, ' ').trim();
+                    if (cleanName && !absentNames.includes(cleanName)) absentNames.push(cleanName);
+                }
+            }
+        });
+
+        const totalCount = document.querySelectorAll('.absence-checkbox').length;
+        const absentCount = absentNames.length;
+        const presentCount = totalCount - absentCount;
+
+        const dateInput = document.getElementById('date-picker');
+        const selectedDate = (dateInput && dateInput.value) ? dateInput.value : new Date().toISOString().split('T')[0];
+
+        let sType = (activeGroupFilter === '1' || activeGroupFilter === '2') ? 'TP' : 'Cours';
+
+        let remark = `Séance du ${selectedDate} : ${presentCount} présents, ${absentCount} absents.`;
+        if (absentNames.length > 0) {
+            remark += ` Absents : ${absentNames.join(', ')}.`;
+        }
+
+        const params = new URLSearchParams({
+            class_id: classId,
+            date: selectedDate,
+            session_type: sType,
+            remark: remark
+        });
+
+        window.location.href = `/textbook/new?${params.toString()}`;
+    }
+
+    // ─── Attribution des Badges Pédagogiques (Option C) ────────────────────
+    function openAwardBadgeModal(studentId, studentName) {
+        document.getElementById('badgeTargetStudentId').value = studentId;
+        document.getElementById('badgeTargetStudentName').textContent = studentName;
+        $('#awardBadgeModal').modal('show');
+    }
+
+    async function submitAwardBadge(badgeKey) {
+        const studentId = document.getElementById('badgeTargetStudentId').value;
+        const studentName = document.getElementById('badgeTargetStudentName').textContent;
+        if (!studentId || !badgeKey) return;
+
+        try {
+            const resp = await fetch(`/absence/api/student/${studentId}/award_badge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ badge_key: badgeKey })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                $('#awardBadgeModal').modal('hide');
+                if (typeof showKeyboardToast === 'function') {
+                    showKeyboardToast(`🎖️ Badge <b>« ${data.badge.title} »</b> décerné à <b>${studentName}</b> !`);
+                } else {
+                    alert(data.message);
+                }
+            } else {
+                alert("Erreur: " + (data.error || "Impossible d'attribuer le badge"));
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erreur de connexion lors de l'attribution du badge.");
+        }
+    }
+
+    // ============================================
+    // GESTION DES CRÉNEAUX ET JOURS EXCEPTIONNELS (GRÈVES / ÉVÉNEMENTS)
+    // ============================================
+    function onEventPeriodChange() {
+        const p = document.getElementById('eventPeriodSelect').value;
+        const customDiv = document.getElementById('eventCustomTimeDiv');
+        if (customDiv) {
+            customDiv.style.display = (p === 'custom') ? 'flex' : 'none';
+        }
+    }
+
+    async function submitExceptionalEvent() {
+        const title = document.getElementById('eventTitleInput').value.trim();
+        const eventType = document.getElementById('eventTypeSelect').value;
+        const date = document.getElementById('eventDateInput').value;
+        const period = document.getElementById('eventPeriodSelect').value;
+        const startTime = document.getElementById('eventStartTimeInput').value;
+        const endTime = document.getElementById('eventEndTimeInput').value;
+        const description = document.getElementById('eventDescriptionInput').value.trim();
+        const scopeAll = document.getElementById('eventScopeAllClasses').checked;
+        const syncTextbook = document.getElementById('eventSyncTextbook').checked;
+
+        if (!date) {
+            alert('Veuillez sélectionner une date.');
+            return;
+        }
+
+        try {
+            const resp = await fetch('/absence/api/exceptional_event/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: title,
+                    event_type: eventType,
+                    date: date,
+                    period: period,
+                    start_time: startTime,
+                    end_time: endTime,
+                    description: description,
+                    class_id: {{ classe.id }},
+                    scope_all_classes: scopeAll,
+                    sync_textbook: syncTextbook
+                })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert('Erreur: ' + (data.error || 'Impossible d\'enregistrer'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erreur réseau lors de l\'enregistrement de l\'événement.');
+        }
+    }
+
+    async function deleteExceptionalEvent(eventId) {
+        if (!confirm('Voulez-vous vraiment annuler cet événement exceptionnel ?')) return;
+        try {
+            const resp = await fetch(`/absence/api/exceptional_event/${eventId}/delete`, {
+                method: 'POST'
+            });
+            const data = await resp.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Erreur lors de la suppression.');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erreur réseau.');
+        }
+    }
+
+    window.openClassFlashModal = openClassFlashModal;
+    window.updateFlashCandidatesCount = updateFlashCandidatesCount;
+    window.triggerFlashRoulette = triggerFlashRoulette;
+    window.onFlashStudentSelectChange = onFlashStudentSelectChange;
+    window.recordFlashPoint = recordFlashPoint;
+    window.loadClassFlashRecentHistory = loadClassFlashRecentHistory;
+    window.deleteClassFlashQuestion = deleteClassFlashQuestion;
+    window.quickClassFlash = quickClassFlash;
+    window.submitQuickPoint = submitQuickPoint;
+    window.redirectToTextbookBridge = redirectToTextbookBridge;
+    window.openAwardBadgeModal = openAwardBadgeModal;
+    window.submitAwardBadge = submitAwardBadge;
+    window.onEventPeriodChange = onEventPeriodChange;
+    window.submitExceptionalEvent = submitExceptionalEvent;
+    window.deleteExceptionalEvent = deleteExceptionalEvent;
+</script>
+
+<!-- MODAL : DÉCLARATION D'UN CRÉNEAU / JOUR EXCEPTIONNEL (GRÈVE, ÉVÉNEMENT, ETC.) -->
+<div class="modal fade" id="exceptionalEventModal" tabindex="-1" role="dialog" aria-labelledby="exceptionalEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+            <div class="modal-header bg-gradient-danger text-white py-3 px-4" style="border-radius: 14px 14px 0 0;">
+                <h5 class="modal-title font-weight-bold" id="exceptionalEventModalLabel">
+                    <i class="fas fa-calendar-times mr-2"></i> Déclarer un Jour ou Créneau Exceptionnel
+                </h5>
+                <button type="button" class="close text-white opacity-90" data-dismiss="modal" aria-label="Fermer">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">
+                    Enregistre l'arrêt des cours (Grève, Événement établissement, Forum, etc.) pour protéger l'assiduité des élèves et synchroniser le cahier de texte.
+                </p>
+
+                <!-- 1. Motif / Type -->
+                <div class="form-group mb-3">
+                    <label class="font-weight-bold small text-gray-700">Type d'Événement :</label>
+                    <select id="eventTypeSelect" class="form-control form-control-sm font-weight-bold">
+                        <option value="greve">📢 Mouvement de Grève</option>
+                        <option value="evenement">🎪 Événement Établissement (Forum, Cérémonie, Sport)</option>
+                        <option value="intemperies">🌧️ Intempéries / Cas de Force Majeure</option>
+                        <option value="formation">🎓 Formation Pédagogique / Réunion Administrative</option>
+                        <option value="autre">⚙️ Autre motif exceptionnel</option>
+                    </select>
+                </div>
+
+                <!-- 2. Titre explicite -->
+                <div class="form-group mb-3">
+                    <label class="font-weight-bold small text-gray-700">Intitulé / Libellé :</label>
+                    <input type="text" id="eventTitleInput" class="form-control form-control-sm" placeholder="Ex: Grève générale de l'enseignement" value="Mouvement de Grève">
+                </div>
+
+                <!-- 3. Date et Période (Matinée, Après-midi, Journée, Heures) -->
+                <div class="row">
+                    <div class="col-md-6 form-group mb-3">
+                        <label class="font-weight-bold small text-gray-700">Date concernée :</label>
+                        <input type="date" id="eventDateInput" class="form-control form-control-sm font-weight-bold" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                    </div>
+                    <div class="col-md-6 form-group mb-3">
+                        <label class="font-weight-bold small text-gray-700">Période d'arrêt :</label>
+                        <select id="eventPeriodSelect" class="form-control form-control-sm font-weight-bold" onchange="onEventPeriodChange()">
+                            <option value="all_day">☀️ Toute la journée</option>
+                            <option value="morning">🌅 Matinée uniquement</option>
+                            <option value="afternoon">🌇 Après-midi uniquement</option>
+                            <option value="custom">⏱️ Créneau horaire précis...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Créneau personnalisé (heures) -->
+                <div class="row" id="eventCustomTimeDiv" style="display: none;">
+                    <div class="col-6 form-group mb-3">
+                        <label class="small text-muted font-weight-bold">Heure de début :</label>
+                        <input type="time" id="eventStartTimeInput" class="form-control form-control-sm" value="08:30">
+                    </div>
+                    <div class="col-6 form-group mb-3">
+                        <label class="small text-muted font-weight-bold">Heure de fin :</label>
+                        <input type="time" id="eventEndTimeInput" class="form-control form-control-sm" value="12:30">
+                    </div>
+                </div>
+
+                <!-- 4. Description / Consignes -->
+                <div class="form-group mb-3">
+                    <label class="font-weight-bold small text-gray-700">Détails ou Remarques (Optionnel) :</label>
+                    <textarea id="eventDescriptionInput" class="form-control form-control-sm" rows="2" placeholder="Ex: Décision ministérielle / Travail autonome recommandé..."></textarea>
+                </div>
+
+                <!-- 5. Options d'application -->
+                <div class="card bg-light border-0 p-3 mb-2" style="border-radius: 8px;">
+                    <div class="custom-control custom-checkbox mb-2">
+                        <input type="checkbox" class="custom-control-input" id="eventScopeAllClasses" checked>
+                        <label class="custom-control-label font-weight-bold small text-gray-800" for="eventScopeAllClasses">
+                            Appliquer à <u>toutes mes classes</u> de l'année
+                        </label>
+                    </div>
+                    <div class="custom-control custom-checkbox">
+                        <input type="checkbox" class="custom-control-input" id="eventSyncTextbook" checked>
+                        <label class="custom-control-label font-weight-bold small text-primary" for="eventSyncTextbook">
+                            <i class="fas fa-book-open mr-1"></i> Inscrire automatiquement dans le Cahier de Texte
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger btn-sm font-weight-bold px-3 shadow-xs" onclick="submitExceptionalEvent()">
+                    <i class="fas fa-check mr-1"></i> Valider l'événement
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dock Flottant Persistant des Raccourcis (Visible sur Desktop avec clavier) -->
+<div class="floating-shortcuts-dock d-none d-lg-flex" id="floatingShortcutsDock" title="Raccourcis clavier rapides toujours actifs">
+    <span class="text-white-50"><i class="fas fa-keyboard text-primary mr-1"></i> Raccourcis:</span>
+    <span><kbd>S</kbd> Enregistrer</span>
+    <span><kbd>A</kbd> Marquer Absents</span>
+    <span><kbd>P</kbd> Marquer Présents</span>
+    <span><kbd>↑</kbd><kbd>↓</kbd> Naviguer</span>
+    <span><kbd>Espace</kbd> Sélectionner</span>
+    <span><kbd>/</kbd> Rechercher</span>
+</div>
+
+<!-- Barre d'actions tactile au bas de l'écran (Mobile / Tablette) -->
+{% if not is_year_read_only %}
+<div class="mobile-action-bar d-lg-none" id="mobileActionBar">
+    <button type="button" class="btn btn-outline-success font-weight-bold flex-fill py-2" onclick="document.getElementById('btn-all-present').click();">
+        <i class="fas fa-user-check mr-1"></i> Tous Présents
+    </button>
+    <button type="button" class="btn btn-primary font-weight-bold flex-fill py-2 shadow-sm" onclick="saveAttendance();">
+        <i class="fas fa-save mr-1"></i> Enregistrer
+    </button>
+</div>
+{% endif %}
+{% endblock %}

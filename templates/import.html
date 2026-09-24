@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .drop-zone {
+        border: 2px dashed #4e73df;
+        border-radius: 12px;
+        padding: 35px 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        background: #f8f9fc;
+        cursor: pointer;
+        position: relative;
+    }
+
+    .drop-zone.dragover {
+        background: #eef2ff;
+        border-color: #2e59d9;
+        transform: scale(1.01);
+    }
+
+    .drop-zone i {
+        font-size: 2.8rem;
+        color: #4e73df;
+        margin-bottom: 12px;
+    }
+
+    .drop-zone p {
+        margin-bottom: 0;
+        color: #5a5c69;
+        font-weight: 600;
+    }
+
+    .drop-zone small {
+        color: #858796;
+    }
+
+    #customFile {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .preview-card {
+        border-radius: 12px;
+        border: 1px solid #e3e6f0;
+        transition: box-shadow 0.2s;
+    }
+    .preview-card:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+    .badge-soft-success {
+        background-color: #d1fae5;
+        color: #065f46;
+    }
+    .badge-soft-primary {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-wrap justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle bg-primary text-white mr-2" style="width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-file-import"></i>
+                    </div>
+                    <h6 class="m-0 font-weight-bold text-primary">Importer des Étudiants</h6>
+                </div>
+                <div class="d-flex align-items-center mt-2 mt-sm-0">
+                    <a href="{{ url_for('absence.download_import_template') }}" class="btn btn-sm btn-outline-success mr-2 font-weight-bold shadow-xs">
+                        <i class="fas fa-file-excel mr-1"></i> Télécharger Modèle Excel
+                    </a>
+                    <span class="badge badge-primary px-3 py-2 font-weight-bold">
+                        <i class="fas fa-calendar-alt mr-1"></i> {{ current_school_year.name if current_school_year else 'Année Non Définie' }}
+                    </span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if is_year_read_only %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-lock mr-2"></i><strong>Année scolaire archivée :</strong> L'import d'élèves et de classes est verrouillé pour l'année {{ current_school_year.name if current_school_year else '' }}. Basculez sur l'année en cours pour importer.
+                </div>
+                {% else %}
+                <form method="POST" enctype="multipart/form-data" id="importForm">
+                    <div class="form-group mb-3">
+                        <label class="font-weight-bold text-dark">
+                            <i class="fas fa-chalkboard mr-1 text-primary"></i> Nom de la Classe
+                        </label>
+                        <input type="text" name="class_name" id="class_name_input" class="form-control form-control-user" placeholder="Automatique (laissé vide = détecté depuis le fichier ou le nom du fichier)">
+                        <small class="form-text text-muted">
+                            Si vous importez un fichier Massar, la classe sera automatiquement détectée (ex : <code>TCSF-11</code>). Vous pouvez aussi forcer un nom ici.
+                        </small>
+                    </div>
+
+                    <div class="form-group mb-4">
+                        <label class="font-weight-bold text-dark">
+                            <i class="fas fa-file-excel mr-1 text-success"></i> Fichiers Étudiants (Excel <code>.xlsx</code> ou <code>.csv</code>)
+                        </label>
+
+                        <div class="drop-zone" id="dropZone">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p id="dropZoneText">Glissez vos fichiers ici ou cliquez pour choisir</p>
+                            <small class="d-block mt-2">
+                                <span class="badge badge-light border mr-1">Massar officiel (Arabe)</span>
+                                <span class="badge badge-light border mr-1">Grilles de notes</span>
+                                <span class="badge badge-light border">Format Français (.xlsx / .csv)</span>
+                            </small>
+                            <input type="file" id="customFile" name="file" accept=".xlsx,.csv,.txt" multiple required>
+                        </div>
+
+                        <div id="fileList" class="mt-2 small text-primary font-weight-bold" style="display: none;">
+                            <i class="fas fa-file-excel mr-1"></i> <span id="fileCountText">0 fichiers sélectionnés</span>
+                        </div>
+                    </div>
+
+                    <!-- Zone de Prévisualisation Interactive AJAX -->
+                    <div id="previewContainer" style="display: none;" class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="font-weight-bold text-dark mb-0">
+                                <i class="fas fa-eye mr-1 text-info"></i> Aperçu avant confirmation :
+                            </h6>
+                            <span class="badge badge-info" id="previewTotalBadge">0 élève(s)</span>
+                        </div>
+                        <div id="previewCards"></div>
+                    </div>
+
+                    <div class="card bg-light border-0 mb-4 p-3 rounded-lg" style="font-size: 0.84rem; border-left: 4px solid #10b981 !important;">
+                        <div class="d-flex align-items-center text-success font-weight-bold mb-1">
+                            <i class="fas fa-magic mr-2"></i> Protection intégrale des données existantes :
+                        </div>
+                        <div class="text-muted">
+                            Si un élève est déjà enregistré, <strong>ses photos, ses notes et son historique d'absences sont 100% conservés</strong>. Seuls son CNE et sa date de naissance sont actualisés.
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn btn-primary btn-block btn-lg shadow-sm font-weight-bold">
+                        <i class="fas fa-check-circle mr-2"></i> Confirmer & Importer les Listes
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('customFile');
+    const dropZoneText = document.getElementById('dropZoneText');
+    const fileList = document.getElementById('fileList');
+    const fileCountText = document.getElementById('fileCountText');
+    const previewContainer = document.getElementById('previewContainer');
+    const previewCards = document.getElementById('previewCards');
+    const previewTotalBadge = document.getElementById('previewTotalBadge');
+    const classNameInput = document.getElementById('class_name_input');
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        fileInput.files = dt.files;
+        handleFilesSelected(dt.files);
+    });
+
+    fileInput.addEventListener('change', function () {
+        handleFilesSelected(this.files);
+    });
+
+    function handleFilesSelected(files) {
+        if (!files || files.length === 0) {
+            fileList.style.display = 'none';
+            dropZoneText.innerHTML = "Glissez vos fichiers ici ou cliquez pour choisir";
+            dropZone.style.borderColor = '#4e73df';
+            dropZone.style.background = '#f8f9fc';
+            previewContainer.style.display = 'none';
+            return;
+        }
+
+        fileList.style.display = 'block';
+        if (files.length > 1) {
+            fileCountText.innerHTML = files.length + " fichiers sélectionnés";
+            dropZoneText.innerHTML = files.length + " fichiers prêts pour l'analyse";
+        } else {
+            fileCountText.innerHTML = files[0].name;
+            dropZoneText.innerHTML = files[0].name;
+        }
+        dropZone.style.borderColor = '#1cc88a';
+        dropZone.style.background = '#f0fff4';
+
+        // Lancer la prévisualisation AJAX
+        loadPreview(files);
+    }
+
+    function loadPreview(files) {
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('file', files[i]);
+        }
+
+        previewCards.innerHTML = `
+            <div class="text-center py-3 text-muted">
+                <i class="fas fa-spinner fa-spin fa-2x mb-2 text-primary"></i>
+                <div>Analyse et détection intelligente des colonnes en cours...</div>
+            </div>
+        `;
+        previewContainer.style.display = 'block';
+
+        fetch("{{ url_for('absence.preview_import') }}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.previews) {
+                renderPreviews(data.previews);
+            } else {
+                previewCards.innerHTML = `
+                    <div class="alert alert-warning py-2 mb-0 small">
+                        <i class="fas fa-info-circle mr-1"></i> Aucun aperçu disponible pour ce(s) fichier(s). L'import s'effectuera normalement.
+                    </div>
+                `;
+            }
+        })
+        .catch(err => {
+            console.error('Erreur preview:', err);
+            previewCards.innerHTML = `
+                <div class="alert alert-light border py-2 mb-0 small text-muted">
+                    <i class="fas fa-info-circle mr-1"></i> Fichier prêt à être envoyé.
+                </div>
+            `;
+        });
+    }
+
+    function renderPreviews(previews) {
+        let html = '';
+        let totalCount = 0;
+
+        previews.forEach((p, idx) => {
+            totalCount += p.total_students;
+            if (previews.length === 1 && !classNameInput.value && p.class_name) {
+                classNameInput.placeholder = "Détecté : " + p.class_name;
+            }
+
+            html += `
+                <div class="preview-card bg-white p-3 mb-3">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 border-bottom pb-2">
+                        <div>
+                            <strong><i class="fas fa-file-excel text-success mr-1"></i> ${p.filename}</strong>
+                            <span class="badge badge-soft-primary ml-2 font-weight-bold">Classe : ${p.class_name}</span>
+                        </div>
+                        <span class="badge badge-soft-success font-weight-bold">${p.total_students} étudiant(s) détecté(s)</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-hover mb-0" style="font-size: 0.82rem;">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>CNE</th>
+                                    <th>Nom</th>
+                                    <th>Prénom</th>
+                                    <th>Date Naiss.</th>
+                                    <th width="90" class="text-center">Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            if (p.sample_students && p.sample_students.length > 0) {
+                p.sample_students.forEach(st => {
+                    html += `
+                        <tr>
+                            <td class="font-weight-bold text-primary">${st.cne}</td>
+                            <td>${st.last_name || '-'}</td>
+                            <td>${st.first_name || '-'}</td>
+                            <td>${st.birth_date}</td>
+                            <td class="text-center">
+                                ${st.is_existing 
+                                    ? '<span class="badge badge-info"><i class="fas fa-sync-alt mr-1"></i>Mise à jour</span>'
+                                    : '<span class="badge badge-success"><i class="fas fa-plus mr-1"></i>Nouveau</span>'}
+                            </td>
+                        </tr>
+                    `;
+                });
+            } else {
+                html += `<tr><td colspan="5" class="text-center text-muted">Aucune ligne d'étudiant détectée</td></tr>`;
+            }
+
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                    ${p.total_students > 5 ? `<small class="text-muted d-block mt-2 font-italic"><i class="fas fa-ellipsis-h mr-1"></i> et ${p.total_students - 5} autre(s) étudiant(s)...</small>` : ''}
+                </div>
+            `;
+        });
+
+        previewCards.innerHTML = html;
+        previewTotalBadge.innerText = totalCount + " élève(s) au total";
+    }
+</script>
+{% endblock %}

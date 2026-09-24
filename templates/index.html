@@ -1,0 +1,332 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Header with controls -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-gray-800 font-weight-bold">
+            <i class="fas fa-chalkboard-teacher text-primary mr-2"></i>Mes Classes
+        </h1>
+        <p class="text-muted small mb-0">Gestion de l'assiduité, trombinoscope et organisation pédagogique</p>
+    </div>
+    <div class="app-toolbar mt-3 mt-sm-0">
+        <!-- 1. Basculeur de vue -->
+        <div class="toolbar-capsule" title="Mode d'affichage des classes">
+            <a href="?view=list" class="toolbar-btn {% if view_mode == 'list' %}active{% endif %}">
+                <i class="fas fa-list"></i> Liste
+            </a>
+            <a href="?view=card" class="toolbar-btn {% if view_mode == 'card' %}active{% endif %}">
+                <i class="fas fa-th"></i> Cartes
+            </a>
+        </div>
+
+        <!-- 2. Sélection multiple -->
+        <div class="toolbar-capsule">
+            <button id="select-all-btn" class="toolbar-btn" onclick="toggleSelectAll()" title="Sélectionner ou désélectionner toutes les classes">
+                <i class="fas fa-check-square text-info"></i> Tout sélectionner
+            </button>
+            <button id="delete-selected-btn" class="toolbar-btn text-danger font-weight-bold" style="display: none;" onclick="deleteSelected()">
+                <i class="fas fa-trash"></i> Supprimer <span id="selected-count">(0)</span>
+            </button>
+        </div>
+
+        <!-- 3. Nouvelle Classe (Call-to-Action) -->
+        <a href="{{ url_for('absence.import_class') }}" class="toolbar-btn-cta shadow-sm">
+            <i class="fas fa-plus"></i> Nouvelle Classe
+        </a>
+    </div>
+</div>
+
+<!-- Form for multiple deletion -->
+<form id="delete-form" action="{{ url_for('absence.delete_multiple_classes') }}" method="POST" style="display: none;">
+    <div id="class-ids-container"></div>
+</form>
+
+<!-- Raccourcis Rapides : Cours Prévus Aujourd'hui -->
+{% if today_schedule %}
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 14px; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%); border-left: 5px solid #1cc88a !important;">
+    <div class="card-body p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="m-0 font-weight-bold text-gray-900">
+                <i class="fas fa-clipboard-check text-success mr-2 fa-lg"></i>
+                Cours Prévus Aujourd'hui &bull; {{ today_date_str }}
+                <span class="badge badge-success ml-2 font-weight-normal">{{ today_schedule|length }} classe(s) à appeler</span>
+            </h6>
+            <a href="{{ url_for('configuration.settings') }}#tab-schedule" class="small text-muted font-weight-bold">
+                <i class="fas fa-calendar-week mr-1"></i>Emploi du temps
+            </a>
+        </div>
+        <div class="row">
+            {% for item in today_schedule %}
+            <div class="col-md-4 mb-2 mb-md-0">
+                <div class="p-3 rounded-lg border bg-white shadow-xs d-flex justify-content-between align-items-center"
+                     style="border-left: 4px solid {{ item.entry.color or '#1cc88a' }} !important;">
+                    <div>
+                        <strong class="text-dark">{{ item.class_name }}</strong>
+                        <div class="small text-muted font-weight-bold">
+                            <i class="far fa-clock text-info mr-1"></i>{{ item.slot.start_time }} - {{ item.slot.end_time }}
+                        </div>
+                        <div class="small text-muted" style="font-size: 0.72rem;">
+                            {{ item.room }} &bull; {{ item.entry.subject_title }}
+                        </div>
+                    </div>
+                    <div>
+                        {% if item.has_called %}
+                        <a href="{{ url_for('absence.view_class', class_id=item.class_id) }}" class="btn btn-sm btn-outline-success font-weight-bold shadow-xs">
+                            <i class="fas fa-check-double mr-1"></i> Appel Fait
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('absence.view_class', class_id=item.class_id) }}" class="btn btn-sm btn-success font-weight-bold shadow-sm">
+                            <i class="fas fa-user-check mr-1"></i> Faire l'Appel
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if classes %}
+{% if view_mode == 'list' %}
+<!-- List View -->
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th width="40" class="text-center">
+                            <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll()">
+                        </th>
+                        <th>Nom de la classe</th>
+                        <th class="text-center">Étudiants</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for classe in classes %}
+                    <tr class="class-row" data-class-id="{{ classe.id }}">
+                        <td class="text-center">
+                            <input type="checkbox" class="class-checkbox" value="{{ classe.id }}"
+                                onchange="updateDeleteButton()">
+                        </td>
+                        <td>
+                            <strong>{{ classe.name }}</strong>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge badge-primary">{{ classe.students|length }} étudiants</span>
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('absence.view_class', class_id=classe.id) }}"
+                                class="btn btn-primary btn-sm">
+                                <i class="fas fa-cog"></i> Gérer
+                            </a>
+                            <form action="{{ url_for('absence.delete_class', class_id=classe.id) }}" method="POST"
+                                class="d-inline"
+                                onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette classe ?');">
+                                <button type="submit" class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i> Supprimer
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<!-- Card View (Default) -->
+<div class="row">
+    {% for classe in classes %}
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2 class-card" data-class-id="{{ classe.id }}">
+            <!-- Checkbox in top-left corner -->
+            <div style="position: absolute; top: 10px; left: 10px; z-index: 10;">
+                <input type="checkbox" class="class-checkbox" value="{{ classe.id }}" onchange="updateDeleteButton()"
+                    style="width: 18px; height: 18px;">
+            </div>
+
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            {{ classe.name }}
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800 text-center my-3">
+                            {{ classe.students|length }} Étudiants
+                        </div>
+                        <div class="d-flex" style="gap: 5px;">
+                            <a href="{{ url_for('absence.view_class', class_id=classe.id) }}"
+                                class="btn btn-primary btn-sm btn-block mt-2">
+                                <i class="fas fa-cog"></i> Gérer
+                            </a>
+                        </div>
+                        <form action="{{ url_for('absence.delete_class', class_id=classe.id) }}" method="POST"
+                            onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette classe ?');"
+                            class="mt-2">
+                            <button type="submit" class="btn btn-danger btn-sm btn-block">
+                                <i class="fas fa-trash"></i> Supprimer
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% else %}
+<div class="col-12">
+    <div class="card shadow mb-4">
+        <div class="card-body text-center p-5">
+            <h3 class="text-gray-500">Aucune classe trouvée</h3>
+            <p class="mb-4">Commencez par importer une liste d'étudiants.</p>
+            <a href="{{ url_for('absence.import_class') }}" class="btn btn-primary">Importer Classe</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    let selectAllState = false;
+
+    function updateDeleteButton() {
+        const checkboxes = document.querySelectorAll('.class-checkbox:checked');
+        const deleteBtn = document.getElementById('delete-selected-btn');
+        const countSpan = document.getElementById('selected-count');
+        const selectAllBtn = document.getElementById('select-all-btn');
+
+        if (checkboxes.length > 0) {
+            deleteBtn.style.display = 'inline-block';
+            countSpan.textContent = `(${checkboxes.length})`;
+        } else {
+            deleteBtn.style.display = 'none';
+        }
+
+        // Update select all button text
+        const totalCheckboxes = document.querySelectorAll('.class-checkbox').length;
+        if (checkboxes.length === totalCheckboxes && totalCheckboxes > 0) {
+            selectAllBtn.innerHTML = '<i class="fas fa-minus-square"></i> Tout désélectionner';
+            selectAllState = true;
+        } else {
+            selectAllBtn.innerHTML = '<i class="fas fa-check-square"></i> Tout sélectionner';
+            selectAllState = false;
+        }
+
+        // Update UI for selected cards
+        document.querySelectorAll('.class-card').forEach(card => {
+            const checkbox = card.querySelector('.class-checkbox');
+            if (checkbox && checkbox.checked) {
+                card.style.borderColor = '#4e73df';
+                card.style.borderWidth = '3px';
+            } else {
+                card.style.borderColor = '';
+                card.style.borderWidth = '';
+            }
+        });
+
+        // Update UI for selected rows in list view
+        document.querySelectorAll('.class-row').forEach(row => {
+            const checkbox = row.querySelector('.class-checkbox');
+            if (checkbox && checkbox.checked) {
+                row.style.backgroundColor = '#e3f2fd';
+            } else {
+                row.style.backgroundColor = '';
+            }
+        });
+    }
+
+    function toggleSelectAll() {
+        const checkboxes = document.querySelectorAll('.class-checkbox');
+        const masterCheckbox = document.getElementById('select-all-checkbox');
+
+        selectAllState = !selectAllState;
+
+        checkboxes.forEach(cb => {
+            cb.checked = selectAllState;
+        });
+
+        if (masterCheckbox) {
+            masterCheckbox.checked = selectAllState;
+        }
+
+        updateDeleteButton();
+    }
+
+    function deleteSelected() {
+        const checkboxes = document.querySelectorAll('.class-checkbox:checked');
+
+        if (checkboxes.length === 0) {
+            alert('Aucune classe sélectionnée.');
+            return;
+        }
+
+        const confirmMsg = checkboxes.length === 1
+            ? 'Êtes-vous sûr de vouloir supprimer cette classe ?'
+            : `Êtes-vous sûr de vouloir supprimer ces ${checkboxes.length} classes ?`;
+
+        if (!confirm(confirmMsg)) {
+            return;
+        }
+
+        // Add hidden inputs to form
+        const container = document.getElementById('class-ids-container');
+        container.innerHTML = '';
+
+        checkboxes.forEach(cb => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'class_ids[]';
+            input.value = cb.value;
+            container.appendChild(input);
+        });
+
+        // Submit form
+        document.getElementById('delete-form').submit();
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        updateDeleteButton();
+    });
+</script>
+
+<style>
+    .class-card {
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .class-card.selected {
+        border-color: #4e73df !important;
+        border-width: 3px !important;
+    }
+
+    .class-row {
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-group .btn {
+        border-radius: 0;
+    }
+
+    .btn-group .btn:first-child {
+        border-top-left-radius: 0.35rem;
+        border-bottom-left-radius: 0.35rem;
+    }
+
+    .btn-group .btn:last-child {
+        border-top-right-radius: 0.35rem;
+        border-bottom-right-radius: 0.35rem;
+    }
+</style>
+{% endblock %}

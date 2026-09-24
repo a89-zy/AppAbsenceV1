@@ -1,0 +1,556 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1 text-gray-800 font-weight-bold">
+            <i class="fas fa-edit text-warning mr-2"></i>Modifier l'Activité & les Notes
+        </h1>
+        <div class="small text-gray-500">Classe : <strong>{{ classe.name }}</strong> | Date : {{ activity.date.strftime('%d/%m/%Y') }}</div>
+    </div>
+    <div class="d-flex align-items-center" style="gap: 8px;">
+        <a href="{{ url_for('activity.activity_groups_pdf', activity_id=activity.id) }}" target="_blank" class="btn btn-sm btn-outline-info shadow-sm font-weight-bold">
+            <i class="fas fa-print mr-1"></i> Fiche Groupes
+        </a>
+        <a href="{{ url_for('activity.activities') }}" class="btn btn-sm btn-secondary shadow-sm font-weight-bold">
+            <i class="fas fa-arrow-left mr-1"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 14px;">
+    <div class="card-body p-4">
+        <form method="POST">
+            <input type="hidden" name="groups_json" id="groupsJsonInput" value="{{ activity.groups_json if activity and activity.groups_json else '' }}">
+            <!-- Informations de l'Activité -->
+            <div class="form-row mb-3">
+                <div class="form-group col-md-4">
+                    <label class="font-weight-bold text-gray-700 small">Titre de l'activité</label>
+                    <input type="text" name="title" class="form-control form-control-sm rounded-lg" 
+                           value="{{ activity.title or '' }}" placeholder="Ex: TP 1 - Algèbre relationnelle">
+                </div>
+                <div class="form-group col-md-3">
+                    <label class="font-weight-bold text-gray-700 small">Module</label>
+                    <select name="module" id="moduleSelect" class="form-control form-control-sm rounded-lg" required onchange="fetchSections()">
+                        {% for m in modules %}
+                        <option value="{{ m.name }}" {% if activity.module==m.name %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-md-3">
+                    <label class="font-weight-bold text-gray-700 small">Section / Chapitre</label>
+                    <select name="section" id="sectionSelect" class="form-control form-control-sm rounded-lg" required>
+                        {% for s in sections %}
+                        <option value="{{ s.name }}" {% if activity.section==s.name %}selected{% endif %}>{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-md-2">
+                    <label class="font-weight-bold text-gray-700 small">Type</label>
+                    <select name="activity_type" class="form-control form-control-sm rounded-lg" required>
+                        {% for t in types %}
+                        <option value="{{ t.name }}" {% if activity.activity_type==t.name %}selected{% endif %}>{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row mb-3">
+                <div class="form-group col-md-3">
+                    <label class="font-weight-bold text-gray-700 small">
+                        <i class="fas fa-calendar-alt text-warning mr-1"></i>Date d'échéance / Limite
+                    </label>
+                    <input type="date" name="due_date" class="form-control form-control-sm rounded-lg" 
+                           value="{{ activity.due_date.strftime('%Y-%m-%d') if activity.due_date else '' }}">
+                </div>
+                <div class="form-group col-md-2">
+                    <label class="font-weight-bold text-gray-700 small">
+                        <i class="fas fa-user-friends text-primary mr-1"></i>Mode de travail
+                    </label>
+                    <select name="work_mode" class="form-control form-control-sm rounded-lg">
+                        <option value="Individuel" {% if activity.work_mode=='Individuel' %}selected{% endif %}>Individuel</option>
+                        <option value="Binôme" {% if activity.work_mode=='Binôme' %}selected{% endif %}>Binôme / Groupe</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-3">
+                    <label class="font-weight-bold text-gray-700 small">
+                        <i class="fas fa-paperclip text-success mr-1"></i>Ressource Pédagogique
+                    </label>
+                    <select name="resource_id" class="form-control form-control-sm rounded-lg">
+                        <option value="">-- Aucune ressource liée --</option>
+                        {% for r in resources %}
+                        <option value="{{ r.id }}" {% if activity.resource_id==r.id %}selected{% endif %}>
+                            [{{ r.resource_type }}] {{ r.title }} ({{ r.human_file_size }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-md-2">
+                    <label class="font-weight-bold text-gray-700 small">
+                        <i class="fas fa-bullseye text-primary mr-1"></i>Barème (/...)
+                    </label>
+                    <input type="number" step="0.5" min="1" max="100" name="max_score" id="maxScoreInput" 
+                           class="form-control form-control-sm rounded-lg font-weight-bold" 
+                           value="{{ activity.max_score or 20.0 }}">
+                </div>
+                <div class="form-group col-md-2">
+                    <label class="font-weight-bold text-gray-700 small">
+                        <i class="fas fa-balance-scale text-info mr-1"></i>Coefficient
+                    </label>
+                    <input type="number" step="0.5" min="0.5" max="10" name="coefficient" 
+                           class="form-control form-control-sm rounded-lg font-weight-bold" 
+                           value="{{ activity.coefficient or 1.0 }}">
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="font-weight-bold text-gray-700 small">Consignes & Objectifs pédagogiques</label>
+                <textarea name="description" rows="2" class="form-control form-control-sm rounded-lg" 
+                          placeholder="Instructions pour les élèves...">{{ activity.description or '' }}</textarea>
+            </div>
+
+            <!-- Barre d'outils rapides et filtres -->
+            <div class="card shadow-sm border-0 p-3 bg-light rounded-lg border mb-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between mb-2" style="gap: 8px;">
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-info font-weight-bold" onclick="setAllStatuses('Assigné')" title="Assigner le travail à tous les élèves">
+                            <i class="fas fa-clock mr-1"></i>Tout Assigner
+                        </button>
+                        <!-- Tout Fait ciblé sur les Assignés -->
+                        <button type="button" class="btn btn-outline-success font-weight-bold" onclick="markAssignedAsDone()" title="Passe en 'Fait' les élèves qui ont le statut 'Assigné'">
+                            <i class="fas fa-check-double mr-1"></i>Assignés ➜ Fait (<span id="countAssignedForDone">0</span>)
+                        </button>
+                        <!-- Tout Non fait ciblé sur les Assignés non notés -->
+                        <button type="button" class="btn btn-outline-danger font-weight-bold" onclick="markAssignedAsNotDone()" title="Attribue 0 uniquement aux élèves ayant le statut 'Assigné' et non notés">
+                            <i class="fas fa-user-times mr-1"></i>Assignés ➜ Non fait 0 (<span id="countAssignedForNotDone">0</span>)
+                        </button>
+                        <!-- Rétablir les 0 vers Assigné -->
+                        <button type="button" class="btn btn-outline-warning font-weight-bold" onclick="restoreNotDoneToAssigned()" title="Rétablir les élèves 'Non fait' vers le statut 'Assigné'">
+                            <i class="fas fa-undo mr-1"></i>Rétablir les 0
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary font-weight-bold" onclick="setAllStatuses('Non assigné')" title="Réinitialiser tous les statuts">
+                            <i class="fas fa-minus-circle mr-1"></i>Réinitialiser
+                        </button>
+                    </div>
+                    <div class="small text-muted font-weight-bold">
+                        <i class="fas fa-users text-primary mr-1"></i> Synchronisation par binôme / groupe disponible via <i class="fas fa-users"></i>.
+                    </div>
+                </div>
+
+                <!-- Filtres d'affichage par Statut (Onglets rapides) -->
+                <div class="d-flex align-items-center flex-wrap mt-2 pt-2 border-top" style="gap: 6px;">
+                    <span class="small font-weight-bold text-muted mr-1"><i class="fas fa-filter text-primary mr-1"></i>Afficher :</span>
+                    <button type="button" class="btn btn-xs btn-primary font-weight-bold filter-btn active" data-filter="all" onclick="filterTableRows('all')">
+                        Tous (<span id="filterCountAll">{{ students|length }}</span>)
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-warning font-weight-bold filter-btn" data-filter="Assigné" onclick="filterTableRows('Assigné')">
+                        Assignés (<span id="filterCountAssigned">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-success font-weight-bold filter-btn" data-filter="Fait" onclick="filterTableRows('Fait')">
+                        Faits (<span id="filterCountDone">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-danger font-weight-bold filter-btn" data-filter="Non fait" onclick="filterTableRows('Non fait')">
+                        Non faits (<span id="filterCountNotDone">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary font-weight-bold filter-btn" data-filter="Non assigné" onclick="filterTableRows('Non assigné')">
+                        Non assignés (<span id="filterCountUnassigned">0</span>)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table des Notes -->
+            <div class="table-responsive">
+                <table class="table table-hover mb-0" id="gradingTable" style="vertical-align: middle;">
+                    <thead class="bg-light text-muted small text-uppercase">
+                        <tr>
+                            <th width="45" class="text-center">#</th>
+                            <th width="280">Élève</th>
+                            <th width="140">Groupe / Binôme</th>
+                            <th width="170" class="text-center">Statut</th>
+                            <th width="150" class="text-center">Note (<span id="maxScoreLabel">/{{ activity.max_score or 20 }}</span>)</th>
+                            <th>Appréciation / Remarque</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        {% set grade_data = grades.get(student.id, {}) %}
+                        <tr class="student-row" id="row_{{ student.id }}">
+                            <td class="text-center align-middle font-weight-bold text-muted">{{ loop.index }}</td>
+                            
+                            <!-- Avatar + Nom -->
+                            <td class="align-middle">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('main.uploaded_file', filename=student.photo_path if student.photo_path else 'photos/Default.jpg') }}" 
+                                         alt="Avatar" class="rounded-circle mr-2 border shadow-xs" 
+                                         style="width: 38px; height: 38px; object-fit: cover; background: #e2e8f0;"
+                                         onerror="this.src='{{ url_for('main.uploaded_file', filename='photos/Default.jpg') }}'">
+                                    <div>
+                                        <div class="font-weight-bold text-dark small">{{ student.last_name }} {{ student.first_name }}</div>
+                                        <span class="badge badge-light border text-muted" style="font-size: 0.68rem;">{{ student.cne }}</span>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Groupe / Binôme -->
+                            <td class="align-middle">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" name="group_{{ student.id }}" id="group_{{ student.id }}" 
+                                           class="form-control form-control-sm rounded-lg group-input" 
+                                           placeholder="Ex: Grp 1"
+                                           value="{{ grade_data.group_number or '' }}">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button" 
+                                                title="Appliquer cette note et appréciation à tout le groupe"
+                                                onclick="applyGradeToGroup('{{ student.id }}')">
+                                            <i class="fas fa-users"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Statut -->
+                            <td class="align-middle text-center">
+                                <select name="status_{{ student.id }}" id="status_{{ student.id }}"
+                                        class="form-control form-control-sm rounded-pill status-select font-weight-bold"
+                                        onchange="onStatusChange('{{ student.id }}')">
+                                    <option value="Non assigné" {% if grade_data.status=='Non assigné' or not grade_data.status %}selected{% endif %}>⚪ Non assigné</option>
+                                    <option value="Assigné" {% if grade_data.status=='Assigné' %}selected{% endif %}>🟡 Assigné</option>
+                                    <option value="Fait" {% if grade_data.status=='Fait' %}selected{% endif %}>🟢 Fait</option>
+                                    <option value="Non fait" {% if grade_data.status=='Non fait' %}selected{% endif %}>🔴 Non fait</option>
+                                </select>
+                            </td>
+
+                            <!-- Note -->
+                            <td class="align-middle text-center">
+                                <input type="number" step="0.25" min="0" max="{{ activity.max_score or 20 }}" 
+                                       name="grade_{{ student.id }}" id="grade_{{ student.id }}"
+                                       class="form-control form-control-sm text-center font-weight-bold grade-input rounded-lg" 
+                                       placeholder="-" 
+                                       value="{{ grade_data.score if grade_data.score is defined else '' }}"
+                                       oninput="validateAndColorGrade(this)"
+                                       onkeydown="handleKeyNavigation(event, this)">
+                            </td>
+
+                            <!-- Appréciation -->
+                            <td class="align-middle">
+                                <input type="text" name="feedback_{{ student.id }}" id="feedback_{{ student.id }}"
+                                       class="form-control form-control-sm rounded-lg feedback-input" 
+                                       placeholder="Conseil, appréciation..."
+                                       value="{{ grade_data.feedback or '' }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                <a href="{{ url_for('activity.activities') }}" class="btn btn-light rounded-pill px-4 border">Annuler</a>
+                <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm">
+                    <i class="fas fa-save mr-1"></i> Enregistrer les modifications
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let MAX_SCORE = {{ activity.max_score or 20.0 }};
+
+    document.getElementById('maxScoreInput').addEventListener('input', function() {
+        const val = parseFloat(this.value);
+        if (!isNaN(val) && val > 0) {
+            MAX_SCORE = val;
+            document.getElementById('maxScoreLabel').textContent = '/' + val;
+            document.querySelectorAll('.grade-input').forEach(input => {
+                input.max = val;
+                validateAndColorGrade(input);
+            });
+        }
+    });
+
+    let currentFilter = 'all';
+
+    function setAllStatuses(status) {
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.value = status;
+            const studentId = select.id.replace('status_', '');
+            onStatusChange(studentId);
+        });
+        updateStatusCounts();
+        applyCurrentFilter();
+    }
+
+    // 1. Passer en "Fait" UNIQUEMENT les élèves ayant le statut "Assigné"
+    function markAssignedAsDone() {
+        let count = 0;
+        document.querySelectorAll('.status-select').forEach(select => {
+            if (select.value === 'Assigné') {
+                select.value = 'Fait';
+                const studentId = select.id.replace('status_', '');
+                onStatusChange(studentId);
+                count++;
+            }
+        });
+        updateStatusCounts();
+        applyCurrentFilter();
+    }
+
+    // 2. Passer en "Non fait (0)" UNIQUEMENT les élèves ayant le statut "Assigné" (protège ceux qui ont déjà une note positive)
+    function markAssignedAsNotDone() {
+        let count = 0;
+        document.querySelectorAll('.status-select').forEach(select => {
+            if (select.value === 'Assigné') {
+                const studentId = select.id.replace('status_', '');
+                const gradeInput = document.getElementById(`grade_${studentId}`);
+                
+                const currentVal = parseFloat(gradeInput ? gradeInput.value : '');
+                if (!isNaN(currentVal) && currentVal > 0) {
+                    select.value = 'Fait';
+                    onStatusChange(studentId);
+                } else {
+                    select.value = 'Non fait';
+                    onStatusChange(studentId);
+                    count++;
+                }
+            }
+        });
+        updateStatusCounts();
+        applyCurrentFilter();
+    }
+
+    // 3. Rétablir les élèves "Non fait" vers le statut "Assigné"
+    function restoreNotDoneToAssigned() {
+        let count = 0;
+        document.querySelectorAll('.status-select').forEach(select => {
+            if (select.value === 'Non fait') {
+                select.value = 'Assigné';
+                const studentId = select.id.replace('status_', '');
+                const gradeInput = document.getElementById(`grade_${studentId}`);
+                if (gradeInput) {
+                    gradeInput.value = '';
+                    gradeInput.style.backgroundColor = '';
+                    gradeInput.style.color = '';
+                }
+                onStatusChange(studentId);
+                count++;
+            }
+        });
+        updateStatusCounts();
+        applyCurrentFilter();
+    }
+
+    // 4. Filtrage par statut
+    function filterTableRows(filterStatus) {
+        currentFilter = filterStatus;
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            if (btn.getAttribute('data-filter') === filterStatus) {
+                btn.classList.add('active', 'btn-primary');
+                btn.classList.remove('btn-outline-primary', 'btn-outline-secondary', 'btn-outline-warning', 'btn-outline-success', 'btn-outline-danger');
+            } else {
+                btn.classList.remove('active', 'btn-primary');
+                const f = btn.getAttribute('data-filter');
+                if (f === 'Assigné') btn.classList.add('btn-outline-warning');
+                else if (f === 'Fait') btn.classList.add('btn-outline-success');
+                else if (f === 'Non fait') btn.classList.add('btn-outline-danger');
+                else if (f === 'Non assigné') btn.classList.add('btn-outline-secondary');
+                else btn.classList.add('btn-outline-primary');
+            }
+        });
+        applyCurrentFilter();
+    }
+
+    function applyCurrentFilter() {
+        document.querySelectorAll('.student-row').forEach(row => {
+            const select = row.querySelector('.status-select');
+            if (!select) return;
+            if (currentFilter === 'all' || select.value === currentFilter) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Mise à jour des compteurs dynamiques
+    function updateStatusCounts() {
+        let assignedCount = 0;
+        let doneCount = 0;
+        let notDoneCount = 0;
+        let unassignedCount = 0;
+
+        document.querySelectorAll('.status-select').forEach(select => {
+            const val = select.value;
+            if (val === 'Assigné') assignedCount++;
+            else if (val === 'Fait') doneCount++;
+            else if (val === 'Non fait') notDoneCount++;
+            else unassignedCount++;
+        });
+
+        const countDoneSpan = document.getElementById('countAssignedForDone');
+        const countNotDoneSpan = document.getElementById('countAssignedForNotDone');
+        if (countDoneSpan) countDoneSpan.textContent = assignedCount;
+        if (countNotDoneSpan) countNotDoneSpan.textContent = assignedCount;
+
+        const fAssigned = document.getElementById('filterCountAssigned');
+        const fDone = document.getElementById('filterCountDone');
+        const fNotDone = document.getElementById('filterCountNotDone');
+        const fUnassigned = document.getElementById('filterCountUnassigned');
+        if (fAssigned) fAssigned.textContent = assignedCount;
+        if (fDone) fDone.textContent = doneCount;
+        if (fNotDone) fNotDone.textContent = notDoneCount;
+        if (fUnassigned) fUnassigned.textContent = unassignedCount;
+    }
+
+    function onStatusChange(studentId) {
+        const select = document.getElementById(`status_${studentId}`);
+        const gradeInput = document.getElementById(`grade_${studentId}`);
+        const status = select.value;
+
+        if (status === 'Fait') {
+            select.style.borderColor = '#1cc88a';
+            select.style.color = '#157347';
+            gradeInput.disabled = false;
+        } else if (status === 'Non fait') {
+            select.style.borderColor = '#e74a3b';
+            select.style.color = '#bb2d3b';
+            gradeInput.disabled = false;
+            gradeInput.value = 0;
+            validateAndColorGrade(gradeInput);
+        } else if (status === 'Assigné') {
+            select.style.borderColor = '#f6c23e';
+            select.style.color = '#b45309';
+            gradeInput.disabled = false;
+        } else {
+            select.style.borderColor = '#d1d5db';
+            select.style.color = '#6b7280';
+            gradeInput.disabled = true;
+            gradeInput.value = '';
+            gradeInput.style.backgroundColor = '';
+        }
+    }
+
+    function validateAndColorGrade(input) {
+        let val = parseFloat(input.value);
+        if (isNaN(val)) {
+            input.style.backgroundColor = '';
+            input.style.color = '';
+            return;
+        }
+
+        if (val > MAX_SCORE) {
+            val = MAX_SCORE;
+            input.value = MAX_SCORE;
+        } else if (val < 0) {
+            val = 0;
+            input.value = 0;
+        }
+
+        const ratio = val / MAX_SCORE;
+        if (ratio >= 0.7) {
+            input.style.backgroundColor = '#d1fae5';
+            input.style.color = '#065f46';
+        } else if (ratio >= 0.5) {
+            input.style.backgroundColor = '#e0f2fe';
+            input.style.color = '#075985';
+        } else {
+            input.style.backgroundColor = '#fee2e2';
+            input.style.color = '#991b1b';
+        }
+    }
+
+    function handleKeyNavigation(e, currentInput) {
+        const inputs = Array.from(document.querySelectorAll('.grade-input'));
+        const index = inputs.indexOf(currentInput);
+
+        if (e.key === 'Enter' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (index + 1 < inputs.length) {
+                inputs[index + 1].disabled = false;
+                inputs[index + 1].focus();
+                inputs[index + 1].select();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (index - 1 >= 0) {
+                inputs[index - 1].focus();
+                inputs[index - 1].select();
+            }
+        }
+    }
+
+    function applyGradeToGroup(sourceStudentId) {
+        const groupVal = document.getElementById(`group_${sourceStudentId}`).value.trim();
+        if (!groupVal) {
+            alert("Veuillez d'abord attribuer un nom ou numéro de groupe (ex: 'Groupe 1').");
+            return;
+        }
+
+        const sourceScore = document.getElementById(`grade_${sourceStudentId}`).value;
+        const sourceFeedback = document.getElementById(`feedback_${sourceStudentId}`).value;
+        const sourceStatus = document.getElementById(`status_${sourceStudentId}`).value;
+
+        let appliedCount = 0;
+        document.querySelectorAll('.group-input').forEach(grpInput => {
+            if (grpInput.value.trim().toLowerCase() === groupVal.toLowerCase()) {
+                const targetId = grpInput.id.replace('group_', '');
+                if (targetId !== sourceStudentId) {
+                    const targetGrade = document.getElementById(`grade_${targetId}`);
+                    const targetStatus = document.getElementById(`status_${targetId}`);
+                    const targetFeedback = document.getElementById(`feedback_${targetId}`);
+
+                    targetStatus.value = sourceStatus;
+                    targetGrade.disabled = false;
+                    targetGrade.value = sourceScore;
+                    validateAndColorGrade(targetGrade);
+
+                    if (sourceFeedback && !targetFeedback.value) {
+                        targetFeedback.value = sourceFeedback;
+                    }
+                    appliedCount++;
+                }
+            }
+        });
+
+        alert(`Note et statut appliqués aux ${appliedCount} coéquipier(s) du ${groupVal}.`);
+    }
+
+    function fetchSections() {
+        const moduleName = document.getElementById('moduleSelect').value;
+        const sectionSelect = document.getElementById('sectionSelect');
+
+        if (!moduleName) {
+            sectionSelect.innerHTML = '<option value="">Choisir un module...</option>';
+            sectionSelect.disabled = true;
+            return;
+        }
+
+        fetch(`/activity/api/get_sections?module_name=${encodeURIComponent(moduleName)}`)
+            .then(response => response.json())
+            .then(data => {
+                const currentVal = sectionSelect.value;
+                sectionSelect.innerHTML = '<option value="">Choisir une section...</option>';
+                data.forEach(section => {
+                    const opt = document.createElement('option');
+                    opt.value = section;
+                    opt.textContent = section;
+                    if (section === currentVal) opt.selected = true;
+                    sectionSelect.appendChild(opt);
+                });
+                sectionSelect.disabled = false;
+            });
+    }
+
+    // Initialisation
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.grade-input').forEach(input => {
+            validateAndColorGrade(input);
+        });
+        document.querySelectorAll('.status-select').forEach(select => {
+            const studentId = select.id.replace('status_', '');
+            onStatusChange(studentId);
+        });
+        updateStatusCounts();
+    });
+</script>
+{% endblock %}

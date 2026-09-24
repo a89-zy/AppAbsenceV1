@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-md-flex align-items-center justify-content-between mb-3">
+    <div class="mb-2 mb-md-0">
+        <h1 class="h3 mb-1 text-gray-800 font-weight-bold">
+            <i class="fas fa-file-excel text-success mr-2"></i>Passerelle & Injecteur Automatique MASSAR
+        </h1>
+        <p class="text-muted small mb-0">
+            Injectez instantanément les <strong>5 notes officielles</strong> (CC1, CC2, CC3, CC4 et Note d'Activité) dans le fichier Excel officiel sans ressaisie manuelle.
+        </p>
+    </div>
+    <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+        <a href="{{ url_for('evaluation.index', semester=semester) }}" 
+           class="btn btn-sm btn-outline-secondary bg-white text-dark font-weight-bold shadow-xs text-nowrap px-3 py-2 action-ribbon-btn">
+            <i class="fas fa-arrow-left mr-1"></i> Tableau de Bord
+        </a>
+    </div>
+</div>
+
+<!-- Ruban d'Actions Rapides -->
+<div class="card shadow-sm border-0 mb-4 bg-white" style="border-radius: 12px;">
+    <div class="card-body py-2 px-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex align-items-center mr-3 my-1">
+                <span class="badge badge-primary px-2 py-1 mr-2 font-weight-bold">
+                    <i class="fas fa-bolt mr-1"></i> Actions Rapides
+                </span>
+                <span class="small text-muted font-weight-bold d-none d-lg-inline">Navigation pour <strong>{{ selected_class.name if selected_class else 'la classe' }}</strong> :</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center my-1" style="gap: 8px;">
+                <a href="{{ url_for('evaluation.grades_grid', class_id=selected_class.id if selected_class else None, semester=semester) }}" 
+                   class="btn btn-sm btn-outline-success font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-table mr-1"></i> Carnet de Notes
+                </a>
+                <a href="{{ url_for('evaluation.quick_entry', class_id=selected_class.id if selected_class else None, semester=semester, cc_number=1) }}" 
+                   class="btn btn-sm btn-outline-warning text-dark font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-bolt mr-1"></i> Saisie Rapide CC
+                </a>
+                <a href="{{ url_for('evaluation.makeup_manager', class_id=selected_class.id if selected_class else None, semester=semester) }}" 
+                   class="btn btn-sm btn-outline-warning text-dark font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-user-clock mr-1"></i> Rattrapages
+                </a>
+                <a href="{{ url_for('evaluation.analytics', class_id=selected_class.id if selected_class else None, semester=semester) }}" 
+                   class="btn btn-sm btn-outline-danger font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-chart-pie mr-1"></i> Analyses & Stats
+                </a>
+                <a href="{{ url_for('evaluation.settings', class_id=selected_class.id if selected_class else 0) }}" 
+                   class="btn btn-sm btn-outline-secondary font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-sliders-h mr-1"></i> Paramètres
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Colonne Gauche : Formulaire de Téléversement et Injection -->
+    <div class="col-lg-7 mb-4">
+        <div class="card shadow-sm border-0" style="border-radius: 12px;">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-upload text-primary mr-2"></i>Téléverser le Fichier Excel MASSAR (.xlsx)
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" enctype="multipart/form-data">
+                    <!-- Sélecteur Classe & Semestre -->
+                    <div class="row mb-3">
+                        <div class="col-md-7 mb-2">
+                            <label class="small font-weight-bold text-gray-700">Classe cible :</label>
+                            <select name="class_id" class="form-control font-weight-bold" onchange="window.location.href='{{ url_for('evaluation.massar_hub') }}?class_id=' + this.value + '&semester={{ semester }}'">
+                                {% for c in classes %}
+                                <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>
+                                    {{ c.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5 mb-2">
+                            <label class="small font-weight-bold text-gray-700">Semestre :</label>
+                            <select name="semester" class="form-control font-weight-bold" onchange="window.location.href='{{ url_for('evaluation.massar_hub') }}?class_id={{ selected_class.id if selected_class else '' }}&semester=' + this.value">
+                                <option value="1" {% if semester == 1 %}selected{% endif %}>Semestre 1</option>
+                                <option value="2" {% if semester == 2 %}selected{% endif %}>Semestre 2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Zone de Dépôt de Fichier -->
+                    <div class="form-group mb-4">
+                        <label class="small font-weight-bold text-gray-700">Fichier de pointage téléchargé depuis MASSAR :</label>
+                        <div class="custom-file">
+                            <input type="file" name="massar_file" id="massar_file" 
+                                   class="custom-file-input" accept=".xlsx" required
+                                   onchange="updateFileName(this)">
+                            <label class="custom-file-label" for="massar_file" id="file_label">
+                                Choisir le fichier .xlsx...
+                            </label>
+                        </div>
+                        <small class="form-text text-muted mt-2">
+                            <i class="fas fa-shield-alt text-success mr-1"></i>
+                            Le fichier d'origine est préservé. Seules les cellules des notes sont remplies en respectant la structure officielle.
+                        </small>
+                    </div>
+
+                    <!-- Bouton d'action -->
+                    <button type="submit" class="btn btn-success btn-block py-2 font-weight-bold shadow-sm action-ribbon-btn text-nowrap justify-content-center" style="font-size: 1.05rem;">
+                        <i class="fas fa-magic mr-2"></i> Injecter les 5 Notes et Télécharger le Fichier
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonne Droite : Guide & Fonctionnement -->
+    <div class="col-lg-5 mb-4">
+        <div class="card shadow-sm border-0 bg-light" style="border-radius: 12px;">
+            <div class="card-header bg-white py-3 border-bottom">
+                <h6 class="m-0 font-weight-bold text-gray-800">
+                    <i class="fas fa-info-circle text-info mr-2"></i>Comment fonctionne la passerelle ?
+                </h6>
+            </div>
+            <div class="card-body p-4">
+                <div class="timeline-step d-flex mb-3">
+                    <div class="badge badge-primary rounded-circle mr-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; min-width: 32px;">1</div>
+                    <div>
+                        <strong class="text-dark">Téléchargement MASSAR</strong>
+                        <div class="small text-muted">Sur la plateforme MASSAR, exportez la feuille de saisie Excel pour la classe choisie.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-step d-flex mb-3">
+                    <div class="badge badge-primary rounded-circle mr-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; min-width: 32px;">2</div>
+                    <div>
+                        <strong class="text-dark">Détection Intelligente</strong>
+                        <div class="small text-muted">L'application repère automatiquement le <code>CNE</code> de chaque élève ainsi que les colonnes <code>المراقبة 1..4</code> et <code>الأنشطة المندمجة</code>.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-step d-flex mb-3">
+                    <div class="badge badge-success rounded-circle mr-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; min-width: 32px;">3</div>
+                    <div>
+                        <strong class="text-dark">Injection Sans Erreur</strong>
+                        <div class="small text-muted">Les notes de CC1, CC2, CC3, CC4 et de l'Activité sont reportées avec une précision de 0.25 pt sans altérer les formules ministérielles.</div>
+                    </div>
+                </div>
+
+                <div class="timeline-step d-flex">
+                    <div class="badge badge-info rounded-circle mr-3 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; min-width: 32px;">4</div>
+                    <div>
+                        <strong class="text-dark">Téléversement direct</strong>
+                        <div class="small text-muted">Vous réimportez le fichier complété sur MASSAR en quelques secondes.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateFileName(input) {
+    const fileName = input.files[0] ? input.files[0].name : "Choisir le fichier .xlsx...";
+    document.getElementById('file_label').textContent = fileName;
+}
+</script>
+{% endblock %}

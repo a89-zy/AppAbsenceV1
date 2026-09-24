@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Modifier les informations</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Nom complet</label>
+                            <input type="text" name="full_name" class="form-control"
+                                value="{{ student.last_name }} {{ student.first_name }}" required
+                                placeholder="Nom Prénom">
+                            <small class="form-text text-muted">Format: Nom Prénom (ex: Ait Maryam Taha)</small>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label>Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ student.email or '' }}"
+                                placeholder="email@exemple.com">
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label>N° Téléphone</label>
+                            <input type="tel" name="phone" class="form-control" value="{{ student.phone or '' }}"
+                                placeholder="06 12 34 56 78">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>CNE</label>
+                            <input type="text" name="cne" class="form-control" value="{{ student.cne }}" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Classe</label>
+                            <select name="class_id" class="form-control" required>
+                                {% for c in classes %}
+                                <option value="{{ c.id }}" {% if student.class_id==c.id %}selected{% endif %}>
+                                    {{ c.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label>Date de naissance</label>
+                            <input type="date" name="birth_date" class="form-control"
+                                value="{{ student.birth_date.strftime('%Y-%m-%d') if student.birth_date else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label>Photo de l'étudiant</label>
+                            <div class="mb-2">
+                                <img src="{{ url_for('main.uploaded_file', filename=student.photo_path if student.photo_path else 'photos/Default.jpg') }}"
+                                    alt="Photo" class="img-thumbnail"
+                                    style="max-width: 180px; max-height: 180px;">
+                                <p class="text-muted small mt-1">
+                                    {% if student.photo_path %}Photo actuelle{% else %}Photo par défaut (non encore téléversée){% endif %}
+                                </p>
+                            </div>
+                            <input type="file" name="photo" class="form-control-file" accept=".jpg,.jpeg,.png">
+                            <small class="form-text text-muted">Formats acceptés: JPG, JPEG, PNG</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('absence.student_detail', student_id=student.id) }}"
+                            class="btn btn-secondary">
+                            Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

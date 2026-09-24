@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4 d-print-none">
+    <h1 class="h3 mb-0 text-gray-800">Suivi Progression Pédagogique</h1>
+    <div>
+        <button onclick="window.print()" class="btn btn-primary shadow-sm">
+            <i class="fas fa-print fa-sm text-white-50"></i> Imprimer / Enregistrer PDF
+        </button>
+        <a href="{{ url_for('textbook.index') }}" class="btn btn-secondary shadow-sm">
+            <i class="fas fa-arrow-left fa-sm text-white-50"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="card shadow mb-4 d-print-none">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('textbook.progression_report') }}">
+            <div class="form-row align-items-end">
+                <div class="col-md-4">
+                    <label>Année Scolaire</label>
+                    <select name="year_id" class="form-control" onchange="this.form.submit()">
+                        {% for y in years %}
+                        <option value="{{ y.id }}" {% if current_year and current_year.id==y.id %}selected{% endif %}>{{
+                            y.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-print-none">
+        <h6 class="m-0 font-weight-bold text-primary">Tableau de Suivi - {{ current_year.name }}</h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0 progression-table">
+                <thead class="bg-light">
+                    <tr>
+                        <th style="width: 20%;">Classe(s)</th>
+                        <th style="width: 60%;">Contenu Pédagogique</th>
+                        <th style="width: 20%;">Date(s)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report_items %}
+                    <tr>
+                        <td class="p-0">
+                            <table class="table table-borderless m-0 inner-table">
+                                {% for entry in item.entries %}
+                                <tr>
+                                    <td>{{ entry.class }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                        <td>
+                            <div class="mb-2">
+                                <span class="badge badge-primary">{{ item.module }}</span>
+                                <span class="badge badge-info">{{ item.section }}</span>
+                            </div>
+                            <h6 class="font-weight-bold mb-1">{{ item.titles }}</h6>
+                            <ul class="small mb-0 pl-3">
+                                {% for obj in item.objectives %}
+                                <li>{{ obj }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                        <td class="p-0">
+                            <table class="table table-borderless m-0 inner-table">
+                                {% for entry in item.entries %}
+                                <tr>
+                                    <td>{{ entry.date.strftime('%d/%m/%Y') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">Aucune donnée pour cette période.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .progression-table th {
+        text-align: center;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
+
+    .inner-table td {
+        border-bottom: 1px solid #e3e6f0 !important;
+        padding: 0.75rem;
+        height: 100%;
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .inner-table tr:last-child td {
+        border-bottom: none !important;
+    }
+
+    @media print {
+        body {
+            font-size: 10pt;
+            background: white !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .navbar,
+        .footer,
+        .sidebar,
+        .d-print-none {
+            display: none !important;
+        }
+
+        .container-fluid {
+            padding: 0 !important;
+        }
+
+        .table-bordered {
+            border: 2px solid black !important;
+        }
+
+        .table-bordered th,
+        .table-bordered td {
+            border: 1px solid black !important;
+        }
+
+        .badge {
+            border: 1px solid #ccc;
+            background: transparent !important;
+            color: black !important;
+        }
+
+        .progression-table th {
+            background-color: #eee !important;
+            color: black !important;
+        }
+    }
+</style>
+{% endblock %}

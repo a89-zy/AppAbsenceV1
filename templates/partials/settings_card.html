@@ -1,0 +1,158 @@
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">{{ title }}</h6>
+    </div>
+    <div class="card-body">
+        <!-- List -->
+        <ul class="list-group mb-3" style="max-height: 200px; overflow-y: auto;">
+            {% for item in items %}
+            <li class="list-group-item d-flex justify-content-between align-items-center p-2">
+                {{ item.name if item.name else item.description }}
+                <form action="{{ url_for('configuration.delete_setting') }}" method="POST" class="d-inline">
+                    <input type="hidden" name="category" value="{{ category }}">
+                    <input type="hidden" name="id" value="{{ item.id }}">
+                    <button type="submit" class="btn btn-danger btn-circle btn-sm"
+                        onclick="return confirm('Supprimer ?')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </form>
+            </li>
+            {% else %}
+            <li class="list-group-item text-muted text-center small">Aucun élément</li>
+            {% endfor %}
+        </ul>
+
+        <!-- Add Form -->
+        <form action="{{ url_for('configuration.add_setting') }}" method="POST" class="mb-3">
+            <input type="hidden" name="category" value="{{ category }}">
+
+            {% if category == 'section' %}
+            <div class="form-group mb-2">
+                <select name="module_id" class="form-control form-control-sm" required>
+                    <option value="">Choisir un module...</option>
+                    {% for m in modules %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% elif category == 'competency' %}
+            <div class="form-group mb-2">
+                <select name="module_id" class="form-control form-control-sm" required>
+                    <option value="">Choisir un module...</option>
+                    {% for m in modules %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% elif category == 'objective' %}
+            <div class="form-group mb-2">
+                <select id="module_select_{{ category }}" class="form-control form-control-sm mb-1"
+                    onchange="loadChildren(this.value, 'comp_select_{{ category }}', 'competency')">
+                    <option value="">1. Choisir un module...</option>
+                    {% for m in modules %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+                <select name="competency_id" id="comp_select_{{ category }}" class="form-control form-control-sm"
+                    required>
+                    <option value="">2. Choisir une compétence...</option>
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="input-group">
+                <input type="text" name="name" class="form-control" placeholder="Nouveau..." required>
+                <div class="input-group-append">
+                    <button class="btn btn-success" type="submit"><i class="fas fa-plus"></i></button>
+                </div>
+            </div>
+        </form>
+
+        <hr>
+
+        <!-- Upload Form -->
+        <form id="upload_form_{{ category }}" action="{{ url_for('configuration.upload_settings') }}" method="POST"
+            enctype="multipart/form-data">
+            <input type="hidden" name="category" value="{{ category }}">
+
+            {% if category == 'section' %}
+            <div class="form-group mb-2">
+                <select name="module_id" class="form-control form-control-sm" required>
+                    <option value="">Module cible...</option>
+                    {% for m in modules %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% elif category == 'competency' %}
+            <div class="form-group mb-2">
+                <select name="module_id" class="form-control form-control-sm" required>
+                    <option value="">Module cible...</option>
+                    {% for m in modules %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% elif category == 'objective' %}
+            <div class="form-group mb-2">
+                <select id="module_up_select_{{ category }}" class="form-control form-control-sm mb-1"
+                    onchange="loadChildren(this.value, 'comp_up_select_{{ category }}', 'competency')">
+                    <option value="">1. Module cible...</option>
+                    {% for m in modules %}
+                    <option value="{{ m.id }}">{{ m.name }}</option>
+                    {% endfor %}
+                </select>
+                <select name="competency_id" id="comp_up_select_{{ category }}" class="form-control form-control-sm"
+                    required>
+                    <option value="">2. Compétence cible...</option>
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="form-group mb-2">
+                <label class="small mb-1">Importer (.txt list)</label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="file_{{ category }}" name="file" accept=".txt"
+                        required onchange="updateLabel(this)">
+                    <label class="custom-file-label" for="file_{{ category }}">Choisir</label>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm btn-block">Importer</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    if (typeof loadChildren !== 'function') {
+        function loadChildren(parentId, targetSelectId, childType) {
+            const target = document.getElementById(targetSelectId);
+            if (!target) return;
+
+            target.innerHTML = '<option value="">Chargement...</option>';
+
+            if (!parentId) {
+                target.innerHTML = `<option value="">Choisir ${childType == 'section' ? 'une section' : 'une compétence'}...</option>`;
+                return;
+            }
+
+            const url = childType === 'section' ?
+                `/api/module/${parentId}/sections` :
+                `/api/module/${parentId}/competencies`; // Fetch by module now
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    target.innerHTML = `<option value="">Choisir ${childType == 'section' ? 'une section' : 'une compétence'}...</option>`;
+                    data.forEach(item => {
+                        const label = item.name || item.description;
+                        target.innerHTML += `<option value="${item.id}">${label}</option>`;
+                    });
+                });
+        }
+    }
+
+    function updateLabel(input) {
+        var fileName = input.value.split('\\').pop();
+        input.nextElementSibling.innerText = fileName;
+    }
+</script>

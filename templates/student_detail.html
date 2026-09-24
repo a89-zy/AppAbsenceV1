@@ -1,0 +1,522 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <!-- Profile Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Détails Étudiant</h6>
+                <div class="no-print d-flex align-items-center">
+                    {% if student.email and absences %}
+                    <form action="{{ url_for('absence.send_student_mail', student_id=student.id) }}" method="POST" class="mr-2"
+                          onsubmit="return confirm('Envoyer un email de rappel d\'absence à cet étudiant ?');">
+                        <button type="submit" class="btn btn-info btn-sm font-weight-bold" title="Envoyer le modèle d'email configuré">
+                            <i class="fas fa-paper-plane mr-1"></i> Notifier par Email
+                        </button>
+                    </form>
+                    {% endif %}
+                    <a href="{{ url_for('absence.edit_student', student_id=student.id) }}"
+                        class="btn btn-warning btn-sm mr-2">
+                        <i class="fas fa-edit fa-sm"></i> Modifier
+                    </a>
+                    <a href="{{ url_for('evaluation.student_report', student_id=student.id, semester=1) }}"
+                        target="_blank" class="btn btn-success btn-sm mr-2 font-weight-bold" title="Fiche individuelle des 5 notes d'informatique">
+                        <i class="fas fa-graduation-cap fa-sm mr-1"></i> Fiche Notes Info
+                    </a>
+                    <a href="{{ url_for('absence.export_student_bilan_pdf', student_id=student.id) }}"
+                        target="_blank" class="btn btn-danger btn-sm mr-2 font-weight-bold" title="Fiche bilan officielle d'assiduité">
+                        <i class="fas fa-file-pdf fa-sm mr-1"></i> Fiche Bilan PDF
+                    </a>
+                    <button onclick="window.print()" class="btn btn-primary btn-sm mr-2">
+                        <i class="fas fa-print fa-sm"></i> Imprimer
+                    </button>
+                    <a href="{{ url_for('absence.view_class', class_id=student.class_id) }}"
+                        class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left fa-sm"></i> Retour
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center mb-3">
+                        <img src="{{ url_for('main.uploaded_file', filename=student.photo_path if student.photo_path else 'photos/Default.jpg') }}"
+                            alt="Photo de {{ student.first_name }} {{ student.last_name }}" class="img-thumbnail"
+                            style="max-width: 100%; max-height: 250px;">
+                        {% if not student.photo_path %}
+                        <p class="text-muted small mt-2"><i class="fas fa-info-circle mr-1"></i>Photo par défaut</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h4 class="small font-weight-bold">Nom Complet</h4>
+                                <p class="h5">{{ student.first_name }} {{ student.last_name }}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="small font-weight-bold">CNE</h4>
+                                <p class="h5">{{ student.cne }}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="small font-weight-bold">Classe</h4>
+                                <p class="h5">{{ student.student_class.name }}</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="small font-weight-bold">Date de naissance</h4>
+                                <p class="h5">{{ student.birth_date.strftime('%d/%m/%Y') if student.birth_date else '-'
+                                    }}</p>
+                            </div>
+                            <div class="col-md-5 mt-2">
+                                <h4 class="small font-weight-bold">Adresse Email</h4>
+                                {% if student.email %}
+                                <a href="mailto:{{ student.email }}" class="text-primary font-weight-bold">
+                                    <i class="fas fa-envelope mr-1"></i> {{ student.email }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted small">Non renseignée</span>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mt-2">
+                                <h4 class="small font-weight-bold">N° Téléphone</h4>
+                                {% if student.phone %}
+                                <a href="tel:{{ student.phone|replace(' ', '') }}" class="badge badge-light border text-dark p-2" style="font-size: 0.95rem;">
+                                    <i class="fas fa-phone-alt text-success mr-1"></i> {{ student.phone }}
+                                </a>
+                                {% else %}
+                                <span class="text-muted small">Non renseigné</span>
+                                {% endif %}
+                            </div>
+                            {% if student.last_email_sent_at %}
+                            <div class="col-12 mt-2">
+                                <span class="small text-muted">
+                                    <i class="fas fa-check-double text-info mr-1"></i>Dernière notification email envoyée le : 
+                                    <strong>{{ student.last_email_sent_at.strftime('%d/%m/%Y à %H:%M') }}</strong>
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Bloc Note d'Assiduité / Absence -->
+                        <hr class="my-3">
+                        <div class="row align-items-center bg-light p-3 rounded border">
+                            <div class="col-md-6 mb-2 mb-md-0">
+                                <div class="small font-weight-bold text-gray-700">Note d'Assiduité Calculée :</div>
+                                <div class="h3 font-weight-bold mb-0 {% if absence_score >= 16 %}text-success{% elif absence_score >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                    {{ absence_score }} <span class="h5 text-muted">/ 20</span>
+                                </div>
+                                <div class="small text-muted mt-1">
+                                    Formule : <code>20 - ({{ unjustified_abs }} NJ × {{ absence_penalty }})</code>
+                                </div>
+                            </div>
+                            <div class="col-md-6 text-md-right">
+                                <span class="badge badge-pill badge-dark px-2 py-1 mr-1">Total: {{ total_abs }} abs</span>
+                                <span class="badge badge-pill badge-danger px-2 py-1 mr-1">Non justifiées: {{ unjustified_abs }}</span>
+                                <span class="badge badge-pill badge-success px-2 py-1">Justifiées: {{ justified_abs }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Section Badges & Compétences (Option C) -->
+                        <hr class="my-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="font-weight-bold text-gray-800 mb-0">
+                                <i class="fas fa-award mr-2" style="color: #7c3aed;"></i> Badges de Compétences & Attitudes Pédagogiques
+                            </h6>
+                            <button type="button" class="btn btn-sm btn-outline-purple font-weight-bold" style="color: #7c3aed; border-color: #c4b5fd;" data-toggle="modal" data-target="#studentAwardBadgeModal">
+                                <i class="fas fa-plus-circle mr-1"></i> Décerner un Badge
+                            </button>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" id="studentBadgesContainer">
+                            {% if student.badges %}
+                                {% for b in student.badges %}
+                                <div class="d-flex align-items-center p-2 rounded border bg-white shadow-sm mb-2 mr-2" id="badge_card_{{ b.id }}">
+                                    <span class="badge badge-{{ b.color }} p-2 mr-2" style="font-size: 1rem;"><i class="{{ b.icon }}"></i></span>
+                                    <div>
+                                        <div class="font-weight-bold text-dark small">{{ b.title }}</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">{{ b.description }}</div>
+                                        <div class="text-muted" style="font-size: 0.65rem;"><i class="far fa-clock mr-1"></i>{{ b.awarded_at.strftime('%d/%m/%Y %H:%M') if b.awarded_at else '' }}</div>
+                                    </div>
+                                    <button type="button" class="btn btn-xs btn-link text-danger ml-2 p-0" onclick="deleteBadge({{ b.id }})" title="Supprimer ce badge">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-muted small font-italic py-2" id="noBadgeNotice">
+                                    <i class="fas fa-info-circle mr-1 text-info"></i> Aucun badge attribué pour le moment. Cliquez sur « Décerner un Badge » pour valoriser l'élève.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Historique des Absences</h6>
+            </div>
+            <div class="card-body">
+                {% if absences %}
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Statut</th>
+                                <th>Motif</th>
+                                <th style="width: 130px;" class="text-center no-print">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for absence in absences %}
+                            <tr>
+                                <td>
+                                    <i class="far fa-calendar-alt text-muted mr-1"></i>
+                                    <strong>{{ absence.date.strftime('%d %B %Y') }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{{ 'success' if absence.justified else 'danger' }}">
+                                        <i class="fas fa-{{ 'check-circle' if absence.justified else 'times-circle' }} mr-1"></i>
+                                        {{ 'Justifiée' if absence.justified else 'Non Justifiée' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if absence.justified and absence.reason %}
+                                    <span>{{ absence.reason }}</span>
+                                    {% elif absence.justified %}
+                                    <span class="text-muted font-italic">Sans motif précisé</span>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center no-print">
+                                    <button class="btn btn-sm btn-primary"
+                                        onclick="openJustifyModal({{ absence.id }}, {{ absence.justified|lower }}, '{{ absence.reason or '' }}')">
+                                        <i class="fas fa-edit mr-1"></i> Justifier
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4 text-gray-500">
+                    Aucune absence enregistrée.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Activities Card -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Historique des Activités</h6>
+            </div>
+            <div class="card-body">
+                {% if grades %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Module / Section</th>
+                                <th class="text-center">Fait (OK)</th>
+                                <th>Note</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for g in grades %}
+                            <tr>
+                                <td>{{ g.activity.date.strftime('%d/%m/%Y') }}</td>
+                                <td>{{ g.activity.module }} - {{ g.activity.section }}</td>
+                                <td class="text-center">
+                                    {% if g.status == 'Fait' %}
+                                    <span class="badge badge-success"><i class="fas fa-check"></i> Fait</span>
+                                    {% elif g.status == 'Non fait' %}
+                                    <span class="badge badge-danger"><i class="fas fa-times"></i> Non fait</span>
+                                    {% elif g.status == 'Assigné' %}
+                                    <span class="badge badge-primary"><i class="fas fa-clock"></i> Assigné</span>
+                                    {% else %}
+                                    <span class="badge badge-secondary"><i class="fas fa-minus-circle"></i> Non
+                                        assigné</span>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ g.score }}/20</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-4 text-gray-500">
+                    Aucune activité enregistrée.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Justification -->
+<div class="modal fade" id="justifyModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold text-primary">
+                    <i class="fas fa-clipboard-check mr-1"></i> Justifier l'absence
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="justifyForm">
+                    <input type="hidden" id="absenceId">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Statut de l'absence</label>
+                        <select id="justifyStatus" class="form-control" onchange="toggleReasonField()">
+                            <option value="false">Non justifiée</option>
+                            <option value="true">Justifiée</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="reasonGroup" style="display:none;">
+                        <label class="font-weight-bold">Motif de justification</label>
+                        <select id="justifyReason" class="form-control">
+                            <option value="">Sélectionner un motif...</option>
+                            <option value="Certificat Médical / Maladie">Certificat Médical / Maladie</option>
+                            <option value="Accident">Accident</option>
+                            <option value="Urgence familiale">Urgence familiale</option>
+                            <option value="Retard de transport">Retard de transport</option>
+                            <option value="Autorisation préalable">Autorisation préalable</option>
+                            <option value="Autre motif valable">Autre motif valable</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="saveJustification()">
+                    <i class="fas fa-save mr-1"></i> Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openJustifyModal(id, justified, reason) {
+        document.getElementById('absenceId').value = id;
+        document.getElementById('justifyStatus').value = justified;
+        
+        // Match reason if present or select "Autre motif valable" if custom text
+        const reasonSelect = document.getElementById('justifyReason');
+        let matched = false;
+        for (let i = 0; i < reasonSelect.options.length; i++) {
+            if (reasonSelect.options[i].value === reason) {
+                reasonSelect.selectedIndex = i;
+                matched = true;
+                break;
+            }
+        }
+        if (!matched && reason) {
+            reasonSelect.value = "Autre motif valable";
+        } else if (!reason) {
+            reasonSelect.value = "";
+        }
+
+        toggleReasonField();
+        $('#justifyModal').modal('show');
+    }
+
+    function toggleReasonField() {
+        const isJustified = document.getElementById('justifyStatus').value === 'true';
+        document.getElementById('reasonGroup').style.display = isJustified ? 'block' : 'none';
+    }
+
+    function saveJustification() {
+        const id = document.getElementById('absenceId').value;
+        const justified = document.getElementById('justifyStatus').value === 'true';
+        const reason = document.getElementById('justifyReason').value;
+
+        if (justified && !reason) {
+            alert('Veuillez sélectionner un motif de justification.');
+            return;
+        }
+
+        fetch(`/absence/update_justification/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                justified: justified,
+                reason: reason
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + (data.error || 'Impossible d\'enregistrer'));
+            }
+        })
+        .catch(err => {
+            alert('Erreur de communication avec le serveur: ' + err);
+        });
+    }
+
+    function awardStudentBadge(badgeKey) {
+        fetch(`/absence/api/student/{{ student.id }}/award_badge`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ badge_key: badgeKey })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert("Erreur: " + (data.error || "Impossible d'attribuer"));
+            }
+        })
+        .catch(e => alert("Erreur réseau"));
+    }
+
+    function deleteBadge(badgeId) {
+        if (!confirm("Voulez-vous retirer ce badge ?")) return;
+        fetch(`/absence/api/student/badge/${badgeId}/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const el = document.getElementById(`badge_card_${badgeId}`);
+                if (el) el.remove();
+            }
+        })
+        .catch(e => alert("Erreur réseau"));
+    }
+</script>
+
+<!-- MODAL DÉCERNEMENT DE BADGE ÉLÈVE -->
+<div class="modal fade" id="studentAwardBadgeModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg rounded-xl">
+            <div class="modal-header bg-light py-3">
+                <h5 class="modal-title font-weight-bold text-gray-900">
+                    <i class="fas fa-award mr-2" style="color: #7c3aed;"></i> Décerner un Badge Pédagogique
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="list-group">
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="awardStudentBadge('bug_hunter')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-danger p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-bug"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Bug Hunter</h6>
+                                <small class="text-muted">A résolu un bogue ou une erreur algorithmique complexe</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-danger font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="awardStudentBadge('mentor')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-info p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-hands-helping"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Code Mentor</h6>
+                                <small class="text-muted">Entraide exemplaire et soutien technique aux camarades</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-info font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="awardStudentBadge('fast_coder')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-warning text-dark p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-bolt"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Fast Coder</h6>
+                                <small class="text-muted">A achevé le TP ou défi avec rapidité et précision</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-warning text-dark font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="awardStudentBadge('clean_code')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-success p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-shield-alt"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Clean Code</h6>
+                                <small class="text-muted">Code impeccable, indenté et rigoureusement commenté</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-success font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+
+                    <button type="button" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3" onclick="awardStudentBadge('active')">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge badge-primary p-2 mr-2" style="font-size: 1.1rem;"><i class="fas fa-star"></i></span>
+                            <div class="text-left">
+                                <h6 class="mb-0 font-weight-bold text-dark">Super Actif</h6>
+                                <small class="text-muted">Participation constante et dynamisme exemplaire</small>
+                            </div>
+                        </div>
+                        <span class="btn btn-xs btn-outline-primary font-weight-bold px-2 py-1">Attribuer</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #wrapper {
+            display: block;
+            /* Ensure wrapper isn't hiding content */
+        }
+
+        #content-wrapper {
+            margin: 0;
+            padding: 0;
+            background: white;
+        }
+
+        .container-fluid,
+        .container-fluid * {
+            visibility: visible;
+        }
+
+        .container-fluid {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 0;
+        }
+
+        .no-print,
+        .navbar,
+        .sidebar,
+        footer,
+        .scroll-to-top {
+            display: none !important;
+        }
+
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #ddd !important;
+        }
+    }
+</style>
+{% endblock %}

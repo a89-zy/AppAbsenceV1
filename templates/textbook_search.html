@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Recherche de Séances</h1>
+    <a href="{{ url_for('textbook.index') }}" class="btn btn-sm btn-secondary shadow-sm">
+        <i class="fas fa-arrow-left"></i> Retour au journal
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Filtres de Recherche</h6>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('textbook.search_sessions') }}">
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label>Classe</label>
+                    <select name="class_id" class="form-control">
+                        <option value="">Toutes les classes</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if request.args.get('class_id')|int==c.id %}selected{% endif %}>{{
+                            c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <!-- Independent Filters for now, or could make them dependent via JS -->
+                <div class="form-group col-md-3">
+                    <label>Module</label>
+                    <select name="module_id" id="moduleSelect" class="form-control" onchange="loadSections()">
+                        <option value="">Tous les modules</option>
+                        {% for m in modules %}
+                        <option value="{{ m.id }}" {% if request.args.get('module_id')|int==m.id %}selected{% endif %}>
+                            {{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-md-3">
+                    <label>Section</label>
+                    <select name="section_id" id="sectionSelect" class="form-control">
+                        <option value="">Toutes les sections</option>
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="form-group col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-search"></i> Rechercher
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Résultats ({{ sessions|length }})</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Classe</th>
+                        <th>Module / Chapitre</th>
+                        <th>Titres / Contenu</th>
+                        <th>Enseignant</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in sessions %}
+                    <tr>
+                        <td>{{ session.date.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ session.classe.name }}</td>
+                        <td>
+                            <strong>{{ session.module.name }}</strong><br>
+                            <small>{{ session.section.name }}</small>
+                        </td>
+                        <td>{{ session.course_titles }}</td>
+                        <td>{{ session.teacher_name or '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('textbook.edit_session', id=session.id) }}"
+                                class="btn btn-warning btn-sm" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{{ url_for('textbook.export_pdf', id=session.id) }}" class="btn btn-info btn-sm"
+                                title="PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">Aucune séance trouvée.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const currentSectionId = "{{ request.args.get('section_id') or '' }}";
+
+    async function loadSections() {
+        const moduleId = document.getElementById('moduleSelect').value;
+        const sectionSelect = document.getElementById('sectionSelect');
+
+        if (!moduleId) {
+            sectionSelect.innerHTML = '<option value="">Toutes les sections</option>';
+            return;
+        }
+
+        sectionSelect.innerHTML = '<option value="">Chargement...</option>';
+        try {
+            const response = await fetch(`/api/module/${moduleId}/sections`);
+            const data = await response.json();
+
+            let html = '<option value="">Toutes les sections</option>';
+            data.forEach(s => {
+                const selected = (String(s.id) === String(currentSectionId)) ? 'selected' : '';
+                html += `<option value="${s.id}" ${selected}>${s.name}</option>`;
+            });
+            sectionSelect.innerHTML = html;
+        } catch (e) {
+            sectionSelect.innerHTML = '<option value="">Erreur</option>';
+        }
+    }
+
+    // Load on start if module selected
+    document.addEventListener('DOMContentLoaded', function () {
+        if (document.getElementById('moduleSelect').value) {
+            loadSections();
+        }
+    });
+</script>
+{% endblock %}

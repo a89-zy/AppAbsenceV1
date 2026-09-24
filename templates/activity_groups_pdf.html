@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Composition des Groupes - {{ activity.display_title }}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: #2d3748;
+            background: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            font-size: 10.5pt;
+            line-height: 1.4;
+        }
+        .no-print {
+            background: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 9pt;
+            cursor: pointer;
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+        .btn-primary { background: #4e73df; color: white; }
+        .btn-secondary { background: #e2e8f0; color: #4a5568; }
+
+        .sheet {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .header {
+            border-bottom: 2px solid #4e73df;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .title {
+            color: #1e3a8a;
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 0 0 4px 0;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 10pt;
+            margin: 0;
+        }
+        .meta-box {
+            text-align: right;
+            font-size: 9pt;
+            color: #475569;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 8pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-primary { background: #dbeafe; color: #1e40af; }
+        .badge-info { background: #e0e7ff; color: #4338ca; }
+        .badge-secondary { background: #f1f5f9; color: #475569; }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-dark { background: #334155; color: white; }
+
+        .summary-bar {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9.5pt;
+            font-weight: bold;
+            color: #334155;
+        }
+
+        .groups-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .group-card {
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            page-break-inside: avoid;
+        }
+        .group-header {
+            background: #f1f5f9;
+            padding: 8px 12px;
+            border-bottom: 1px solid #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .group-title {
+            font-weight: bold;
+            font-size: 11pt;
+            color: #1e293b;
+        }
+        .student-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .student-table th, .student-table td {
+            padding: 6px 10px;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 9pt;
+        }
+        .student-table th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 8pt;
+            text-transform: uppercase;
+        }
+        .student-table tr:last-child td {
+            border-bottom: none;
+        }
+        .cne-col { color: #64748b; font-size: 8pt; }
+        .check-box {
+            width: 16px;
+            height: 16px;
+            border: 1px solid #94a3b8;
+            border-radius: 3px;
+            margin: auto;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            color: #94a3b8;
+        }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .no-print { display: none !important; }
+            .sheet { box-shadow: none; padding: 0; }
+            .group-card { border-color: #94a3b8; }
+            .group-header { background: #e2e8f0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barre d'actions non imprimable -->
+    <div class="no-print">
+        <div>
+            <strong style="color: #1e293b;"><i class="fas fa-users text-primary mr-1"></i> Fiche de Répartition des Groupes de Travail</strong>
+            <div style="font-size: 8.5pt; color: #64748b;">Prête pour projection ou impression sur feuille A4</div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> Imprimer / Exporter PDF
+            </button>
+            <a href="{{ url_for('activity.activities') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour aux Activités
+            </a>
+        </div>
+    </div>
+
+    <!-- Feuille A4 -->
+    <div class="sheet">
+        <div class="header">
+            <div>
+                <h1 class="title">{{ activity.display_title }}</h1>
+                <p class="subtitle">
+                    Classe : <strong>{{ classe.name }}</strong> &nbsp;|&nbsp; 
+                    Module : <strong>{{ activity.module }}</strong> &nbsp;›&nbsp; {{ activity.section }} &nbsp;|&nbsp; 
+                    Type : <strong>{{ activity.activity_type }}</strong>
+                </p>
+                {% if activity.description %}
+                <p style="margin: 4px 0 0 0; font-size: 8.5pt; color: #475569; font-style: italic;">
+                    Consigne : {{ activity.description }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="meta-box">
+                <div>Date : <strong>{{ activity.date.strftime('%d/%m/%Y') }}</strong></div>
+                {% if activity.due_date %}
+                <div>Échéance : <strong>{{ activity.due_date.strftime('%d/%m/%Y') }}</strong></div>
+                {% endif %}
+                <div>Barème : <strong>/{{ activity.max_score or 20 }}</strong> (Coeff : {{ activity.coefficient or 1.0 }})</div>
+            </div>
+        </div>
+
+        <div class="summary-bar">
+            <span>
+                <i class="fas fa-info-circle text-primary"></i> 
+                Composition : {{ activity.groups_summary or (groups|length ~ ' groupes formés') }}
+            </span>
+            <span>
+                Effectif total : {{ classe.students|length }} élève(s)
+            </span>
+        </div>
+
+        {% if groups %}
+        <div class="groups-grid">
+            {% for g in groups %}
+            <div class="group-card">
+                <div class="group-header">
+                    <div class="group-title">{{ g.name }}</div>
+                    <span class="badge badge-{{ g.badge_color }}">{{ g.type_label }} ({{ g.count }})</span>
+                </div>
+                <table class="student-table">
+                    <thead>
+                        <tr>
+                            <th width="30">#</th>
+                            <th>Nom & Prénom</th>
+                            <th width="85">CNE</th>
+                            <th width="45" style="text-align: center;">Prés.</th>
+                            <th width="50" style="text-align: center;">Note</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for st in g.members %}
+                        <tr>
+                            <td style="color:#94a3b8; font-weight: bold;">{{ loop.index }}</td>
+                            <td><strong>{{ st.last_name }}</strong> {{ st.first_name }}</td>
+                            <td class="cne-col">{{ st.cne }}</td>
+                            <td><div class="check-box"></div></td>
+                            <td style="border-left: 1px dashed #cbd5e1; text-align: center; color: #94a3b8;">/{{ activity.max_score|int }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: #94a3b8;">
+            <p>Aucun groupe de travail configuré pour cette activité.</p>
+        </div>
+        {% endif %}
+
+        <div class="footer">
+            <div>Document généré automatiquement via la plateforme de gestion pédagogique</div>
+            <div>Signature de l'enseignant : ______________________</div>
+        </div>
+    </div>
+
+</body>
+</html>

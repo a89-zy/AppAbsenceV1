@@ -1,0 +1,668 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- En-tête & Informations Générales -->
+<div class="d-sm-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="h3 mb-1 text-gray-800 font-weight-bold">
+            <i class="fas fa-edit text-primary mr-2"></i>{% if activity %}{{ activity.display_title }}{% else %}Saisie des Notes & Évaluation{% endif %}
+        </h1>
+        <p class="text-muted small mb-0">
+            <strong>{{ classe.name }}</strong> &nbsp;|&nbsp; 
+            <span class="badge badge-info">{{ module }}</span> &nbsp;›&nbsp; {{ section }} &nbsp;|&nbsp; 
+            <span class="badge badge-primary">{{ activity_type }}</span>
+            {% if activity and activity.work_mode %}
+            &nbsp;|&nbsp; <span class="badge badge-light border text-muted"><i class="fas fa-user-friends mr-1"></i>{{ activity.work_mode }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+        {% if activity and activity.resource %}
+        <a href="{{ url_for('resource.shared_view', token=activity.resource.share_token) }}" 
+           target="_blank" 
+           class="btn btn-sm btn-success font-weight-bold shadow-sm"
+           title="Consulter l'énoncé / la ressource de cours">
+            <i class="{{ activity.resource.icon_class or 'fas fa-paperclip' }} mr-1"></i> {{ activity.resource.title }} <i class="fas fa-external-link-alt ml-1"></i>
+        </a>
+        {% endif %}
+        {% if activity and activity.due_date %}
+        <span class="badge badge-light border text-dark px-3 py-2 font-weight-bold" style="font-size: 0.9rem;">
+            <i class="fas fa-calendar-alt text-warning mr-1"></i> Échéance : {{ activity.due_date.strftime('%d/%m/%Y') }}
+            {% if activity.is_overdue %}<span class="badge badge-danger ml-1">Retard</span>{% endif %}
+        </span>
+        {% endif %}
+        <span class="badge badge-light border text-dark px-3 py-2 font-weight-bold" style="font-size: 0.9rem;">
+            <i class="fas fa-bullseye text-primary mr-1"></i>Barème : /{{ max_score }}
+        </span>
+        <span class="badge badge-secondary px-3 py-2 font-weight-bold" style="font-size: 0.9rem;">
+            <i class="fas fa-balance-scale mr-1"></i>Coeff : {{ coefficient }}
+        </span>
+        {% if activity %}
+        <a href="{{ url_for('activity.activity_groups_pdf', activity_id=activity.id) }}" 
+           target="_blank" 
+           class="btn btn-sm btn-outline-info font-weight-bold shadow-sm"
+           title="Fiche / Impression des groupes pour la classe">
+            <i class="fas fa-print mr-1"></i> Fiche Groupes
+        </a>
+        {% endif %}
+        <a href="{{ url_for('activity.activities') }}" class="btn btn-sm btn-secondary shadow-sm font-weight-bold">
+            <i class="fas fa-arrow-left mr-1"></i> Retour
+        </a>
+    </div>
+</div>
+
+{% if activity and activity.description %}
+<div class="alert alert-light border shadow-xs py-2 px-3 mb-3 d-flex align-items-start" style="border-left: 4px solid #4e73df !important; border-radius: 8px;">
+    <i class="fas fa-info-circle text-primary mt-1 mr-2"></i>
+    <div>
+        <strong class="text-gray-800 small">Consignes & Objectifs pédagogiques :</strong>
+        <div class="small text-gray-700 mt-1">{{ activity.description }}</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Barre d'outils dynamique & Statistiques en temps réel -->
+<div class="row mb-3">
+    <!-- Barre d'actions rapides et filtres -->
+    <div class="col-lg-7 mb-3 mb-lg-0">
+        <div class="card shadow-sm border-0 h-100 p-3" style="border-radius: 12px; background: #ffffff;">
+            <!-- Actions rapides intelligentes -->
+            <div class="d-flex flex-wrap align-items-center justify-content-between mb-2" style="gap: 8px;">
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-info font-weight-bold" onclick="setAllStatuses('Assigné')" title="Assigner le travail à tous les élèves">
+                        <i class="fas fa-clock mr-1"></i>Tout Assigner
+                    </button>
+                    <!-- Tout Fait ciblé sur les Assignés -->
+                    <button type="button" class="btn btn-outline-success font-weight-bold" onclick="markAssignedAsDone()" id="btnMarkDone" title="Passe en 'Fait' les élèves qui ont le statut 'Assigné'">
+                        <i class="fas fa-check-double mr-1"></i>Assignés ➜ Fait (<span id="countAssignedForDone">0</span>)
+                    </button>
+                    <!-- Tout Non fait ciblé sur les Assignés non notés -->
+                    <button type="button" class="btn btn-outline-danger font-weight-bold" onclick="markAssignedAsNotDone()" id="btnMarkNotDone" title="Attribue 0 uniquement aux élèves ayant le statut 'Assigné' et non notés">
+                        <i class="fas fa-user-times mr-1"></i>Assignés ➜ Non fait 0 (<span id="countAssignedForNotDone">0</span>)
+                    </button>
+                    <!-- Annuler / Rétablir les 0 vers Assigné -->
+                    <button type="button" class="btn btn-outline-warning font-weight-bold" onclick="restoreNotDoneToAssigned()" title="Rétablir les élèves 'Non fait' vers le statut 'Assigné'">
+                        <i class="fas fa-undo mr-1"></i>Rétablir les 0
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary font-weight-bold" onclick="setAllStatuses('Non assigné')" title="Réinitialiser tous les statuts">
+                        <i class="fas fa-minus-circle mr-1"></i>Réinitialiser
+                    </button>
+                </div>
+                <button type="button" class="btn btn-sm btn-light border font-weight-bold text-dark" onclick="fillAverageToAll()">
+                    <i class="fas fa-magic text-warning mr-1"></i>Attribuer {{ max_score / 2 }} aux faits
+                </button>
+            </div>
+
+            <!-- Filtres d'affichage par Statut (Onglets rapides) -->
+            <div class="d-flex align-items-center flex-wrap mt-2 pt-2 border-top" style="gap: 6px;">
+                <span class="small font-weight-bold text-muted mr-1"><i class="fas fa-filter text-primary mr-1"></i>Afficher :</span>
+                <button type="button" class="btn btn-xs btn-primary font-weight-bold filter-btn active" data-filter="all" onclick="filterTableRows('all')">
+                    Tous (<span id="filterCountAll">{{ students|length }}</span>)
+                </button>
+                <button type="button" class="btn btn-xs btn-outline-warning font-weight-bold filter-btn" data-filter="Assigné" onclick="filterTableRows('Assigné')">
+                    Assignés (<span id="filterCountAssigned">0</span>)
+                </button>
+                <button type="button" class="btn btn-xs btn-outline-success font-weight-bold filter-btn" data-filter="Fait" onclick="filterTableRows('Fait')">
+                    Faits (<span id="filterCountDone">0</span>)
+                </button>
+                <button type="button" class="btn btn-xs btn-outline-danger font-weight-bold filter-btn" data-filter="Non fait" onclick="filterTableRows('Non fait')">
+                    Non faits (<span id="filterCountNotDone">0</span>)
+                </button>
+                <button type="button" class="btn btn-xs btn-outline-secondary font-weight-bold filter-btn" data-filter="Non assigné" onclick="filterTableRows('Non assigné')">
+                    Non assignés (<span id="filterCountUnassigned">0</span>)
+                </button>
+            </div>
+
+            <div class="small text-muted mt-2">
+                <i class="fas fa-keyboard text-primary mr-1"></i>
+                <strong>Saisie rapide :</strong> <kbd>Entrée</kbd> ou <kbd>↓</kbd> / <kbd>↑</kbd> pour naviguer entre les notes. La note saisie passe automatiquement le statut en "Fait".
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini-Dashboard KPIs en Direct -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 h-100 p-3" style="border-radius: 12px; background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
+            <div class="row text-center align-items-center h-100">
+                <div class="col-3 border-right border-secondary">
+                    <div class="text-xs text-uppercase font-weight-bold text-gray-400">Moyenne</div>
+                    <div class="h5 mb-0 font-weight-bold text-warning" id="liveAvg">-</div>
+                </div>
+                <div class="col-3 border-right border-secondary">
+                    <div class="text-xs text-uppercase font-weight-bold text-gray-400">Min</div>
+                    <div class="h5 mb-0 font-weight-bold text-danger" id="liveMin">-</div>
+                </div>
+                <div class="col-3 border-right border-secondary">
+                    <div class="text-xs text-uppercase font-weight-bold text-gray-400">Max</div>
+                    <div class="h5 mb-0 font-weight-bold text-success" id="liveMax">-</div>
+                </div>
+                <div class="col-3">
+                    <div class="text-xs text-uppercase font-weight-bold text-gray-400">Évalués</div>
+                    <div class="h5 mb-0 font-weight-bold text-info" id="liveGraded">0/{{ students|length }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grille Principale de Notation -->
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 14px;">
+    <div class="card-body p-0">
+        <form method="POST" action="{{ url_for('activity.save_activity') }}" id="gradingForm">
+            <input type="hidden" name="activity_id" value="{{ activity.id if activity else '' }}">
+            <input type="hidden" name="class_id" value="{{ classe.id }}">
+            <input type="hidden" name="module" value="{{ module }}">
+            <input type="hidden" name="section" value="{{ section }}">
+            <input type="hidden" name="activity_type" value="{{ activity_type }}">
+            <input type="hidden" name="title" value="{{ activity.title if activity and activity.title else '' }}">
+            <input type="hidden" name="description" value="{{ activity.description if activity and activity.description else '' }}">
+            <input type="hidden" name="due_date" value="{{ activity.due_date.strftime('%Y-%m-%d') if activity and activity.due_date else '' }}">
+            <input type="hidden" name="work_mode" value="{{ activity.work_mode if activity and activity.work_mode else 'Individuel' }}">
+            <input type="hidden" name="target_group" value="{{ activity.target_group if activity and activity.target_group else 'all' }}">
+            <input type="hidden" name="resource_id" value="{{ activity.resource_id if activity and activity.resource_id else '' }}">
+            <input type="hidden" name="groups_json" id="groupsJsonInput" value="{{ activity.groups_json if activity and activity.groups_json else '' }}">
+            <input type="hidden" name="max_score" value="{{ max_score }}">
+            <input type="hidden" name="coefficient" value="{{ coefficient }}">
+
+            <div class="table-responsive">
+                <table class="table table-hover table-sticky-first mb-0" id="gradingTable" style="vertical-align: middle;">
+                    <thead class="bg-light text-muted small text-uppercase">
+                        <tr>
+                            <th width="45" class="text-center">#</th>
+                            <th width="280">Élève</th>
+                            <th width="140">Groupe / Binôme</th>
+                            <th width="170" class="text-center">Statut</th>
+                            <th width="150" class="text-center">Note (/{{ max_score }})</th>
+                            <th>Appréciation / Remarque</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        {% set eg = existing_grades.get(student.id) if existing_grades else None %}
+                        <tr class="student-row" id="row_{{ student.id }}">
+                            <td class="text-center align-middle font-weight-bold text-muted">{{ loop.index }}</td>
+                            
+                            <!-- Avatar + Nom de l'élève -->
+                            <td class="align-middle">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('main.uploaded_file', filename=student.photo_path if student.photo_path else 'photos/Default.jpg') }}" 
+                                         alt="Avatar" class="rounded-circle mr-2 border shadow-xs" 
+                                         style="width: 38px; height: 38px; object-fit: cover; background: #e2e8f0;"
+                                         onerror="this.src='{{ url_for('main.uploaded_file', filename='photos/Default.jpg') }}'">
+                                    <div>
+                                        <div class="font-weight-bold text-dark small">{{ student.last_name }} {{ student.first_name }}</div>
+                                        <span class="badge badge-light border text-muted" style="font-size: 0.68rem;">{{ student.cne }}</span>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Groupe / Binôme avec report automatique -->
+                            <td class="align-middle">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" name="group_{{ student.id }}" id="group_{{ student.id }}" 
+                                           class="form-control form-control-sm rounded-lg group-input" 
+                                           placeholder="Ex: Grp 1"
+                                           value="{{ eg.group_number if eg and eg.group_number else '' }}"
+                                           onchange="syncGroupMembers('{{ student.id }}')">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-outline-secondary" type="button" 
+                                                title="Appliquer cette note et appréciation à tout le groupe"
+                                                onclick="applyGradeToGroup('{{ student.id }}')">
+                                            <i class="fas fa-users"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Statut Pill cliquable / Select -->
+                            <td class="align-middle text-center">
+                                <select name="status_{{ student.id }}" id="status_{{ student.id }}"
+                                        class="form-control form-control-sm rounded-pill status-select font-weight-bold"
+                                        onchange="onStatusChange('{{ student.id }}')">
+                                    <option value="Non assigné" {% if not eg or eg.status == 'Non assigné' %}selected{% endif %}>⚪ Non assigné</option>
+                                    <option value="Assigné" {% if eg and eg.status == 'Assigné' %}selected{% endif %}>🟡 Assigné</option>
+                                    <option value="Fait" {% if eg and eg.status == 'Fait' %}selected{% endif %}>🟢 Fait</option>
+                                    <option value="Non fait" {% if eg and eg.status == 'Non fait' %}selected{% endif %}>🔴 Non fait</option>
+                                </select>
+                            </td>
+
+                            <!-- Champ Note avec Coloration dynamique -->
+                            <td class="align-middle text-center">
+                                <div class="input-group input-group-sm">
+                                    <input type="number" step="0.25" min="0" max="{{ max_score }}" 
+                                           name="grade_{{ student.id }}" id="grade_{{ student.id }}"
+                                           class="form-control form-control-sm text-center font-weight-bold grade-input rounded-lg" 
+                                           placeholder="-" 
+                                           inputmode="decimal"
+                                           pattern="[0-9]*[.,]?[0-9]*"
+                                           value="{{ eg.score if eg and eg.score is not none and eg.status in ['Fait', 'Non fait'] else '' }}"
+                                           {% if not eg or eg.status not in ['Fait', 'Non fait'] %}disabled{% endif %}
+                                           oninput="validateAndColorGrade(this)"
+                                           onkeydown="handleKeyNavigation(event, this)">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text bg-light border-left-0 font-weight-bold small text-muted">
+                                            /{{ max_score }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Champ Appréciation / Feedback individualisé -->
+                            <td class="align-middle">
+                                <input type="text" name="feedback_{{ student.id }}" id="feedback_{{ student.id }}"
+                                       class="form-control form-control-sm rounded-lg feedback-input" 
+                                       placeholder="Conseil, appréciation, points forts/faibles..."
+                                       value="{{ eg.feedback if eg and eg.feedback else '' }}">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Boutons de Validation -->
+            <div class="p-3 bg-light d-flex justify-content-between align-items-center border-top" style="border-radius: 0 0 14px 14px;">
+                <div class="small text-muted font-weight-bold">
+                    <i class="fas fa-info-circle mr-1"></i> Seuls les élèves avec un statut différent de "Non assigné" ou ayant une note seront comptabilisés.
+                </div>
+                <div>
+                    <a href="{{ url_for('activity.activities') }}" class="btn btn-light rounded-pill px-4 mr-2 border">
+                        Annuler
+                    </a>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 shadow-sm font-weight-bold">
+                        <i class="fas fa-save mr-1"></i> Enregistrer les Évaluations
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const MAX_SCORE = {{ max_score }};
+    let currentFilter = 'all';
+
+    // Mise à jour de tous les statuts (brut)
+    function setAllStatuses(status) {
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.value = status;
+            const studentId = select.id.replace('status_', '');
+            onStatusChange(studentId);
+        });
+        updateLiveStats();
+        updateStatusCounts();
+        applyCurrentFilter();
+    }
+
+    // 1. Passer en "Fait" UNIQUEMENT les élèves ayant le statut "Assigné"
+    function markAssignedAsDone() {
+        let count = 0;
+        document.querySelectorAll('.status-select').forEach(select => {
+            if (select.value === 'Assigné') {
+                select.value = 'Fait';
+                const studentId = select.id.replace('status_', '');
+                onStatusChange(studentId);
+                count++;
+            }
+        });
+        updateLiveStats();
+        updateStatusCounts();
+        applyCurrentFilter();
+    }
+
+    // 2. Passer en "Non fait (0)" UNIQUEMENT les élèves ayant le statut "Assigné" (protège ceux qui ont déjà une note positive)
+    function markAssignedAsNotDone() {
+        let count = 0;
+        document.querySelectorAll('.status-select').forEach(select => {
+            if (select.value === 'Assigné') {
+                const studentId = select.id.replace('status_', '');
+                const gradeInput = document.getElementById(`grade_${studentId}`);
+                
+                // Protection : si une note positive > 0 est déjà saisie, on ne l'écrase pas sans confirmation
+                const currentVal = parseFloat(gradeInput ? gradeInput.value : '');
+                if (!isNaN(currentVal) && currentVal > 0) {
+                    // On bascule plutôt vers Fait car l'élève a une note
+                    select.value = 'Fait';
+                    onStatusChange(studentId);
+                } else {
+                    select.value = 'Non fait';
+                    onStatusChange(studentId);
+                    count++;
+                }
+            }
+        });
+        updateLiveStats();
+        updateStatusCounts();
+        applyCurrentFilter();
+    }
+
+    // 3. Rétablir les élèves "Non fait" vers le statut "Assigné" (Annuler les 0)
+    function restoreNotDoneToAssigned() {
+        let count = 0;
+        document.querySelectorAll('.status-select').forEach(select => {
+            if (select.value === 'Non fait') {
+                select.value = 'Assigné';
+                const studentId = select.id.replace('status_', '');
+                const gradeInput = document.getElementById(`grade_${studentId}`);
+                if (gradeInput) {
+                    gradeInput.value = '';
+                    gradeInput.style.backgroundColor = '';
+                    gradeInput.style.color = '';
+                }
+                onStatusChange(studentId);
+                count++;
+            }
+        });
+        updateLiveStats();
+        updateStatusCounts();
+        applyCurrentFilter();
+    }
+
+    // 4. Filtrage par statut dans le tableau
+    function filterTableRows(filterStatus) {
+        currentFilter = filterStatus;
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            if (btn.getAttribute('data-filter') === filterStatus) {
+                btn.classList.add('active', 'btn-primary');
+                btn.classList.remove('btn-outline-primary', 'btn-outline-secondary', 'btn-outline-warning', 'btn-outline-success', 'btn-outline-danger');
+            } else {
+                btn.classList.remove('active', 'btn-primary');
+                const f = btn.getAttribute('data-filter');
+                if (f === 'Assigné') btn.classList.add('btn-outline-warning');
+                else if (f === 'Fait') btn.classList.add('btn-outline-success');
+                else if (f === 'Non fait') btn.classList.add('btn-outline-danger');
+                else if (f === 'Non assigné') btn.classList.add('btn-outline-secondary');
+                else btn.classList.add('btn-outline-primary');
+            }
+        });
+        applyCurrentFilter();
+    }
+
+    function applyCurrentFilter() {
+        document.querySelectorAll('.student-row').forEach(row => {
+            const select = row.querySelector('.status-select');
+            if (!select) return;
+            if (currentFilter === 'all' || select.value === currentFilter) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Mise à jour des compteurs dynamiques sur les boutons et filtres
+    function updateStatusCounts() {
+        let assignedCount = 0;
+        let doneCount = 0;
+        let notDoneCount = 0;
+        let unassignedCount = 0;
+        let assignedUnrated = 0;
+
+        document.querySelectorAll('.status-select').forEach(select => {
+            const val = select.value;
+            const studentId = select.id.replace('status_', '');
+            const gradeInput = document.getElementById(`grade_${studentId}`);
+            const score = gradeInput ? parseFloat(gradeInput.value) : NaN;
+
+            if (val === 'Assigné') {
+                assignedCount++;
+                if (isNaN(score) || score <= 0) assignedUnrated++;
+            } else if (val === 'Fait') {
+                doneCount++;
+            } else if (val === 'Non fait') {
+                notDoneCount++;
+            } else {
+                unassignedCount++;
+            }
+        });
+
+        // Boutons
+        const countDoneSpan = document.getElementById('countAssignedForDone');
+        const countNotDoneSpan = document.getElementById('countAssignedForNotDone');
+        if (countDoneSpan) countDoneSpan.textContent = assignedCount;
+        if (countNotDoneSpan) countNotDoneSpan.textContent = assignedCount;
+
+        // Filtres
+        const fAssigned = document.getElementById('filterCountAssigned');
+        const fDone = document.getElementById('filterCountDone');
+        const fNotDone = document.getElementById('filterCountNotDone');
+        const fUnassigned = document.getElementById('filterCountUnassigned');
+        if (fAssigned) fAssigned.textContent = assignedCount;
+        if (fDone) fDone.textContent = doneCount;
+        if (fNotDone) fNotDone.textContent = notDoneCount;
+        if (fUnassigned) fUnassigned.textContent = unassignedCount;
+    }
+
+    function onStatusChange(studentId) {
+        const select = document.getElementById(`status_${studentId}`);
+        const gradeInput = document.getElementById(`grade_${studentId}`);
+        const row = document.getElementById(`row_${studentId}`);
+        const status = select.value;
+
+        // Code couleur sur le select
+        if (status === 'Fait') {
+            select.style.borderColor = '#1cc88a';
+            select.style.color = '#157347';
+            select.style.backgroundColor = '#f0fdf4';
+            gradeInput.disabled = false;
+        } else if (status === 'Non fait') {
+            select.style.borderColor = '#e74a3b';
+            select.style.color = '#bb2d3b';
+            select.style.backgroundColor = '#fef2f2';
+            gradeInput.disabled = false;
+            gradeInput.value = 0;
+            validateAndColorGrade(gradeInput);
+        } else if (status === 'Assigné') {
+            select.style.borderColor = '#f6c23e';
+            select.style.color = '#b45309';
+            select.style.backgroundColor = '#fffbeb';
+            gradeInput.disabled = false;
+        } else {
+            select.style.borderColor = '#d1d5db';
+            select.style.color = '#6b7280';
+            select.style.backgroundColor = '#f9fafb';
+            gradeInput.disabled = true;
+            gradeInput.value = '';
+            gradeInput.style.backgroundColor = '';
+        }
+        updateLiveStats();
+        updateStatusCounts();
+    }
+
+    function validateAndColorGrade(input) {
+        let val = parseFloat(input.value);
+        if (isNaN(val)) {
+            input.style.backgroundColor = '';
+            input.style.color = '';
+            updateLiveStats();
+            return;
+        }
+
+        // Limiter au barème
+        if (val > MAX_SCORE) {
+            val = MAX_SCORE;
+            input.value = MAX_SCORE;
+        } else if (val < 0) {
+            val = 0;
+            input.value = 0;
+        }
+
+        // Coloration en fonction du score relatif
+        const ratio = val / MAX_SCORE;
+        if (ratio >= 0.7) {
+            // Excellent / Bien (Vert)
+            input.style.backgroundColor = '#d1fae5';
+            input.style.color = '#065f46';
+        } else if (ratio >= 0.5) {
+            // Moyen / Admis (Bleu)
+            input.style.backgroundColor = '#e0f2fe';
+            input.style.color = '#075985';
+        } else {
+            // En difficulté (Rouge/Rose)
+            input.style.backgroundColor = '#fee2e2';
+            input.style.color = '#991b1b';
+        }
+
+        // Si une note est saisie, basculer automatiquement le statut en "Fait"
+        const studentId = input.id.replace('grade_', '');
+        const select = document.getElementById(`status_${studentId}`);
+        if (select && (select.value === 'Non assigné' || select.value === 'Assigné')) {
+            select.value = 'Fait';
+            select.style.borderColor = '#1cc88a';
+            select.style.color = '#157347';
+        }
+
+        updateLiveStats();
+    }
+
+    function fillAverageToAll() {
+        const half = (MAX_SCORE / 2).toFixed(1);
+        document.querySelectorAll('.student-row').forEach(row => {
+            const gradeInput = row.querySelector('.grade-input');
+            const select = row.querySelector('.status-select');
+            if (select.value !== 'Non fait') {
+                select.value = 'Fait';
+                select.style.borderColor = '#1cc88a';
+                select.style.color = '#157347';
+                gradeInput.disabled = false;
+                gradeInput.value = half;
+                validateAndColorGrade(gradeInput);
+            }
+        });
+        updateLiveStats();
+    }
+
+    // Navigation Clavier fluide (Entrée ou Flèches Bas/Haut)
+    function handleKeyNavigation(e, currentInput) {
+        const inputs = Array.from(document.querySelectorAll('.grade-input'));
+        const index = inputs.indexOf(currentInput);
+
+        if (e.key === 'Enter' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (index + 1 < inputs.length) {
+                inputs[index + 1].disabled = false;
+                inputs[index + 1].focus();
+                inputs[index + 1].select();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (index - 1 >= 0) {
+                inputs[index - 1].focus();
+                inputs[index - 1].select();
+            }
+        }
+    }
+
+    // Gestion des Groupes : appliquer la note et l'appréciation aux coéquipiers
+    function applyGradeToGroup(sourceStudentId) {
+        const groupVal = document.getElementById(`group_${sourceStudentId}`).value.trim();
+        if (!groupVal) {
+            alert("Veuillez d'abord attribuer un nom ou numéro de groupe à cet élève (ex: 'Groupe 1').");
+            return;
+        }
+
+        const sourceScore = document.getElementById(`grade_${sourceStudentId}`).value;
+        const sourceFeedback = document.getElementById(`feedback_${sourceStudentId}`).value;
+        const sourceStatus = document.getElementById(`status_${sourceStudentId}`).value;
+
+        let appliedCount = 0;
+        document.querySelectorAll('.group-input').forEach(grpInput => {
+            if (grpInput.value.trim().toLowerCase() === groupVal.toLowerCase()) {
+                const targetId = grpInput.id.replace('group_', '');
+                if (targetId !== sourceStudentId) {
+                    // Copier la note
+                    const targetGrade = document.getElementById(`grade_${targetId}`);
+                    const targetStatus = document.getElementById(`status_${targetId}`);
+                    const targetFeedback = document.getElementById(`feedback_${targetId}`);
+
+                    targetStatus.value = sourceStatus;
+                    targetGrade.disabled = false;
+                    targetGrade.value = sourceScore;
+                    validateAndColorGrade(targetGrade);
+
+                    if (sourceFeedback && !targetFeedback.value) {
+                        targetFeedback.value = sourceFeedback;
+                    }
+                    appliedCount++;
+                }
+            }
+        });
+
+        alert(`Note et statut synchronisés pour ${appliedCount} coéquipier(s) du ${groupVal}.`);
+        updateLiveStats();
+    }
+
+    // Calcul des Statistiques en Temps Réel
+    function updateLiveStats() {
+        const gradeInputs = Array.from(document.querySelectorAll('.grade-input'));
+        const scores = [];
+
+        gradeInputs.forEach(input => {
+            const val = parseFloat(input.value);
+            if (!isNaN(val) && !input.disabled) {
+                scores.push(val);
+            }
+        });
+
+        const liveAvg = document.getElementById('liveAvg');
+        const liveMin = document.getElementById('liveMin');
+        const liveMax = document.getElementById('liveMax');
+        const liveGraded = document.getElementById('liveGraded');
+
+        liveGraded.textContent = `${scores.length}/${gradeInputs.length}`;
+
+        if (scores.length === 0) {
+            liveAvg.textContent = '-';
+            liveMin.textContent = '-';
+            liveMax.textContent = '-';
+            return;
+        }
+
+        const sum = scores.reduce((a, b) => a + b, 0);
+        const avg = (sum / scores.length).toFixed(2);
+        const min = Math.min(...scores).toFixed(1);
+        const max = Math.max(...scores).toFixed(1);
+
+        liveAvg.textContent = `${avg}/${MAX_SCORE}`;
+        liveMin.textContent = min;
+        liveMax.textContent = max;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.status-select').forEach(select => {
+            const studentId = select.id.replace('status_', '');
+            const status = select.value;
+            const gradeInput = document.getElementById(`grade_${studentId}`);
+            if (status === 'Fait') {
+                select.style.borderColor = '#1cc88a';
+                select.style.color = '#157347';
+                select.style.backgroundColor = '#f0fdf4';
+                if (gradeInput) {
+                    gradeInput.disabled = false;
+                    if (gradeInput.value !== '') validateAndColorGrade(gradeInput);
+                }
+            } else if (status === 'Non fait') {
+                select.style.borderColor = '#e74a3b';
+                select.style.color = '#bb2d3b';
+                select.style.backgroundColor = '#fef2f2';
+                if (gradeInput) {
+                    gradeInput.disabled = false;
+                    if (gradeInput.value !== '') validateAndColorGrade(gradeInput);
+                }
+            } else if (status === 'Assigné') {
+                select.style.borderColor = '#f6c23e';
+                select.style.color = '#b45309';
+                select.style.backgroundColor = '#fffbeb';
+                if (gradeInput) gradeInput.disabled = false;
+            } else {
+                select.style.borderColor = '#d1d5db';
+                select.style.color = '#6b7280';
+                select.style.backgroundColor = '#f9fafb';
+                if (gradeInput) gradeInput.disabled = true;
+            }
+        });
+        updateLiveStats();
+        updateStatusCounts();
+    });
+</script>
+{% endblock %}

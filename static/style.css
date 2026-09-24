@@ -1,0 +1,1417 @@
+/* Toggle Switch - Custom as Bootstrap 4 doesn't have a switch component by default without custom css */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #e74a3b;
+}
+
+/* Danger color */
+input:checked+.slider:before {
+    transform: translateX(24px);
+}
+
+/* Circle Buttons */
+.btn-circle {
+    border-radius: 100%;
+    height: 2.5rem;
+    width: 2.5rem;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-circle.btn-sm {
+    height: 1.8rem;
+    width: 1.8rem;
+    font-size: 0.75rem;
+}
+
+/* Print Overrides (Fallback if not handled in template) */
+@media print {
+
+    .sidebar,
+    .topbar,
+    .no-print {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: none !important;
+    }
+}
+
+/* =================================================== */
+/* DARK THEME OVERRIDES                                */
+/* =================================================== */
+body.dark-mode {
+    background-color: #121418 !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode #content-wrapper {
+    background-color: #121418 !important;
+}
+
+body.dark-mode #content {
+    background-color: #121418 !important;
+}
+
+body.dark-mode .navbar,
+body.dark-mode .topbar {
+    background-color: #1a1d24 !important;
+    border-bottom: 1px solid #2d3748 !important;
+}
+
+body.dark-mode .topbar .text-gray-800,
+body.dark-mode .topbar .text-gray-600 {
+    color: #cbd5e0 !important;
+}
+
+body.dark-mode .card {
+    background-color: #1a1d24 !important;
+    border-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode .card-header {
+    background-color: #202530 !important;
+    border-bottom-color: #2d3748 !important;
+}
+
+body.dark-mode .table {
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode .table-hover tbody tr:hover {
+    background-color: #262c38 !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .table thead th,
+body.dark-mode .table th,
+body.dark-mode .table td {
+    border-color: #2d3748 !important;
+}
+
+body.dark-mode .thead-light th {
+    background-color: #202530 !important;
+    border-color: #2d3748 !important;
+    color: #a0aec0 !important;
+}
+
+body.dark-mode .form-control,
+body.dark-mode .custom-select {
+    background-color: #242936 !important;
+    border-color: #3b4252 !important;
+    color: #f7fafc !important;
+}
+
+body.dark-mode .form-control:focus {
+    background-color: #242936 !important;
+    color: #ffffff !important;
+    border-color: #4e73df !important;
+}
+
+body.dark-mode .input-group-text {
+    background-color: #2d3342 !important;
+    border-color: #3b4252 !important;
+    color: #cbd5e0 !important;
+}
+
+body.dark-mode .dropdown-menu {
+    background-color: #1a1d24 !important;
+    border-color: #2d3748 !important;
+}
+
+body.dark-mode .dropdown-item {
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode .dropdown-item:hover {
+    background-color: #2d3748 !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode .dropdown-divider {
+    border-top-color: #2d3748 !important;
+}
+
+body.dark-mode .modal-content {
+    background-color: #1a1d24 !important;
+    border-color: #2d3748 !important;
+    color: #e2e8f0 !important;
+}
+
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer {
+    border-color: #2d3748 !important;
+}
+
+body.dark-mode .sticky-footer {
+    background-color: #1a1d24 !important;
+    border-top: 1px solid #2d3748 !important;
+    color: #718096 !important;
+}
+
+body.dark-mode .bg-light {
+    background-color: #202530 !important;
+}
+
+body.dark-mode .border {
+    border-color: #2d3748 !important;
+}
+
+body.dark-mode .text-gray-800,
+body.dark-mode .text-gray-900,
+body.dark-mode .text-dark {
+    color: #f1f5f9 !important;
+}
+
+body.dark-mode .text-muted,
+body.dark-mode .text-gray-500,
+body.dark-mode .text-gray-600 {
+    color: #94a3b8 !important;
+}
+
+body.dark-mode .custom-file-label {
+    background-color: #242936 !important;
+    border-color: #3b4252 !important;
+    color: #cbd5e0 !important;
+}
+
+body.dark-mode .custom-file-label::after {
+    background-color: #2d3342 !important;
+    color: #cbd5e0 !important;
+    border-color: #3b4252 !important;
+}
+
+body.dark-mode .nav-pills .nav-link:not(.active) {
+    color: #cbd5e0 !important;
+}
+
+/* =================================================== */
+/* GLOBAL FONT OVERRIDE — Plus Jakarta Sans            */
+/* =================================================== */
+body, .card, .nav, .btn, .form-control, .modal,
+.table, h1, h2, h3, h4, h5, h6, p, span, a, td, th {
+    font-family: 'Plus Jakarta Sans', 'Nunito', sans-serif !important;
+}
+
+/* =================================================== */
+/* THEME CARD STYLES — Settings Page                   */
+/* =================================================== */
+.theme-card {
+    transition: transform .2s ease, border-color .2s ease, box-shadow .25s ease;
+}
+.theme-card:hover {
+    transform: translateY(-3px);
+}
+.theme-card-active {
+    transform: translateY(-2px);
+}
+
+/* =================================================== */
+/* RÈGLES UNIVERSELLES POUR LES SOUS-MENUS COLLAPSE    */
+/* =================================================== */
+.sidebar .collapse-inner {
+    border-radius: 12px !important;
+    padding: 0.5rem 0.4rem !important;
+    margin: 0 0.5rem 0.75rem !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+}
+
+.sidebar .collapse-inner .collapse-header {
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    padding: 0.35rem 0.65rem !important;
+    margin-bottom: 0.2rem !important;
+}
+
+.sidebar .collapse-inner .collapse-item {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0.45rem 0.65rem !important;
+    border-radius: 8px !important;
+    font-size: 0.82rem !important;
+    font-weight: 600 !important;
+    text-decoration: none !important;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+}
+
+.sidebar .collapse-inner .collapse-item i {
+    width: 1.15rem !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
+    margin-right: 0.45rem !important;
+}
+
+.sidebar .collapse-inner .collapse-item span {
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    flex-grow: 1 !important;
+}
+
+.sidebar .collapse-inner .collapse-item.active i {
+    color: #ffffff !important;
+}
+
+.sidebar .collapse-inner .collapse-item:hover {
+    transform: translateX(3px) !important;
+}
+
+/* =================================================== */
+/* ████████  THÈME 1 — BLEU ROYAL MINIMALISTE     ████ */
+/* =================================================== */
+body[data-theme="royal_blue"] {
+    background-color: #f4f6fb !important;
+    color: #1e293b !important;
+}
+body[data-theme="royal_blue"] #content-wrapper,
+body[data-theme="royal_blue"] #content {
+    background-color: #f4f6fb !important;
+}
+
+/* Sidebar Bleu Nuit Intense */
+body[data-theme="royal_blue"] .sidebar {
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+    border-right: 1px solid #334155 !important;
+    box-shadow: 2px 0 12px rgba(15,23,42,0.12) !important;
+}
+body[data-theme="royal_blue"] .sidebar-brand-text {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+body[data-theme="royal_blue"] .sidebar-brand-icon i {
+    color: #3b82f6 !important;
+}
+body[data-theme="royal_blue"] .sidebar-divider {
+    border-top: 1px solid rgba(255,255,255,0.1) !important;
+}
+body[data-theme="royal_blue"] .sidebar-heading {
+    color: #94a3b8 !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+}
+body[data-theme="royal_blue"] .sidebar .nav-link {
+    color: #cbd5e1 !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    margin: 2px 10px !important;
+    padding: 0.75rem 1rem !important;
+    transition: all 0.2s ease !important;
+}
+body[data-theme="royal_blue"] .sidebar .nav-link:hover,
+body[data-theme="royal_blue"] .sidebar .nav-link.active,
+body[data-theme="royal_blue"] .sidebar .active > .nav-link {
+    background: rgba(59, 130, 246, 0.18) !important;
+    color: #60a5fa !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2) !important;
+}
+body[data-theme="royal_blue"] .sidebar .nav-link i {
+    color: #94a3b8 !important;
+}
+body[data-theme="royal_blue"] .sidebar .nav-link:hover i,
+body[data-theme="royal_blue"] .sidebar .nav-link.active i,
+body[data-theme="royal_blue"] .sidebar .active > .nav-link i {
+    color: #60a5fa !important;
+}
+
+/* SOUS-MENUS COLLAPSE ROYAL BLUE */
+body[data-theme="royal_blue"] .sidebar .collapse-inner {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.18) !important;
+}
+body[data-theme="royal_blue"] .sidebar .collapse-header {
+    color: #64748b !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+}
+body[data-theme="royal_blue"] .sidebar .collapse-item {
+    color: #1e293b !important;
+}
+body[data-theme="royal_blue"] .sidebar .collapse-item:hover {
+    background: #eff6ff !important;
+    color: #2563eb !important;
+}
+body[data-theme="royal_blue"] .sidebar .collapse-item.active {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+/* Navbar Topbar */
+body[data-theme="royal_blue"] .topbar {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04) !important;
+}
+
+/* Cartes & Éléments UI */
+body[data-theme="royal_blue"] .card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 10px rgba(15,23,42,0.05) !important;
+}
+body[data-theme="royal_blue"] .card-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+body[data-theme="royal_blue"] .text-primary {
+    color: #2563eb !important;
+}
+body[data-theme="royal_blue"] .btn-primary {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.3) !important;
+}
+body[data-theme="royal_blue"] .btn-primary:hover {
+    background: #1d4ed8 !important;
+    border-color: #1d4ed8 !important;
+}
+body[data-theme="royal_blue"] .badge-primary {
+    background-color: #2563eb !important;
+}
+body[data-theme="royal_blue"] .border-left-primary {
+    border-left-color: #2563eb !important;
+}
+
+
+/* =================================================== */
+/* ████████  THÈME 2 — VERT ÉMERAUDE CAMPUS       ████ */
+/* =================================================== */
+body[data-theme="emerald_fresh"] {
+    background-color: #f6faf8 !important;
+    color: #0f291e !important;
+}
+body[data-theme="emerald_fresh"] #content-wrapper,
+body[data-theme="emerald_fresh"] #content {
+    background-color: #f6faf8 !important;
+}
+
+/* Sidebar Vert Forêt Intense */
+body[data-theme="emerald_fresh"] .sidebar {
+    background: linear-gradient(180deg, #064e3b 0%, #022c22 100%) !important;
+    border-right: 1px solid #065f46 !important;
+    box-shadow: 2px 0 12px rgba(6,78,59,0.15) !important;
+}
+body[data-theme="emerald_fresh"] .sidebar-brand-text {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+body[data-theme="emerald_fresh"] .sidebar-brand-icon i {
+    color: #34d399 !important;
+}
+body[data-theme="emerald_fresh"] .sidebar-divider {
+    border-top: 1px solid rgba(255,255,255,0.12) !important;
+}
+body[data-theme="emerald_fresh"] .sidebar-heading {
+    color: #a7f3d0 !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+}
+body[data-theme="emerald_fresh"] .sidebar .nav-link {
+    color: #d1fae5 !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    margin: 2px 10px !important;
+    padding: 0.75rem 1rem !important;
+    transition: all 0.2s ease !important;
+}
+body[data-theme="emerald_fresh"] .sidebar .nav-link:hover,
+body[data-theme="emerald_fresh"] .sidebar .nav-link.active,
+body[data-theme="emerald_fresh"] .sidebar .active > .nav-link {
+    background: rgba(52, 211, 153, 0.2) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25) !important;
+}
+body[data-theme="emerald_fresh"] .sidebar .nav-link i {
+    color: #a7f3d0 !important;
+}
+body[data-theme="emerald_fresh"] .sidebar .nav-link:hover i,
+body[data-theme="emerald_fresh"] .sidebar .nav-link.active i,
+body[data-theme="emerald_fresh"] .sidebar .active > .nav-link i {
+    color: #ffffff !important;
+}
+
+/* SOUS-MENUS COLLAPSE EMERALD FRESH */
+body[data-theme="emerald_fresh"] .sidebar .collapse-inner {
+    background: #ffffff !important;
+    border: 1px solid #d1fae5 !important;
+    box-shadow: 0 8px 24px rgba(6,78,59,0.15) !important;
+}
+body[data-theme="emerald_fresh"] .sidebar .collapse-header {
+    color: #065f46 !important;
+    border-bottom: 1px solid #ecfdf5 !important;
+}
+body[data-theme="emerald_fresh"] .sidebar .collapse-item {
+    color: #064e3b !important;
+}
+body[data-theme="emerald_fresh"] .sidebar .collapse-item:hover {
+    background: #ecfdf5 !important;
+    color: #059669 !important;
+}
+body[data-theme="emerald_fresh"] .sidebar .collapse-item.active {
+    background: #059669 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+/* Topbar & Cartes */
+body[data-theme="emerald_fresh"] .topbar {
+    background: #ffffff !important;
+    border-bottom: 2px solid #10b981 !important;
+    box-shadow: 0 2px 10px rgba(16,185,129,0.06) !important;
+}
+body[data-theme="emerald_fresh"] .card {
+    background: #ffffff !important;
+    border: 1px solid #e6f4ea !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 10px rgba(6,78,59,0.05) !important;
+}
+body[data-theme="emerald_fresh"] .card-header {
+    background: #f0fdf4 !important;
+    border-bottom: 1px solid #dcfce7 !important;
+}
+body[data-theme="emerald_fresh"] .text-primary {
+    color: #059669 !important;
+}
+body[data-theme="emerald_fresh"] .btn-primary {
+    background: linear-gradient(135deg, #059669, #10b981) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(5,150,105,0.3) !important;
+}
+body[data-theme="emerald_fresh"] .btn-primary:hover {
+    background: linear-gradient(135deg, #047857, #059669) !important;
+}
+body[data-theme="emerald_fresh"] .badge-primary {
+    background-color: #059669 !important;
+}
+body[data-theme="emerald_fresh"] .border-left-primary {
+    border-left-color: #059669 !important;
+}
+
+
+/* =================================================== */
+/* ████████  THÈME 3 — GRAPHITE OBSIDIENNE PRO    ████ */
+/* =================================================== */
+body[data-theme="obsidian_pro"] {
+    background-color: #0b0f19 !important;
+    color: #f1f5f9 !important;
+}
+body[data-theme="obsidian_pro"] #content-wrapper,
+body[data-theme="obsidian_pro"] #content {
+    background-color: #0b0f19 !important;
+}
+
+/* Sidebar Sombre Graphite */
+body[data-theme="obsidian_pro"] .sidebar {
+    background: #111827 !important;
+    border-right: 1px solid #1f2937 !important;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.35) !important;
+}
+body[data-theme="obsidian_pro"] .sidebar-brand-text {
+    color: #f9fafb !important;
+    font-weight: 800 !important;
+}
+body[data-theme="obsidian_pro"] .sidebar-brand-icon i {
+    color: #6366f1 !important;
+}
+body[data-theme="obsidian_pro"] .sidebar-divider {
+    border-top: 1px solid #1f2937 !important;
+}
+body[data-theme="obsidian_pro"] .sidebar-heading {
+    color: #6b7280 !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+}
+body[data-theme="obsidian_pro"] .sidebar .nav-link {
+    color: #9ca3af !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    margin: 2px 10px !important;
+    padding: 0.75rem 1rem !important;
+    transition: all 0.2s ease !important;
+}
+body[data-theme="obsidian_pro"] .sidebar .nav-link:hover,
+body[data-theme="obsidian_pro"] .sidebar .nav-link.active,
+body[data-theme="obsidian_pro"] .sidebar .active > .nav-link {
+    background: #1f2937 !important;
+    color: #ffffff !important;
+    border-left: 3px solid #6366f1 !important;
+}
+body[data-theme="obsidian_pro"] .sidebar .nav-link i {
+    color: #6b7280 !important;
+}
+body[data-theme="obsidian_pro"] .sidebar .nav-link:hover i,
+body[data-theme="obsidian_pro"] .sidebar .nav-link.active i,
+body[data-theme="obsidian_pro"] .sidebar .active > .nav-link i {
+    color: #818cf8 !important;
+}
+
+/* SOUS-MENUS COLLAPSE OBSIDIAN PRO : FOND SOMBRE NET AVEC TEXTE BLANC LUMINEUX */
+body[data-theme="obsidian_pro"] .sidebar .collapse-inner {
+    background: #1f2937 !important;
+    border: 1px solid #374151 !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important;
+}
+body[data-theme="obsidian_pro"] .sidebar .collapse-header {
+    color: #9ca3af !important;
+    border-bottom: 1px solid #374151 !important;
+}
+body[data-theme="obsidian_pro"] .sidebar .collapse-item {
+    color: #e5e7eb !important;
+}
+body[data-theme="obsidian_pro"] .sidebar .collapse-item:hover {
+    background: #374151 !important;
+    color: #ffffff !important;
+}
+body[data-theme="obsidian_pro"] .sidebar .collapse-item.active {
+    background: #4f46e5 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+/* Topbar & Cartes Obsidian */
+body[data-theme="obsidian_pro"] .topbar {
+    background: #111827 !important;
+    border-bottom: 1px solid #1f2937 !important;
+}
+body[data-theme="obsidian_pro"] .topbar .text-gray-800,
+body[data-theme="obsidian_pro"] .topbar .text-gray-600 {
+    color: #e5e7eb !important;
+}
+body[data-theme="obsidian_pro"] .card {
+    background: #111827 !important;
+    border: 1px solid #1f2937 !important;
+    border-radius: 12px !important;
+    color: #f1f5f9 !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+}
+body[data-theme="obsidian_pro"] .card-header {
+    background: #161f30 !important;
+    border-bottom: 1px solid #1f2937 !important;
+    color: #f1f5f9 !important;
+}
+body[data-theme="obsidian_pro"] .table {
+    color: #e5e7eb !important;
+}
+body[data-theme="obsidian_pro"] .table thead th,
+body[data-theme="obsidian_pro"] .thead-light th {
+    background: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+}
+body[data-theme="obsidian_pro"] .table td,
+body[data-theme="obsidian_pro"] .table th {
+    border-color: #1f2937 !important;
+}
+body[data-theme="obsidian_pro"] .table-hover tbody tr:hover {
+    background-color: #1a2234 !important;
+    color: #ffffff !important;
+}
+body[data-theme="obsidian_pro"] .text-gray-800,
+body[data-theme="obsidian_pro"] .text-gray-900,
+body[data-theme="obsidian_pro"] h1, body[data-theme="obsidian_pro"] h2,
+body[data-theme="obsidian_pro"] h3, body[data-theme="obsidian_pro"] h4,
+body[data-theme="obsidian_pro"] h5, body[data-theme="obsidian_pro"] h6 {
+    color: #f8fafc !important;
+}
+body[data-theme="obsidian_pro"] .text-muted,
+body[data-theme="obsidian_pro"] .text-gray-600 {
+    color: #94a3b8 !important;
+}
+body[data-theme="obsidian_pro"] .text-primary {
+    color: #818cf8 !important;
+}
+body[data-theme="obsidian_pro"] .btn-primary {
+    background: #4f46e5 !important;
+    border-color: #4f46e5 !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 10px rgba(79,70,229,0.4) !important;
+}
+body[data-theme="obsidian_pro"] .btn-primary:hover {
+    background: #4338ca !important;
+}
+body[data-theme="obsidian_pro"] .form-control,
+body[data-theme="obsidian_pro"] .custom-select {
+    background-color: #1a2234 !important;
+    border-color: #2d3748 !important;
+    color: #f8fafc !important;
+}
+body[data-theme="obsidian_pro"] .form-control:focus {
+    background-color: #1a2234 !important;
+    color: #ffffff !important;
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important;
+}
+body[data-theme="obsidian_pro"] .badge-primary {
+    background-color: #4f46e5 !important;
+}
+body[data-theme="obsidian_pro"] .border-left-primary {
+    border-left-color: #6366f1 !important;
+}
+body[data-theme="obsidian_pro"] .dropdown-menu {
+    background-color: #1f2937 !important;
+    border-color: #374151 !important;
+}
+body[data-theme="obsidian_pro"] .dropdown-item {
+    color: #e5e7eb !important;
+}
+body[data-theme="obsidian_pro"] .dropdown-item:hover {
+    background-color: #374151 !important;
+    color: #ffffff !important;
+}
+
+
+/* =================================================== */
+/* ████████  THÈME 4 — CHALEUR CRÉPUSCULE AMBRÉ   ████ */
+/* =================================================== */
+body[data-theme="amber_warmth"] {
+    background-color: #faf8f5 !important;
+    color: #291a0c !important;
+}
+body[data-theme="amber_warmth"] #content-wrapper,
+body[data-theme="amber_warmth"] #content {
+    background-color: #faf8f5 !important;
+}
+
+/* Sidebar Chocolat Chaud / Brun Intense */
+body[data-theme="amber_warmth"] .sidebar {
+    background: linear-gradient(180deg, #431407 0%, #1c0a00 100%) !important;
+    border-right: 1px solid #78350f !important;
+    box-shadow: 2px 0 12px rgba(67,20,7,0.15) !important;
+}
+body[data-theme="amber_warmth"] .sidebar-brand-text {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+}
+body[data-theme="amber_warmth"] .sidebar-brand-icon i {
+    color: #fb923c !important;
+}
+body[data-theme="amber_warmth"] .sidebar-divider {
+    border-top: 1px solid rgba(255,255,255,0.12) !important;
+}
+body[data-theme="amber_warmth"] .sidebar-heading {
+    color: #fed7aa !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.08em !important;
+}
+body[data-theme="amber_warmth"] .sidebar .nav-link {
+    color: #ffedd5 !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    margin: 2px 10px !important;
+    padding: 0.75rem 1rem !important;
+    transition: all 0.2s ease !important;
+}
+body[data-theme="amber_warmth"] .sidebar .nav-link:hover,
+body[data-theme="amber_warmth"] .sidebar .nav-link.active,
+body[data-theme="amber_warmth"] .sidebar .active > .nav-link {
+    background: rgba(249, 115, 22, 0.22) !important;
+    color: #fed7aa !important;
+    box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25) !important;
+}
+body[data-theme="amber_warmth"] .sidebar .nav-link i {
+    color: #fdba74 !important;
+}
+body[data-theme="amber_warmth"] .sidebar .nav-link:hover i,
+body[data-theme="amber_warmth"] .sidebar .nav-link.active i,
+body[data-theme="amber_warmth"] .sidebar .active > .nav-link i {
+    color: #fed7aa !important;
+}
+
+/* SOUS-MENUS COLLAPSE AMBER WARMTH */
+body[data-theme="amber_warmth"] .sidebar .collapse-inner {
+    background: #ffffff !important;
+    border: 1px solid #ffedd5 !important;
+    box-shadow: 0 8px 24px rgba(67,20,7,0.12) !important;
+}
+body[data-theme="amber_warmth"] .sidebar .collapse-header {
+    color: #9a3412 !important;
+    border-bottom: 1px solid #fff7ed !important;
+}
+body[data-theme="amber_warmth"] .sidebar .collapse-item {
+    color: #431407 !important;
+}
+body[data-theme="amber_warmth"] .sidebar .collapse-item:hover {
+    background: #fff7ed !important;
+    color: #ea580c !important;
+}
+body[data-theme="amber_warmth"] .sidebar .collapse-item.active {
+    background: #ea580c !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+}
+
+/* Topbar & Cartes */
+body[data-theme="amber_warmth"] .topbar {
+    background: #ffffff !important;
+    border-bottom: 2px solid #ea580c !important;
+    box-shadow: 0 2px 10px rgba(234,88,12,0.06) !important;
+}
+body[data-theme="amber_warmth"] .card {
+    background: #ffffff !important;
+    border: 1px solid #fed7aa !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 10px rgba(67,20,7,0.05) !important;
+}
+body[data-theme="amber_warmth"] .card-header {
+    background: #fff7ed !important;
+    border-bottom: 1px solid #ffedd5 !important;
+}
+body[data-theme="amber_warmth"] .text-primary {
+    color: #ea580c !important;
+}
+body[data-theme="amber_warmth"] .btn-primary {
+    background: linear-gradient(135deg, #ea580c, #f97316) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(234,88,12,0.3) !important;
+}
+body[data-theme="amber_warmth"] .btn-primary:hover {
+    background: linear-gradient(135deg, #c2410c, #ea580c) !important;
+}
+body[data-theme="amber_warmth"] .badge-primary {
+    background-color: #ea580c !important;
+}
+body[data-theme="amber_warmth"] .border-left-primary {
+    border-left-color: #ea580c !important;
+}
+
+/* Apply button hover */
+#applyThemeBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 28px rgba(37,99,235,0.45) !important;
+}
+
+/* ==========================================================================
+   SETTINGS / CONFIGURATION TABS (REFINED COMPACT & PREVENT TWO-LINE WRAPPING)
+   ========================================================================== */
+.settings-tabs-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+}
+
+/* Hide scrollbar for a cleaner look while keeping drag/scroll functionality */
+.settings-tabs-wrapper::-webkit-scrollbar {
+    height: 4px;
+}
+.settings-tabs-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+}
+
+.settings-nav-pills {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    min-width: max-content;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.settings-nav-pills .nav-item {
+    flex: 1 1 auto;
+    white-space: nowrap;
+}
+
+.settings-nav-pills .nav-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 13px !important;
+    font-size: 0.84rem !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em;
+    color: #475569 !important;
+    border-radius: 10px !important;
+    transition: all 0.22s ease !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
+    border: 1px solid transparent;
+}
+
+.settings-nav-pills .nav-link .tab-icon {
+    font-size: 0.88rem;
+    margin-right: 6px;
+    opacity: 0.85;
+    transition: transform 0.2s ease;
+}
+
+.settings-nav-pills .nav-link:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+.settings-nav-pills .nav-link:hover .tab-icon {
+    transform: translateY(-1px);
+    opacity: 1;
+}
+
+.settings-nav-pills .nav-link.active {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.28) !important;
+    border-color: #2563eb !important;
+}
+
+.settings-nav-pills .nav-link.active .tab-icon {
+    opacity: 1;
+}
+
+/* Badges inside tabs */
+.settings-nav-pills .tab-badge {
+    display: inline-block;
+    font-size: 0.70rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    margin-left: 6px;
+    border-radius: 8px;
+    background: #e2e8f0;
+    color: #334155;
+    transition: all 0.2s ease;
+}
+
+.settings-nav-pills .nav-link.active .tab-badge {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+}
+
+.settings-nav-pills .tab-badge-status {
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    margin-left: 6px;
+    border-radius: 8px;
+    font-weight: 700;
+}
+
+.settings-nav-pills .badge-status-on {
+    background: #dcfce7;
+    color: #15803d;
+}
+.settings-nav-pills .badge-status-off {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.settings-nav-pills .nav-link.active .badge-status-on,
+.settings-nav-pills .nav-link.active .badge-status-off {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+}
+
+.settings-nav-pills .tab-badge-new {
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    margin-left: 6px;
+    border-radius: 8px;
+    background: #e0e7ff;
+    color: #4338ca;
+    font-weight: 700;
+}
+
+.settings-nav-pills .nav-link.active .tab-badge-new {
+    background: rgba(255, 255, 255, 0.25) !important;
+    color: #ffffff !important;
+}
+
+/* Theme-specific tab active colors */
+body[data-theme="emerald_fresh"] .settings-nav-pills .nav-link.active {
+    background: #059669 !important;
+    border-color: #059669 !important;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3) !important;
+}
+
+body[data-theme="obsidian_pro"] .settings-nav-pills {
+    background: #111827 !important;
+    border-color: #1f2937 !important;
+}
+body[data-theme="obsidian_pro"] .settings-nav-pills .nav-link {
+    color: #9ca3af !important;
+}
+body[data-theme="obsidian_pro"] .settings-nav-pills .nav-link:hover {
+    background: #1f2937 !important;
+    color: #f3f4f6 !important;
+}
+body[data-theme="obsidian_pro"] .settings-nav-pills .nav-link.active {
+    background: #6366f1 !important;
+    border-color: #6366f1 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35) !important;
+}
+body[data-theme="obsidian_pro"] .settings-nav-pills .tab-badge {
+    background: #1f2937;
+    color: #cbd5e1;
+}
+
+body[data-theme="amber_warmth"] .settings-nav-pills .nav-link.active {
+    background: #ea580c !important;
+    border-color: #ea580c !important;
+    box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3) !important;
+}
+
+/* ==========================================================================
+   COMPACT & ELEGANT SCHOOL YEAR TOPBAR PICKER
+   ========================================================================== */
+.topbar .nav-item .year-picker-pill {
+    height: 28px !important;
+    padding: 0 9px !important;
+    border-radius: 14px !important;
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #334155 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.topbar .nav-item .year-picker-pill:hover,
+.topbar .nav-item .year-picker-pill:focus {
+    background: #e2e8f0 !important;
+    border-color: #cbd5e1 !important;
+    color: #0f172a !important;
+    text-decoration: none !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.year-picker-icon-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+    font-size: 0.72rem;
+}
+
+.year-picker-text {
+    letter-spacing: -0.01em;
+    font-size: 0.75rem;
+}
+
+.year-picker-arrow {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    transition: transform 0.2s ease;
+}
+
+.show > .year-picker-pill .year-picker-arrow {
+    transform: rotate(180deg);
+}
+
+/* Discrete indicator dots */
+.year-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-left: 6px;
+}
+.year-dot.dot-active {
+    background-color: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+}
+.year-dot.dot-archived {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    background-color: #fef3c7;
+    color: #b45309;
+    border-radius: 4px;
+    font-size: 7px;
+}
+
+/* Dropdown menu styling */
+.year-picker-dropdown {
+    min-width: 250px;
+    border-radius: 12px !important;
+    padding: 6px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+.year-picker-dropdown .dropdown-item {
+    border-radius: 8px;
+    font-size: 0.82rem;
+    padding: 7px 12px;
+    transition: all 0.15s ease;
+}
+
+.year-picker-dropdown .year-item-active {
+    background-color: #eff6ff !important;
+    color: #1d4ed8 !important;
+}
+
+/* Theme Adaptations */
+body[data-theme="emerald_fresh"] .year-picker-icon-box {
+    color: #059669;
+}
+body[data-theme="emerald_fresh"] .year-picker-dropdown .year-item-active {
+    background-color: #ecfdf5 !important;
+    color: #047857 !important;
+}
+
+body[data-theme="obsidian_pro"] .year-picker-pill {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+body[data-theme="obsidian_pro"] .year-picker-pill:hover {
+    background: #374151 !important;
+    color: #ffffff !important;
+}
+body[data-theme="obsidian_pro"] .year-picker-icon-box {
+    color: #818cf8;
+}
+body[data-theme="obsidian_pro"] .year-picker-dropdown {
+    background: #111827 !important;
+    border-color: #1f2937 !important;
+    color: #e5e7eb !important;
+}
+body[data-theme="obsidian_pro"] .year-picker-dropdown .dropdown-header {
+    color: #9ca3af !important;
+}
+body[data-theme="obsidian_pro"] .year-picker-dropdown .dropdown-item {
+    color: #d1d5db !important;
+}
+body[data-theme="obsidian_pro"] .year-picker-dropdown .dropdown-item:hover {
+    background-color: #1f2937 !important;
+    color: #ffffff !important;
+}
+body[data-theme="obsidian_pro"] .year-picker-dropdown .year-item-active {
+    background-color: #1e1b4b !important;
+    color: #a5b4fc !important;
+}
+body[data-theme="obsidian_pro"] .year-picker-dropdown .dropdown-divider {
+    border-top-color: #1f2937 !important;
+}
+
+body[data-theme="amber_warmth"] .year-picker-icon-box {
+    color: #ea580c;
+}
+body[data-theme="amber_warmth"] .year-picker-dropdown .year-item-active {
+    background-color: #fff7ed !important;
+    color: #c2410c !important;
+}
+
+/* =================================================== */
+/* ADAPTATIONS TABLETTE ET MOBILE (MODE TACTILE)       */
+/* =================================================== */
+
+/* 1. Surfaces tactiles confortables (Touch Targets >= 42-44px) */
+body.device-mobile-mode .btn,
+@media (pointer: coarse) {
+    .btn-circle {
+        min-height: 42px;
+        min-width: 42px;
+    }
+    .btn-circle.btn-sm {
+        min-height: 38px;
+        min-width: 38px;
+    }
+    .custom-student-checkbox {
+        width: 22px !important;
+        height: 22px !important;
+    }
+    .switch {
+        width: 56px !important;
+        height: 30px !important;
+    }
+    .slider:before {
+        height: 24px !important;
+        width: 24px !important;
+        left: 3px !important;
+        bottom: 3px !important;
+    }
+    input:checked + .slider:before {
+        transform: translateX(26px) !important;
+    }
+    .nav-link {
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+}
+
+/* 2. Comportement des tableaux pour tablette & mobile */
+body.device-mobile-mode .table-responsive,
+@media (max-width: 991.98px) {
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+    }
+
+    /* Figer la colonne de l'élève lors du glissement horizontal */
+    .table-sticky-first th:first-child,
+    .table-sticky-first td:first-child {
+        position: sticky;
+        left: 0;
+        background-color: #ffffff;
+        z-index: 5;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+    }
+    body.dark-mode .table-sticky-first th:first-child,
+    body.dark-mode .table-sticky-first td:first-child {
+        background-color: #1a1d24;
+    }
+
+    /* Amélioration de la lisibilité des cellules */
+    .table td, .table th {
+        padding: 0.75rem 0.5rem;
+    }
+}
+
+/* 3. Affichage direct des photos miniatures en mode tablette (remplace le hover) */
+body.device-mobile-mode .student-avatar-inline {
+    display: inline-block !important;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    vertical-align: middle;
+    margin-right: 8px;
+    border: 1px solid #cbd5e1;
+}
+
+/* 4. Barre de validation et actions flottantes sur mobile/tablette */
+body.device-mobile-mode .mobile-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 16px;
+    box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.08);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+body.dark-mode.device-mobile-mode .mobile-action-bar {
+    background: rgba(26, 29, 36, 0.95);
+    border-top: 1px solid #2d3748;
+}
+
+/* 5. Sélecteur d'appareil dans la barre supérieure */
+#deviceModeDropdown {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.7);
+}
+body.dark-mode #deviceModeDropdown {
+    border-color: #374151;
+    background: #1f2937;
+    color: #e5e7eb !important;
+}
+
+/* =================================================== */
+/* 6. BOUTONS D'ACTION RAPIDE (DASHBOARD & MODULES)     */
+/* =================================================== */
+.action-ribbon-btn,
+.btn-nowrap,
+.btn.text-nowrap {
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    font-weight: 600 !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    line-height: 1.4 !important;
+}
+
+.action-ribbon-btn:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* =================================================== */
+/* 7. SYSTÈME DE BARRES D'OUTILS UNIFIÉES ET ÉLÉGANTES */
+/* =================================================== */
+.app-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.toolbar-capsule {
+    display: inline-flex;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 11px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #475569;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none !important;
+    white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+    color: #0f172a;
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.toolbar-btn.active,
+.toolbar-btn:active {
+    color: #2563eb;
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    font-weight: 700;
+}
+
+.toolbar-btn i {
+    font-size: 0.8rem;
+    margin-right: 5px;
+}
+
+.toolbar-btn-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 15px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #ffffff !important;
+    background: #2563eb;
+    border: 1px solid #2563eb;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    text-decoration: none !important;
+    white-space: nowrap;
+}
+
+.toolbar-btn-cta:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    transform: translateY(-1px);
+}
+
+.toolbar-btn-emerald {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 13px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #047857;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none !important;
+    white-space: nowrap;
+}
+
+.toolbar-btn-emerald:hover {
+    background: #059669;
+    color: #ffffff !important;
+    border-color: #059669;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+    transform: translateY(-1px);
+}
+
+/* Dark mode compatibility */
+body.dark-mode .toolbar-capsule {
+    background: #1e293b;
+    border-color: #334155;
+}
+body.dark-mode .toolbar-btn {
+    color: #cbd5e1;
+}
+body.dark-mode .toolbar-btn:hover {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #475569;
+}
+body.dark-mode .toolbar-btn.active {
+    background: #1e3a8a;
+    color: #93c5fd;
+    border-color: #3b82f6;
+}

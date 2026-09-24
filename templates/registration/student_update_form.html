@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mise à Jour Profil Étudiant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-gradient: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            --secondary: #4cc9f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #0b0f19;
+            --surface: #111827;
+            --surface-card: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(67, 97, 238, 0.15) 0%, transparent 35%),
+                radial-gradient(circle at 85% 85%, rgba(76, 201, 240, 0.1) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+            background: var(--surface-card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .header {
+            background: linear-gradient(180deg, rgba(67, 97, 238, 0.12) 0%, transparent 100%);
+            padding: 28px 24px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .badge-device {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--secondary);
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        h1 {
+            font-size: 1.45rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .step-box {
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .step-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--secondary);
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #d1d5db;
+            margin-bottom: 6px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.25);
+        }
+
+        .form-control:disabled, .form-control[readonly] {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: #ffffff;
+            box-shadow: 0 8px 20px -4px rgba(67, 97, 238, 0.5);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        /* Avatar Box */
+        .photo-preview-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px;
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.15);
+        }
+
+        .avatar-img {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        .alert-message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.88rem;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #86efac;
+        }
+
+        .permission-badge {
+            font-size: 0.68rem;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: rgba(67, 97, 238, 0.15);
+            color: var(--secondary);
+            margin-left: 6px;
+        }
+
+        .locked-badge {
+            font-size: 0.68rem;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #9ca3af;
+            margin-left: 6px;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="badge-device">
+            <i class="fas fa-magic"></i> Portail Mobile Étudiant
+        </div>
+        <h1>Mise à Jour de Profil</h1>
+        <p class="subtitle">Actualisez votre photo et vos informations personnelles en classe</p>
+    </div>
+
+    <div class="content">
+        <div id="alertBox" class="alert-message"></div>
+
+        <!-- ================= ÉTAPE 1 : IDENTIFICATION ================= -->
+        <div id="stepIdentification" class="step-box">
+            <div class="step-title">
+                <span class="step-number">1</span>
+                <span>Identification de votre profil</span>
+            </div>
+
+            {% if has_pin %}
+            <div class="form-group">
+                <label><i class="fas fa-key text-warning mr-1"></i> Code PIN de Session (affiché par l'enseignant) :</label>
+                <input type="text" id="sessionPin" class="form-control" placeholder="Entrez le PIN de la classe" inputmode="numeric">
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label><i class="fas fa-chalkboard text-primary mr-1"></i> Sélectionnez votre Classe :</label>
+                <select id="selectClass" class="form-control" onchange="loadClassStudents(this.value)">
+                    <option value="" selected disabled>-- Choisissez votre classe --</option>
+                    {% for c in classes %}
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group" id="studentSelectGroup" style="display: none;">
+                <label><i class="fas fa-user-graduate text-info mr-1"></i> Sélectionnez votre Nom :</label>
+                <select id="selectStudent" class="form-control">
+                    <option value="" selected disabled>-- Choisissez votre nom --</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="verifyGroup" style="display: none;">
+                <label>
+                    <i class="fas fa-shield-alt text-success mr-1"></i> Code de confirmation :
+                    <span class="text-muted small font-weight-normal">(Votre CNE actuel ou Date de naissance JJ/MM/AAAA)</span>
+                </label>
+                <input type="text" id="verificationCode" class="form-control" placeholder="Ex: G1354890 ou 15/04/2004">
+            </div>
+
+            <button type="button" class="btn btn-primary mt-2" id="btnIdentify" onclick="verifyStudentIdentity()" style="display: none;">
+                <i class="fas fa-arrow-right"></i> Accéder à ma fiche
+            </button>
+        </div>
+
+        <!-- ================= ÉTAPE 2 : FORMULAIRE DE MISE À JOUR ================= -->
+        <form id="updateForm" class="step-box" style="display: none;" onsubmit="submitStudentUpdate(event)">
+            <input type="hidden" id="hiddenStudentId" name="student_id">
+            <input type="hidden" id="hiddenVerificationCode" name="verification_code">
+
+            <div class="step-title">
+                <span class="step-number">2</span>
+                <span id="studentFormTitle">Modifier vos informations</span>
+            </div>
+
+            <!-- PHOTO -->
+            <div class="form-group">
+                <label class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-camera text-primary mr-1"></i> Photo de profil</span>
+                    {% if 'photo' in allowed_fields %}
+                        <span class="permission-badge">Modifiable</span>
+                    {% else %}
+                        <span class="locked-badge"><i class="fas fa-lock"></i> Verrouillé</span>
+                    {% endif %}
+                </label>
+                <div class="photo-preview-wrap">
+                    <div style="position: relative; display: inline-block;">
+                        <img src="" id="photoPreview" class="avatar-img" alt="Photo de profil" onerror="this.src='/uploads/photos/Default.jpg'">
+                        <span id="photoBadgeStatus" style="position: absolute; bottom: 0; right: 0; background: #10b981; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 13px; border: 2px solid #111827;" title="Photo enregistrée">
+                            <i class="fas fa-check"></i>
+                        </span>
+                    </div>
+
+                    <div id="photoInfoText" class="small text-muted font-weight-bold">
+                        Photo actuelle enregistrée
+                    </div>
+
+                    {% if 'photo' in allowed_fields %}
+                    <div class="d-flex gap-2" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                        <button type="button" class="btn btn-secondary btn-sm" style="width: auto; padding: 8px 16px; font-size: 0.82rem;" onclick="document.getElementById('photoInput').click();">
+                            <i class="fas fa-camera mr-1"></i> Remplacer la photo
+                        </button>
+                        <button type="button" id="btnCancelPhoto" class="btn btn-outline-danger btn-sm" style="display: none; width: auto; padding: 8px 14px; font-size: 0.82rem; background: transparent; color: #ef4444; border: 1px solid #ef4444;" onclick="resetToOriginalPhoto()">
+                            <i class="fas fa-undo mr-1"></i> Garder l'actuelle
+                        </button>
+                    </div>
+                    <input type="file" id="photoInput" name="photo" accept="image/*" capture="user" style="display: none;" onchange="previewSelectedPhoto(this)">
+                    {% else %}
+                    <div class="small text-muted">
+                        <i class="fas fa-lock mr-1"></i> La modification de la photo n'est pas autorisée pour cette session.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- NOM & PRENOM -->
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 140px;">
+                    <label>
+                        Nom
+                        {% if 'name' in allowed_fields %}<span class="permission-badge">Modifiable</span>{% else %}<span class="locked-badge"><i class="fas fa-lock"></i></span>{% endif %}
+                    </label>
+                    <input type="text" id="fieldLastName" name="last_name" class="form-control" {% if 'name' not in allowed_fields %}readonly{% endif %}>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 140px;">
+                    <label>
+                        Prénom
+                        {% if 'name' in allowed_fields %}<span class="permission-badge">Modifiable</span>{% else %}<span class="locked-badge"><i class="fas fa-lock"></i></span>{% endif %}
+                    </label>
+                    <input type="text" id="fieldFirstName" name="first_name" class="form-control" {% if 'name' not in allowed_fields %}readonly{% endif %}>
+                </div>
+            </div>
+
+            <!-- CNE & DATE DE NAISSANCE -->
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 140px;">
+                    <label>
+                        CNE / Code Massar
+                        {% if 'cne' in allowed_fields %}<span class="permission-badge">Modifiable</span>{% else %}<span class="locked-badge"><i class="fas fa-lock"></i></span>{% endif %}
+                    </label>
+                    <input type="text" id="fieldCNE" name="cne" class="form-control" {% if 'cne' not in allowed_fields %}readonly{% endif %}>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 140px;">
+                    <label>
+                        Date de Naissance
+                        {% if 'birth_date' in allowed_fields %}<span class="permission-badge">Modifiable</span>{% else %}<span class="locked-badge"><i class="fas fa-lock"></i></span>{% endif %}
+                    </label>
+                    <input type="date" id="fieldBirthDate" name="birth_date" class="form-control" {% if 'birth_date' not in allowed_fields %}readonly{% endif %}>
+                </div>
+            </div>
+
+            <!-- CONTACTS (EMAIL & TELEPHONE) -->
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <div class="form-group" style="flex: 1; min-width: 140px;">
+                    <label>
+                        E-mail
+                        {% if 'contact' in allowed_fields %}<span class="permission-badge">Modifiable</span>{% else %}<span class="locked-badge"><i class="fas fa-lock"></i></span>{% endif %}
+                    </label>
+                    <input type="email" id="fieldEmail" name="email" class="form-control" placeholder="exemple@domaine.com" {% if 'contact' not in allowed_fields %}readonly{% endif %}>
+                </div>
+                <div class="form-group" style="flex: 1; min-width: 140px;">
+                    <label>
+                        Téléphone
+                        {% if 'contact' in allowed_fields %}<span class="permission-badge">Modifiable</span>{% else %}<span class="locked-badge"><i class="fas fa-lock"></i></span>{% endif %}
+                    </label>
+                    <input type="tel" id="fieldPhone" name="phone" class="form-control" placeholder="06XXXXXXXX" {% if 'contact' not in allowed_fields %}readonly{% endif %}>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-3" id="btnSubmitUpdate">
+                <i class="fas fa-check-circle"></i> Enregistrer mes modifications
+            </button>
+            <button type="button" class="btn btn-secondary mt-2" onclick="location.reload();">
+                <i class="fas fa-times"></i> Annuler
+            </button>
+        </form>
+
+        <!-- ================= ÉCRAN SUCCÈS ================= -->
+        <div id="successBox" class="step-box" style="display: none; text-align: center; padding: 36px 20px;">
+            <div style="width: 70px; height: 70px; border-radius: 50%; background: rgba(16, 185, 129, 0.2); color: var(--success); display: inline-flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 16px;">
+                <i class="fas fa-check"></i>
+            </div>
+            <h2 style="font-size: 1.3rem; margin-bottom: 8px;">Mise à jour réussie !</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;" id="successMessage">
+                Vos informations ont été actualisées directement dans la liste de la classe.
+            </p>
+            <button type="button" class="btn btn-primary" onclick="location.reload();">
+                <i class="fas fa-redo mr-1"></i> Terminer
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showAlert(msg, isError = true) {
+        const box = document.getElementById('alertBox');
+        box.textContent = msg;
+        box.className = 'alert-message ' + (isError ? 'alert-error' : 'alert-success');
+        box.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function clearAlert() {
+        document.getElementById('alertBox').style.display = 'none';
+    }
+
+    function loadClassStudents(classId) {
+        clearAlert();
+        if (!classId) return;
+        
+        fetch(`/api/class/${classId}/students`)
+            .then(res => res.json())
+            .then(data => {
+                const select = document.getElementById('selectStudent');
+                select.innerHTML = '<option value="" selected disabled>-- Choisissez votre nom --</option>';
+                data.students.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = s.name;
+                    select.appendChild(opt);
+                });
+                document.getElementById('studentSelectGroup').style.display = 'block';
+                document.getElementById('verifyGroup').style.display = 'block';
+                document.getElementById('btnIdentify').style.display = 'inline-flex';
+            })
+            .catch(err => {
+                showAlert("Erreur lors de la récupération de la liste des élèves.");
+            });
+    }
+
+    function verifyStudentIdentity() {
+        clearAlert();
+        const studentId = document.getElementById('selectStudent').value;
+        const code = document.getElementById('verificationCode').value.trim();
+        const pinInput = document.getElementById('sessionPin');
+        const pin = pinInput ? pinInput.value.trim() : '';
+
+        if (!studentId) {
+            showAlert("Veuillez sélectionner votre nom.");
+            return;
+        }
+        if (!code) {
+            showAlert("Veuillez saisir votre CNE ou Date de naissance pour confirmer votre identité.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('student_id', studentId);
+        formData.append('verification_code', code);
+        if (pin) formData.append('pin', pin);
+
+        fetch('/profil/maj/auth', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) {
+                showAlert(data.message || "Identification échouée.");
+                return;
+            }
+
+            // Remplir le formulaire
+            const s = data.student;
+            document.getElementById('hiddenStudentId').value = s.id;
+            document.getElementById('hiddenVerificationCode').value = code;
+
+            document.getElementById('studentFormTitle').textContent = `Modifier le profil de ${s.first_name} ${s.last_name}`;
+            
+            // Stocker l'URL d'origine pour pouvoir annuler si l'élève change d'avis
+            window.originalPhotoUrl = s.photo_url;
+            document.getElementById('photoPreview').src = s.photo_url;
+            document.getElementById('photoInfoText').textContent = "Photo actuelle enregistrée";
+            document.getElementById('photoBadgeStatus').style.background = "#10b981";
+            document.getElementById('photoBadgeStatus').innerHTML = '<i class="fas fa-check"></i>';
+            document.getElementById('btnCancelPhoto').style.display = 'none';
+
+            document.getElementById('fieldLastName').value = s.last_name;
+            document.getElementById('fieldFirstName').value = s.first_name;
+            document.getElementById('fieldCNE').value = s.cne;
+            document.getElementById('fieldBirthDate').value = s.birth_date;
+            document.getElementById('fieldEmail').value = s.email;
+            document.getElementById('fieldPhone').value = s.phone;
+
+            // Masquer étape 1 et afficher étape 2
+            document.getElementById('stepIdentification').style.display = 'none';
+            document.getElementById('updateForm').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        })
+        .catch(err => {
+            showAlert("Erreur de connexion au serveur.");
+        });
+    }
+
+    function previewSelectedPhoto(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('photoPreview').src = e.target.result;
+                document.getElementById('photoInfoText').textContent = "Nouvelle photo sélectionnée (non enregistrée)";
+                document.getElementById('photoBadgeStatus').style.background = "#f59e0b";
+                document.getElementById('photoBadgeStatus').innerHTML = '<i class="fas fa-sync-alt"></i>';
+                document.getElementById('btnCancelPhoto').style.display = 'inline-flex';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function resetToOriginalPhoto() {
+        document.getElementById('photoInput').value = '';
+        document.getElementById('photoPreview').src = window.originalPhotoUrl || '/uploads/photos/Default.jpg';
+        document.getElementById('photoInfoText').textContent = "Photo actuelle conservée";
+        document.getElementById('photoBadgeStatus').style.background = "#10b981";
+        document.getElementById('photoBadgeStatus').innerHTML = '<i class="fas fa-check"></i>';
+        document.getElementById('btnCancelPhoto').style.display = 'none';
+    }
+
+    function submitStudentUpdate(e) {
+        e.preventDefault();
+        clearAlert();
+
+        const btn = document.getElementById('btnSubmitUpdate');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Enregistrement en cours...';
+
+        const form = document.getElementById('updateForm');
+        const formData = new FormData(form);
+
+        fetch('/profil/maj/submit', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Enregistrer mes modifications';
+
+            if (!data.success) {
+                showAlert(data.message || "Erreur lors de la mise à jour.");
+                return;
+            }
+
+            // Succès
+            document.getElementById('updateForm').style.display = 'none';
+            document.getElementById('successMessage').textContent = data.message;
+            document.getElementById('successBox').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check-circle"></i> Enregistrer mes modifications';
+            showAlert("Erreur réseau lors de la sauvegarde.");
+        });
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilan d'Assiduité - {{ student.first_name }} {{ student.last_name }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 12mm 15mm;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+            color: #1e293b;
+            font-size: 10pt;
+            line-height: 1.45;
+            margin: 0;
+            padding: 0;
+            background: #fff;
+        }
+        .no-print-bar {
+            background: #0f172a;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .no-print-bar button {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .no-print-bar button:hover {
+            background: #1d4ed8;
+        }
+        @media print {
+            .no-print-bar {
+                display: none !important;
+            }
+            body {
+                padding: 0;
+            }
+        }
+
+        .document-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 10px 20px;
+        }
+
+        /* En-tête Institutionnel */
+        .institution-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+        .institution-title h2 {
+            margin: 0 0 4px 0;
+            font-size: 15pt;
+            color: #1e3a8a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .institution-title .sub-title {
+            color: #64748b;
+            font-size: 9pt;
+            margin: 0;
+        }
+        .document-meta {
+            text-align: right;
+            font-size: 8.5pt;
+            color: #475569;
+        }
+        .badge-year {
+            display: inline-block;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        /* Titre du document */
+        .document-heading {
+            text-align: center;
+            margin: 15px 0 20px 0;
+        }
+        .document-heading h1 {
+            font-size: 16pt;
+            margin: 0;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .document-heading .ref {
+            font-size: 8.5pt;
+            color: #64748b;
+            margin-top: 3px;
+        }
+
+        /* Cartouche Profil Étudiant */
+        .student-card {
+            display: flex;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 20px;
+            background: #f8fafc;
+            gap: 18px;
+        }
+        .student-photo {
+            width: 90px;
+            height: 110px;
+            border-radius: 6px;
+            object-fit: cover;
+            border: 1px solid #cbd5e1;
+            background: #e2e8f0;
+        }
+        .student-info-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            row-gap: 8px;
+            column-gap: 16px;
+            font-size: 9.5pt;
+        }
+        .info-field strong {
+            color: #475569;
+            font-size: 8pt;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 1px;
+        }
+        .info-field span {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 10pt;
+        }
+
+        /* KPIs Synthèse Assiduité */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .kpi-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            background: #fff;
+        }
+        .kpi-box.kpi-total { border-top: 3px solid #2563eb; }
+        .kpi-box.kpi-unjustified { border-top: 3px solid #ef4444; }
+        .kpi-box.kpi-justified { border-top: 3px solid #10b981; }
+        .kpi-box.kpi-score { border-top: 3px solid #8b5cf6; }
+        .kpi-value {
+            font-size: 15pt;
+            font-weight: 800;
+            margin-bottom: 2px;
+        }
+        .kpi-box.kpi-total .kpi-value { color: #2563eb; }
+        .kpi-box.kpi-unjustified .kpi-value { color: #ef4444; }
+        .kpi-box.kpi-justified .kpi-value { color: #10b981; }
+        .kpi-box.kpi-score .kpi-value { color: #8b5cf6; }
+        .kpi-label {
+            font-size: 7.5pt;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* Tableau Historique des Absences */
+        .section-title {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-left: 3px solid #2563eb;
+            padding-left: 8px;
+        }
+        table.absences-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            font-size: 9pt;
+        }
+        table.absences-table th {
+            background: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            text-align: left;
+            padding: 8px 10px;
+            border: 1px solid #cbd5e1;
+            text-transform: uppercase;
+            font-size: 8pt;
+        }
+        table.absences-table td {
+            padding: 7px 10px;
+            border: 1px solid #e2e8f0;
+        }
+        table.absences-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .badge-status {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-size: 7.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge-unjustified {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .badge-justified {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        /* Cartouche Signatures & Observations */
+        .signatures-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+            page-break-inside: avoid;
+        }
+        .signature-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px;
+            height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #fafafa;
+        }
+        .signature-title {
+            font-size: 8pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #475569;
+            text-align: center;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 4px;
+        }
+        .signature-hint {
+            font-size: 7.5pt;
+            color: #94a3b8;
+            text-align: center;
+        }
+
+        /* Footer Officiel */
+        .document-footer {
+            margin-top: 35px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 10px;
+            font-size: 7.5pt;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            page-break-inside: avoid;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print-bar">
+        <div>
+            <strong>Fiche Bilan d'Assiduité :</strong> {{ student.first_name }} {{ student.last_name }} ({{ student.student_class.name if student.student_class else '' }})
+        </div>
+        <div>
+            <button onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimer / Enregistrer en PDF
+            </button>
+        </div>
+    </div>
+
+    <div class="document-container">
+
+        <!-- En-tête de l'établissement -->
+        <div class="institution-header">
+            <div class="institution-title">
+                <h2>{{ school_name }}</h2>
+                <div class="sub-title">Département Pédagogique & Suivi de l'Assiduité Scolaire</div>
+            </div>
+            <div class="document-meta">
+                <div>Date d'émission : <strong>{{ now.strftime('%d/%m/%Y') }}</strong></div>
+                <div class="badge-year">Année Scolaire : {{ current_school_year.name if current_school_year else '2025/2026' }}</div>
+            </div>
+        </div>
+
+        <!-- Titre du Rapport -->
+        <div class="document-heading">
+            <h1>Fiche Bilan d'Assiduité</h1>
+            <div class="ref">Dossier de suivi individuel & Relevé officiel des présences</div>
+        </div>
+
+        <!-- Fiche d'identité de l'élève -->
+        <div class="student-card">
+            <img src="{{ photo_url }}" alt="Photo {{ student.first_name }}" class="student-photo">
+            <div class="student-info-grid">
+                <div class="info-field">
+                    <strong>Nom & Prénom</strong>
+                    <span>{{ student.first_name }} {{ student.last_name }}</span>
+                </div>
+                <div class="info-field">
+                    <strong>Code CNE / Matricule</strong>
+                    <span>{{ student.cne }}</span>
+                </div>
+                <div class="info-field">
+                    <strong>Classe</strong>
+                    <span>{{ student.student_class.name if student.student_class else 'Non assigné' }}</span>
+                </div>
+                <div class="info-field">
+                    <strong>Groupe Pédagogique</strong>
+                    <span>{{ group_name }}</span>
+                </div>
+                <div class="info-field">
+                    <strong>Date de Naissance</strong>
+                    <span>{{ student.birth_date.strftime('%d/%m/%Y') if student.birth_date else 'Non renseignée' }}</span>
+                </div>
+                <div class="info-field">
+                    <strong>Contact / Email</strong>
+                    <span>{{ student.email or 'Aucun email enregistré' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cartouche Synthétique KPIs -->
+        <div class="kpi-row">
+            <div class="kpi-box kpi-total">
+                <div class="kpi-value">{{ total_abs }}</div>
+                <div class="kpi-label">Total Absences</div>
+            </div>
+            <div class="kpi-box kpi-unjustified">
+                <div class="kpi-value">{{ unjustified_abs }}</div>
+                <div class="kpi-label">Non Justifiées (Sèches)</div>
+            </div>
+            <div class="kpi-box kpi-justified">
+                <div class="kpi-value">{{ justified_abs }}</div>
+                <div class="kpi-label">Justifiées (Régularisées)</div>
+            </div>
+            <div class="kpi-box kpi-score">
+                <div class="kpi-value">{{ score }}/20</div>
+                <div class="kpi-label">Note d'Assiduité</div>
+            </div>
+        </div>
+
+        <!-- Tableau détaillé des absences -->
+        <div class="section-title">Historique Chronologique des Absences</div>
+        <table class="absences-table">
+            <thead>
+                <tr>
+                    <th width="35">#</th>
+                    <th width="150">Date</th>
+                    <th width="120">Statut</th>
+                    <th>Motif / Justification</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if absences %}
+                    {% for a in absences %}
+                    <tr>
+                        <td style="color:#64748b; font-weight:bold;">{{ loop.index }}</td>
+                        <td><strong>{{ a.date.strftime('%d/%m/%Y') }}</strong></td>
+                        <td>
+                            {% if a.justified %}
+                                <span class="badge-status badge-justified">Justifiée</span>
+                            {% else %}
+                                <span class="badge-status badge-unjustified">Non Justifiée</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: #475569;">
+                            {{ a.reason or (a.justification_notes if a.justified else 'Aucun justificatif fourni sous 48h') }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #10b981; padding: 18px;">
+                            <strong>Excellente assiduité : Aucune absence constatée à ce jour pour cet élève.</strong>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <!-- Signatures Officielles -->
+        <div class="signatures-container">
+            <div class="signature-box">
+                <div class="signature-title">L'Enseignant Responsable</div>
+                <div class="signature-hint">Date, observations & signature</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-title">Administration / Vie Scolaire</div>
+                <div class="signature-hint">Visa et cachet officiel</div>
+            </div>
+            <div class="signature-box">
+                <div class="signature-title">L'Élève / Responsable Légal</div>
+                <div class="signature-hint">Mention "Lu et pris connaissance"</div>
+            </div>
+        </div>
+
+        <!-- Pied de page -->
+        <div class="document-footer">
+            <div>Document officiel généré par Présence App — Système d'Information Pédagogique</div>
+            <div>Page 1 / 1</div>
+        </div>
+
+    </div>
+
+</body>
+</html>

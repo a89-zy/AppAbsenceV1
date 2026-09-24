@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}Gestion Présence - Dashboard{% endblock %}</title>
+
+    <!-- Preconnect pour Google Fonts & CDNs (accélère la résolution DNS & SSL) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+
+    <!-- Custom fonts for this template-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"
+        type="text/css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Nunito:wght@200;300;400;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+    <!-- Custom styles for this template-->
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
+    <!-- Custom styles override -->
+    <link href="{{ url_for('static', filename='style.css') }}?v=2.0" rel="stylesheet">
+    <!-- PWA & Mobile Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4e73df">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Présence App">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='icons/icon-96.png') }}">
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ url_for('static', filename='icons/favicon.png') }}">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body id="page-top" data-theme="{{ app_ui_theme | default('royal_blue') }}" class="{% if is_mobile %}device-mobile-mode{% else %}device-desktop-mode{% endif %} {% if is_mobile %}sidebar-toggled{% endif %}">
+
+    <!-- Page Wrapper -->
+    <div id="wrapper">
+
+        <!-- Sidebar -->
+        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion {% if is_mobile %}toggled{% endif %}" id="accordionSidebar">
+
+            <!-- Sidebar - Brand -->
+            <a class="sidebar-brand d-flex align-items-center justify-content-center"
+                href="{{ url_for('main.dashboard') }}">
+                <div class="sidebar-brand-icon rotate-n-15">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <div class="sidebar-brand-text mx-3">Présence App</div>
+            </a>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider my-0">
+
+            <!-- Nav Item - Dashboard -->
+            <li class="nav-item {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('main.dashboard') }}">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Tableau de Bord</span></a>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider">
+
+            <!-- Heading -->
+            <div class="sidebar-heading">
+                Modules
+            </div>
+
+            <!-- Nav Item - Absence -->
+            <li class="nav-item {% if 'absence' in request.endpoint %}active{% endif %}">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseAbsence"
+                    aria-expanded="true" aria-controls="collapseAbsence">
+                    <i class="fas fa-fw fa-user-check"></i>
+                    <span>Absence</span>
+                </a>
+                <div id="collapseAbsence" class="collapse {% if 'absence' in request.endpoint %}show{% endif %}"
+                    aria-labelledby="headingAbsence" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Gestion:</h6>
+                        <a class="collapse-item {% if request.endpoint == 'absence.index' %}active{% endif %}"
+                            href="{{ url_for('absence.index') }}">Liste des Classes</a>
+                        <a class="collapse-item {% if request.endpoint == 'absence.search' %}active{% endif %}"
+                            href="{{ url_for('absence.search') }}">Recherche Absence</a>
+                        <a class="collapse-item {% if request.endpoint == 'absence.import_class' %}active{% endif %}"
+                            href="{{ url_for('absence.import_class') }}">Importer Étudiants</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Evaluation -->
+            <li class="nav-item {% if 'evaluation' in request.endpoint %}active{% endif %}">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseEvaluation"
+                    aria-expanded="true" aria-controls="collapseEvaluation">
+                    <i class="fas fa-fw fa-graduation-cap text-warning"></i>
+                    <span class="font-weight-bold">Évaluation</span>
+                </a>
+                <div id="collapseEvaluation" class="collapse {% if 'evaluation' in request.endpoint %}show{% endif %}"
+                    aria-labelledby="headingEvaluation" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Notes & Contrôles :</h6>
+                        <a class="collapse-item {% if request.endpoint == 'evaluation.index' %}active{% endif %}"
+                            href="{{ url_for('evaluation.index') }}">
+                            <i class="fas fa-tachometer-alt text-primary"></i><span>Tableau de Bord</span>
+                        </a>
+                        <a class="collapse-item {% if request.endpoint == 'evaluation.grades_grid' %}active{% endif %}"
+                            href="{{ url_for('evaluation.grades_grid') }}">
+                            <i class="fas fa-table text-success"></i><span>Carnet de Notes</span>
+                        </a>
+                        <a class="collapse-item {% if request.endpoint == 'evaluation.quick_entry' %}active{% endif %}"
+                            href="{{ url_for('evaluation.quick_entry') }}">
+                            <i class="fas fa-bolt text-warning"></i><span>Saisie Rapide</span>
+                        </a>
+                        <a class="collapse-item {% if request.endpoint == 'evaluation.analytics' %}active{% endif %}"
+                            href="{{ url_for('evaluation.analytics') }}">
+                            <i class="fas fa-chart-pie text-danger"></i><span>Analyses & Stats</span>
+                        </a>
+                        <a class="collapse-item {% if request.endpoint == 'evaluation.makeup_manager' %}active{% endif %}"
+                            href="{{ url_for('evaluation.makeup_manager') }}">
+                            <i class="fas fa-user-clock text-warning"></i><span>Rattrapages</span>
+                        </a>
+                        <a class="collapse-item {% if request.endpoint == 'evaluation.massar_hub' %}active{% endif %}"
+                            href="{{ url_for('evaluation.massar_hub') }}">
+                            <i class="fas fa-file-excel text-info"></i><span>Export MASSAR</span>
+                        </a>
+                        <a class="collapse-item {% if request.endpoint == 'evaluation.settings' %}active{% endif %}"
+                            href="{{ url_for('evaluation.settings') }}">
+                            <i class="fas fa-sliders-h text-secondary"></i><span>Paramètres</span>
+                        </a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Activity -->
+            <li class="nav-item {% if 'activity' in request.endpoint %}active{% endif %}">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseActivities"
+                    aria-expanded="true" aria-controls="collapseActivities">
+                    <i class="fas fa-fw fa-clipboard-list"></i>
+                    <span>Activité</span>
+                </a>
+                <div id="collapseActivities" class="collapse {% if 'activity' in request.endpoint %}show{% endif %}"
+                    aria-labelledby="headingActivity" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Travaux & TP:</h6>
+                        <a class="collapse-item {% if request.endpoint == 'activity.activities' %}active{% endif %}"
+                            href="{{ url_for('activity.activities') }}">Saisir / Lister</a>
+                        <a class="collapse-item {% if request.endpoint == 'activity.activity_search' %}active{% endif %}"
+                            href="{{ url_for('activity.activity_search') }}">Recherche Activité</a>
+                        <a class="collapse-item {% if request.endpoint == 'activity.monitoring' %}active{% endif %}"
+                            href="{{ url_for('activity.monitoring') }}">Suivi Activité</a>
+                        <a class="collapse-item {% if request.endpoint == 'activity.activities_report' %}active{% endif %}"
+                            href="{{ url_for('activity.activities_report') }}">Suivi par Étudiant</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Nav Item - Statistiques (Top Level) -->
+            <li class="nav-item {% if request.endpoint == 'activity.stats' %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('activity.stats') }}">
+                    <i class="fas fa-fw fa-chart-bar"></i>
+                    <span>Statistiques</span></a>
+            </li>
+
+
+
+            <!-- Nav Item - Cahier de Texte -->
+            <li class="nav-item {% if 'textbook' in request.endpoint %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('textbook.index') }}">
+                    <i class="fas fa-fw fa-book"></i>
+                    <span>Cahier de Texte</span></a>
+            </li>
+
+            <!-- Nav Item - Ressources Pédagogiques -->
+            <li class="nav-item {% if 'resource' in request.endpoint %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('resource.index') }}">
+                    <i class="fas fa-fw fa-folder-open"></i>
+                    <span>Ressources</span></a>
+            </li>
+
+            <!-- Nav Item - Auto-Inscription Élèves -->
+            <li class="nav-item {% if 'registration' in request.endpoint %}active{% endif %}">
+                <a class="nav-link" href="{{ url_for('registration.manage') }}">
+                    <i class="fas fa-fw fa-satellite-dish"></i>
+                    <span>Auto-Inscription</span></a>
+            </li>
+
+            <!-- Nav Item - Configuration -->
+            <li class="nav-item {% if 'configuration' in request.endpoint %}active{% endif %}">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseSettings"
+                    aria-expanded="true" aria-controls="collapseSettings">
+                    <i class="fas fa-fw fa-cog"></i>
+                    <span>Configuration</span>
+                </a>
+                <div id="collapseSettings" class="collapse {% if 'configuration' in request.endpoint %}show{% endif %}"
+                    aria-labelledby="headingSettings" data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Réglages:</h6>
+                        <a class="collapse-item {% if request.endpoint == 'configuration.settings' %}active{% endif %}"
+                            href="{{ url_for('configuration.settings') }}">Général</a>
+                        <a class="collapse-item {% if request.endpoint == 'configuration.photos_page' %}active{% endif %}"
+                            href="{{ url_for('configuration.photos_page') }}">Uploader Photos</a>
+                    </div>
+                </div>
+            </li>
+
+            <!-- Divider -->
+            <hr class="sidebar-divider d-none d-md-block">
+
+            <!-- Sidebar Toggler (Sidebar) -->
+            <div class="text-center d-none d-md-inline">
+                <button class="rounded-circle border-0" id="sidebarToggle"></button>
+            </div>
+
+        </ul>
+        <!-- End of Sidebar -->
+
+        <!-- Content Wrapper -->
+        <div id="content-wrapper" class="d-flex flex-column">
+
+            <!-- Main Content -->
+            <div id="content">
+
+                <!-- Topbar -->
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+
+                    <!-- Sidebar Toggle (Topbar) -->
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <!-- Topbar Search -->
+                    <form class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search" action="{{ url_for('absence.search') }}" method="GET">
+                        <div class="input-group input-group-sm" style="max-width: 280px;">
+                            <input type="text" name="full_name" id="topbarSearchInput" class="form-control bg-light border-0 small" 
+                                   placeholder="Rechercher élève, CNE... (/)" aria-label="Search" style="border-radius: 20px 0 0 20px; padding-left: 14px;">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="submit" style="border-radius: 0 20px 20px 0;">
+                                    <i class="fas fa-search fa-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Topbar Navbar -->
+                    <ul class="navbar-nav ml-auto align-items-center">
+                        <!-- Sélecteur Année Scolaire Globale -->
+                        {% if all_school_years %}
+                        <li class="nav-item dropdown no-arrow mr-2">
+                            <a class="nav-link dropdown-toggle year-picker-pill d-flex align-items-center" 
+                               href="#" id="yearDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                               title="Changer d'année scolaire">
+                                <span class="year-picker-icon-box mr-1">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </span>
+                                <span class="year-picker-text">{{ current_school_year.name if current_school_year else 'Année Scolaire' }}</span>
+                                {% if current_school_year and current_school_year.is_active %}
+                                    <span class="year-dot dot-active" title="Année scolaire en cours"></span>
+                                {% elif is_year_read_only %}
+                                    <span class="year-dot dot-archived" title="Année archivée (lecture seule)"><i class="fas fa-lock" style="font-size:7px;"></i></span>
+                                {% endif %}
+                                <i class="fas fa-chevron-down year-picker-arrow ml-1"></i>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right shadow-lg border-0 animated--fade-in year-picker-dropdown" aria-labelledby="yearDropdown">
+                                <div class="dropdown-header d-flex justify-content-between align-items-center py-2">
+                                    <span class="font-weight-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                                        <i class="fas fa-calendar-day mr-1 text-primary"></i> Années Scolaires
+                                    </span>
+                                </div>
+                                {% for y in all_school_years %}
+                                <a class="dropdown-item d-flex justify-content-between align-items-center py-2 {% if current_school_year and current_school_year.id == y.id %}year-item-active font-weight-bold{% endif %}"
+                                   href="{{ url_for('switch_school_year', year_id=y.id) }}">
+                                    <span class="d-flex align-items-center">
+                                        <i class="fas fa-graduation-cap mr-2 text-muted" style="font-size: 0.85rem;"></i>
+                                        <span>{{ y.name }}</span>
+                                    </span>
+                                    <div>
+                                        {% if y.is_active %}
+                                            <span class="badge badge-success px-2 py-1" style="font-size: 0.68rem;">En cours</span>
+                                        {% elif y.is_read_only() %}
+                                            <span class="badge badge-warning text-dark px-2 py-1" style="font-size: 0.68rem;"><i class="fas fa-lock mr-1"></i>Archivée</span>
+                                        {% endif %}
+                                    </div>
+                                </a>
+                                {% endfor %}
+                                <div class="dropdown-divider my-1"></div>
+                                <a class="dropdown-item text-center py-2 small text-primary font-weight-bold" href="{{ url_for('configuration.settings') }}#tab-years">
+                                    <i class="fas fa-cog mr-1"></i> Gérer dans Configuration
+                                </a>
+                            </div>
+                        </li>
+                        {% endif %}
+
+                        <!-- Device Mode Selector -->
+                        <li class="nav-item dropdown no-arrow mr-2">
+                            <a class="nav-link dropdown-toggle btn btn-sm btn-outline-light text-secondary rounded-pill px-2 py-1 d-flex align-items-center"
+                               href="#" id="deviceModeDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                               title="Mode d'affichage (actuel: {{ device_type | capitalize }})">
+                                {% if device_type == 'tablet' %}
+                                    <i class="fas fa-tablet-alt mr-1 text-primary"></i>
+                                    <span class="d-none d-md-inline small font-weight-bold">Tablette</span>
+                                {% elif device_type == 'mobile' %}
+                                    <i class="fas fa-mobile-alt mr-1 text-info"></i>
+                                    <span class="d-none d-md-inline small font-weight-bold">Mobile</span>
+                                {% else %}
+                                    <i class="fas fa-desktop mr-1 text-secondary"></i>
+                                    <span class="d-none d-md-inline small font-weight-bold">PC</span>
+                                {% endif %}
+                                {% if device_mode_override %}
+                                    <span class="badge badge-warning ml-1" style="font-size: 0.6rem;">Forcé</span>
+                                {% endif %}
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in" aria-labelledby="deviceModeDropdown" style="min-width: 180px;">
+                                <div class="dropdown-header small font-weight-bold text-uppercase text-muted">
+                                    <i class="fas fa-sliders-h mr-1"></i> Mode d'affichage
+                                </div>
+                                <a class="dropdown-item d-flex align-items-center justify-content-between py-2 {% if not device_mode_override %}active font-weight-bold{% endif %}"
+                                   href="{{ url_for('set_device_mode', mode='auto') }}">
+                                    <span><i class="fas fa-magic mr-2 text-muted"></i>Auto (Détection)</span>
+                                    {% if not device_mode_override %}<i class="fas fa-check small"></i>{% endif %}
+                                </a>
+                                <div class="dropdown-divider my-1"></div>
+                                <a class="dropdown-item d-flex align-items-center justify-content-between py-2 {% if device_mode_override == 'desktop' %}active font-weight-bold{% endif %}"
+                                   href="{{ url_for('set_device_mode', mode='desktop') }}">
+                                    <span><i class="fas fa-desktop mr-2 text-secondary"></i>Mode PC (Desktop)</span>
+                                    {% if device_mode_override == 'desktop' %}<i class="fas fa-check small"></i>{% endif %}
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center justify-content-between py-2 {% if device_mode_override == 'tablet' %}active font-weight-bold{% endif %}"
+                                   href="{{ url_for('set_device_mode', mode='tablet') }}">
+                                    <span><i class="fas fa-tablet-alt mr-2 text-primary"></i>Mode Tablette</span>
+                                    {% if device_mode_override == 'tablet' %}<i class="fas fa-check small"></i>{% endif %}
+                                </a>
+                                <a class="dropdown-item d-flex align-items-center justify-content-between py-2 {% if device_mode_override == 'mobile' %}active font-weight-bold{% endif %}"
+                                   href="{{ url_for('set_device_mode', mode='mobile') }}">
+                                    <span><i class="fas fa-mobile-alt mr-2 text-info"></i>Mode Mobile</span>
+                                    {% if device_mode_override == 'mobile' %}<i class="fas fa-check small"></i>{% endif %}
+                                </a>
+                            </div>
+                        </li>
+
+                        <!-- PWA Install Button (affiché dynamiquement quand disponible) -->
+                        <li class="nav-item d-none align-items-center mr-2" id="pwaInstallNavItem">
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-2 py-1 font-weight-bold d-flex align-items-center shadow-sm" id="pwaInstallBtn" title="Installer l'application sur cet appareil">
+                                <i class="fas fa-download mr-1"></i>
+                                <span class="d-none d-sm-inline small">Installer l'App</span>
+                            </button>
+                        </li>
+
+                        <!-- Dark Mode Toggle Button -->
+                        <li class="nav-item d-flex align-items-center mr-2">
+                            <button class="btn btn-sm btn-outline-secondary rounded-circle" id="themeToggleBtn" title="Basculer Mode Sombre / Clair" style="width: 36px; height: 36px;">
+                                <i class="fas fa-moon" id="themeToggleIcon"></i>
+                            </button>
+                        </li>
+
+                        <div class="topbar-divider d-none d-sm-block"></div>
+
+                        <!-- Nav Item - User Information -->
+                        <li class="nav-item dropdown no-arrow">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small font-weight-bold">
+                                    {{ session.get('user_full_name', 'Enseignant') }}
+                                </span>
+                                <i class="fas fa-user-circle fa-lg text-primary"></i>
+                            </a>
+                            <!-- Dropdown - User Information -->
+                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                                aria-labelledby="userDropdown">
+                                <a class="dropdown-item" href="{{ url_for('configuration.settings') }}">
+                                    <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
+                                    Paramètres du compte
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+                                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-danger"></i>
+                                    Déconnexion
+                                </a>
+                            </div>
+                        </li>
+                    </ul>
+
+                </nav>
+                <!-- End of Topbar -->
+
+                <!-- Bannière d'Archive / Mode Lecture Seule -->
+                {% if is_year_read_only %}
+                <div class="alert alert-warning border-left-warning shadow-sm mx-4 mb-4 d-flex align-items-center justify-content-between" role="alert" style="border-radius: 12px;">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-archive fa-2x text-warning mr-3"></i>
+                        <div>
+                            <strong class="text-dark">Mode Archive — Année Scolaire {{ current_school_year.name if current_school_year else '' }}</strong>
+                            <div class="small text-muted">Cette année est archivée en <strong>lecture seule</strong>. Vous pouvez consulter l'historique complet (absences, notes, cahier de texte), mais les modifications sont verrouillées.</div>
+                        </div>
+                    </div>
+                    {% set active_y = all_school_years | selectattr('is_active') | first %}
+                    {% if active_y %}
+                    <a href="{{ url_for('switch_school_year', year_id=active_y.id) }}" class="btn btn-sm btn-dark font-weight-bold ml-3 shadow-sm">
+                        <i class="fas fa-arrow-right mr-1"></i> Revenir à {{ active_y.name }}
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Begin Page Content -->
+                <div class="container-fluid">
+
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show"
+                        role="alert">
+                        {{ message }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+
+                    {% block content %}{% endblock %}
+
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+            <!-- End of Main Content -->
+
+            <!-- Footer -->
+            <footer class="sticky-footer bg-white">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>Copyright &copy; PrésenceApp 2026</span>
+                    </div>
+                </div>
+            </footer>
+            <!-- End of Footer -->
+
+        </div>
+        <!-- End of Content Wrapper -->
+
+    </div>
+    <!-- End of Page Wrapper -->
+
+    <!-- Scroll to Top Button-->
+    <a class="scroll-to-top rounded" href="#page-top">
+        <i class="fas fa-angle-up"></i>
+    </a>
+
+    <!-- Bootstrap core JavaScript-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Core plugin JavaScript-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+
+    <!-- Custom scripts for all pages-->
+    <script src="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/js/sb-admin-2.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.min.js"></script>
+
+    <!-- Dark Mode Handler -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('presence_theme');
+            const themeBtn = document.getElementById('themeToggleBtn');
+            const themeIcon = document.getElementById('themeToggleIcon');
+
+            function applyTheme(isDark) {
+                if (isDark) {
+                    document.body.classList.add('dark-mode');
+                    if (themeIcon) {
+                        themeIcon.classList.remove('fa-moon');
+                        themeIcon.classList.add('fa-sun');
+                        themeIcon.classList.add('text-warning');
+                    }
+                } else {
+                    document.body.classList.remove('dark-mode');
+                    if (themeIcon) {
+                        themeIcon.classList.remove('fa-sun');
+                        themeIcon.classList.remove('text-warning');
+                        themeIcon.classList.add('fa-moon');
+                    }
+                }
+            }
+
+            if (savedTheme === 'dark') {
+                applyTheme(true);
+            }
+
+            if (themeBtn) {
+                themeBtn.addEventListener('click', function() {
+                    const isDark = document.body.classList.toggle('dark-mode');
+                    localStorage.setItem('presence_theme', isDark ? 'dark' : 'light');
+                    applyTheme(isDark);
+                });
+            }
+
+            // Global shortcut : appuyer sur '/' pour chercher
+            document.addEventListener('keydown', function(e) {
+                if (e.key === '/') {
+                    const activeTag = document.activeElement ? document.activeElement.tagName : '';
+                    if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag)) {
+                        e.preventDefault();
+                        const searchInput = document.getElementById('topbarSearchInput');
+                        if (searchInput) {
+                            searchInput.focus();
+                            searchInput.select();
+                        }
+                    }
+                }
+            });
+        })();
+
+        // ============================================
+        // PWA SERVICE WORKER & INSTALL PROMPT
+        // ============================================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(function(reg) {
+                        console.log('[PWA] Service Worker actif, scope:', reg.scope);
+                    })
+                    .catch(function(err) {
+                        console.warn('[PWA] Enregistrement Service Worker échoué:', err);
+                    });
+            });
+        }
+
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const installNavItem = document.getElementById('pwaInstallNavItem');
+            const installBtn = document.getElementById('pwaInstallBtn');
+            if (installNavItem && installBtn) {
+                installNavItem.classList.remove('d-none');
+                installNavItem.classList.add('d-flex');
+                installBtn.addEventListener('click', function() {
+                    if (deferredInstallPrompt) {
+                        deferredInstallPrompt.prompt();
+                        deferredInstallPrompt.userChoice.then(function(choiceResult) {
+                            if (choiceResult.outcome === 'accepted') {
+                                console.log('[PWA] Installation acceptée');
+                                installNavItem.classList.add('d-none');
+                                installNavItem.classList.remove('d-flex');
+                            }
+                            deferredInstallPrompt = null;
+                        });
+                    }
+                });
+            }
+        });
+
+        window.addEventListener('appinstalled', function() {
+            console.log('[PWA] Application installée avec succès !');
+            const installNavItem = document.getElementById('pwaInstallNavItem');
+            if (installNavItem) {
+                installNavItem.classList.add('d-none');
+                installNavItem.classList.remove('d-flex');
+            }
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+
+</body>
+
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiche d'Évaluation & Bilan Semestriel Informatique</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    
+    <style>
+        body {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .report-page {
+            max-width: 860px;
+            margin: 25px auto;
+            background: #ffffff;
+            padding: 35px 45px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            position: relative;
+        }
+
+        .report-header {
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .student-id-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+        }
+
+        .notes-table th {
+            background-color: #f1f5f9;
+            color: #334155;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .notes-table td {
+            vertical-align: middle !important;
+            font-size: 0.95rem;
+        }
+
+        .final-score-box {
+            background: #f8fafc;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .badge-pill-custom {
+            display: inline-flex;
+            align-items: center;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.85rem;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .appreciation-box {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 80px;
+        }
+
+        .signature-section {
+            margin-top: 35px;
+            padding-top: 15px;
+            border-top: 1px dashed #cbd5e1;
+        }
+
+        .signature-box {
+            height: 90px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #fafafa;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: #ffffff !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            .report-page {
+                box-shadow: none !important;
+                border: 1px solid #ccc !important;
+                border-radius: 0 !important;
+                margin: 0 !important;
+                padding: 25px 30px !important;
+                max-width: 100% !important;
+                page-break-after: always;
+            }
+            .appreciation-edit-area {
+                display: none !important;
+            }
+            .appreciation-print-text {
+                display: block !important;
+            }
+        }
+
+        @media screen {
+            .appreciation-print-text {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barre d'Actions Supérieure (Flottante à l'écran, Masquée à l'impression) -->
+    <div class="no-print sticky-top bg-white border-bottom shadow-sm py-2 px-4 mb-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between max-w-custom" style="max-width: 900px; margin: 0 auto; gap: 10px;">
+            <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+                <button type="button" class="btn btn-sm btn-primary font-weight-bold shadow-xs text-nowrap px-3 py-2" onclick="window.print()" style="white-space: nowrap !important;">
+                    <i class="fas fa-print mr-1"></i> Imprimer {% if is_batch %}tout le lot ({{ reports|length }} élèves){% else %}cette fiche{% endif %}
+                </button>
+                <div class="btn-group btn-group-sm shadow-xs">
+                    <a href="?semester=1" class="btn text-nowrap {% if semester == 1 %}btn-secondary font-weight-bold{% else %}btn-outline-secondary{% endif %}">Semestre 1</a>
+                    <a href="?semester=2" class="btn text-nowrap {% if semester == 2 %}btn-secondary font-weight-bold{% else %}btn-outline-secondary{% endif %}">Semestre 2</a>
+                </div>
+            </div>
+            <div class="d-flex align-items-center flex-wrap" style="gap: 8px;">
+                <a href="{{ url_for('evaluation.index', semester=semester) }}" class="btn btn-sm btn-outline-secondary font-weight-bold text-nowrap px-3 py-2" style="white-space: nowrap !important;">
+                    <i class="fas fa-arrow-left mr-1"></i> Tableau de Bord
+                </a>
+                <a href="{{ url_for('evaluation.grades_grid', class_id=selected_class.id if selected_class else None, semester=semester) }}" class="btn btn-sm btn-outline-success font-weight-bold text-nowrap px-3 py-2" style="white-space: nowrap !important;" title="Carnet de Notes" data-toggle="tooltip">
+                    <i class="fas fa-table"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boucle d'Affichage des Bulletins (1 seul ou Lot de la classe) -->
+    {% for r in reports %}
+    {% set st = r.student %}
+    {% set cl = r.classe %}
+    <div class="report-page">
+        <!-- 1. En-Tête Officiel -->
+        <div class="report-header d-flex justify-content-between align-items-center">
+            <div style="font-size: 0.85rem; line-height: 1.35;">
+                <div class="font-weight-bold text-uppercase">Royaume du Maroc</div>
+                <div class="text-muted">Ministère de l'Éducation Nationale,</div>
+                <div class="text-muted">du Préscolaire et des Sports</div>
+                <div class="font-weight-bold mt-1 text-primary">Discipline : Informatique</div>
+            </div>
+            
+            <div class="text-center">
+                <div class="badge badge-light border border-dark text-dark px-3 py-1 font-weight-bold mb-1" style="font-size: 0.95rem; letter-spacing: 0.5px;">
+                    BULLETIN D'ÉVALUATION & BILAN
+                </div>
+                <div class="h5 font-weight-bold mb-0 text-gray-900">
+                    SEMESTRE {{ r.semester }}
+                </div>
+                <div class="small text-muted font-weight-bold">
+                    Année Scolaire : {{ r.current_year.name if r.current_year else '-' }}
+                </div>
+            </div>
+
+            <div class="text-right" style="font-size: 0.85rem; line-height: 1.35;">
+                <div class="font-weight-bold">Classe : <span class="text-primary">{{ cl.name }}</span></div>
+                <div class="text-muted">Niveau : {{ cl.niveau if cl.niveau else 'Secondaire Qualifiant' }}</div>
+                <div class="text-muted">Date d'édition : {{ today_date_fr if today_date_fr else '' }}</div>
+            </div>
+        </div>
+
+        <!-- 2. Carte d'Identité Élève -->
+        <div class="student-id-card d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <img src="{{ url_for('main.uploaded_file', filename=st.photo_path if st.photo_path else 'photos/Default.jpg') }}" 
+                     class="rounded-circle mr-3 border shadow-xs" 
+                     style="width: 58px; height: 58px; object-fit: cover;"
+                     onerror="this.src='{{ url_for('main.uploaded_file', filename='photos/Default.jpg') }}'">
+                <div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-900">
+                        {{ st.last_name.upper() }} {{ st.first_name }}
+                    </div>
+                    <div class="small text-muted mt-1">
+                        Code MASSAR (CNE) : <strong class="font-monospace text-dark">{{ st.cne }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-right">
+                {% if r.rank %}
+                <div class="small text-muted text-uppercase font-weight-bold">Rang dans la classe</div>
+                <div class="h4 mb-0 font-weight-bold text-primary">
+                    #{{ r.rank }} <small class="text-muted font-weight-normal">/ {{ r.total_class }}</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 3. Tableau des 5 Notes Officielles -->
+        <div class="mb-4">
+            <h6 class="font-weight-bold text-dark text-uppercase small mb-2">
+                <i class="fas fa-clipboard-check text-primary mr-1"></i>Résultats aux Épreuves & Travaux Pratiques
+            </h6>
+            <table class="table table-bordered table-sm notes-table mb-0 text-center">
+                <thead>
+                    <tr>
+                        <th style="width: 18%;">
+                            Contrôle 1 (CC1)
+                            {% if r.weights and r.weights.cc1 != 1.0 %}<div class="small font-weight-normal text-muted">Coeff : {{ r.weights.cc1 }}</div>{% endif %}
+                        </th>
+                        <th style="width: 18%;">
+                            Contrôle 2 (CC2)
+                            {% if r.weights and r.weights.cc2 != 1.0 %}<div class="small font-weight-normal text-muted">Coeff : {{ r.weights.cc2 }}</div>{% endif %}
+                        </th>
+                        <th style="width: 18%;">
+                            Contrôle 3 (CC3)
+                            {% if r.weights and r.weights.cc3 != 1.0 %}<div class="small font-weight-normal text-muted">Coeff : {{ r.weights.cc3 }}</div>{% endif %}
+                        </th>
+                        <th style="width: 18%;">
+                            Contrôle 4 (CC4)
+                            {% if r.weights and r.weights.cc4 != 1.0 %}<div class="small font-weight-normal text-muted">Coeff : {{ r.weights.cc4 }}</div>{% endif %}
+                        </th>
+                        <th style="width: 28%;" class="bg-light">
+                            Activité & TP (Formule B)
+                            {% if r.weights and r.weights.activity != 1.0 %}<div class="small font-weight-normal text-primary">Coeff : {{ r.weights.activity }}</div>{% endif %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="font-weight-bold py-2">
+                            {% if r.cc1 is not none %}{{ r.cc1 }} / 20{% else %}<span class="text-muted font-weight-normal">-</span>{% endif %}
+                        </td>
+                        <td class="font-weight-bold py-2">
+                            {% if r.cc2 is not none %}{{ r.cc2 }} / 20{% else %}<span class="text-muted font-weight-normal">-</span>{% endif %}
+                        </td>
+                        <td class="font-weight-bold py-2">
+                            {% if r.cc3 is not none %}{{ r.cc3 }} / 20{% else %}<span class="text-muted font-weight-normal">-</span>{% endif %}
+                        </td>
+                        <td class="font-weight-bold py-2">
+                            {% if r.cc4 is not none %}{{ r.cc4 }} / 20{% else %}<span class="text-muted font-weight-normal">-</span>{% endif %}
+                        </td>
+                        <td class="font-weight-bold py-2 bg-light">
+                            <span class="text-primary font-weight-bold">{{ r.act_final }} / 20</span>
+                            <div class="text-muted small font-weight-normal" style="font-size: 0.75rem;">
+                                Base: {{ r.act_calc.base_score }} &bull; Bonus: +{{ r.act_calc.bonus_score }} &bull; Malus: -{{ r.act_calc.malus_score }}
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 4. Boîte de Synthèse : Moyenne Matière & Repères de Classe -->
+        <div class="row align-items-center mb-4">
+            <div class="col-md-6 mb-2">
+                <div class="final-score-box">
+                    <div class="text-xs text-uppercase font-weight-bold text-muted mb-1">Moyenne Semestrielle Informatique</div>
+                    <div class="h3 font-weight-bold mb-1 {% if r.subject_avg and r.subject_avg >= 14 %}text-success{% elif r.subject_avg and r.subject_avg >= 10 %}text-primary{% elif r.subject_avg and r.subject_avg >= 8 %}text-warning{% else %}text-danger{% endif %}">
+                        {{ "%.2f"|format(r.subject_avg) if r.subject_avg is not none else '-' }} <small class="text-muted">/ 20</small>
+                    </div>
+                    <div>
+                        <span class="badge badge-pill {% if r.subject_avg and r.subject_avg >= 14 %}badge-success{% elif r.subject_avg and r.subject_avg >= 10 %}badge-primary{% elif r.subject_avg and r.subject_avg >= 8 %}badge-warning text-dark{% else %}badge-danger{% endif %} px-3 py-1 font-weight-bold">
+                            Mention : {{ r.mention }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-2">
+                <div class="p-3 border rounded bg-white" style="font-size: 0.88rem;">
+                    <div class="font-weight-bold text-dark mb-2 border-bottom pb-1">
+                        <i class="fas fa-chart-bar text-muted mr-1"></i>Repères Statistiques de la Classe :
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Moyenne du groupe :</span>
+                        <strong>{{ r.class_avg }} / 20</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Note la plus basse :</span>
+                        <strong class="text-danger">{{ r.class_min }} / 20</strong>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Note la plus haute :</span>
+                        <strong class="text-success">{{ r.class_max }} / 20</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Badges d'Attitude & Compétences -->
+        {% if r.badges %}
+        <div class="mb-4">
+            <h6 class="font-weight-bold text-dark text-uppercase small mb-2">
+                <i class="fas fa-award text-warning mr-1"></i>Badges de Compétences & Savoir-Être Acquis
+            </h6>
+            <div>
+                {% for b in r.badges %}
+                <span class="badge-pill-custom">
+                    <i class="{{ b.icon }} mr-1" style="color: {{ b.color }};"></i>
+                    {{ b.title }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 6. Appréciation Pédagogique du Professeur -->
+        <div class="mb-4">
+            <h6 class="font-weight-bold text-dark text-uppercase small mb-2">
+                <i class="fas fa-comment-dots text-primary mr-1"></i>Appréciation Pédagogique du Professeur
+            </h6>
+            <div class="appreciation-box">
+                <!-- Texte imprimé statique -->
+                <div class="appreciation-print-text font-italic text-dark">
+                    <span id="appr_print_{{ st.id }}">{{ r.appreciation if r.appreciation else "Travail régulier durant le semestre." }}</span>
+                </div>
+
+                <!-- Zone d'édition interactive à l'écran -->
+                <div class="appreciation-edit-area">
+                    <textarea class="form-control form-control-sm mb-2" id="appr_input_{{ st.id }}" rows="2" 
+                              placeholder="Rédiger une remarque personnalisée...">{{ r.appreciation }}</textarea>
+                    
+                    <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap: 6px;">
+                        <div class="small d-flex align-items-center flex-wrap" style="gap: 4px;">
+                            <span class="text-muted mr-1 text-nowrap">Suggestions :</span>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 text-nowrap" onclick="setApprPreset({{ st.id }}, 'Excellent travail, très grande régularité et autonomie.')">Excellent</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 text-nowrap" onclick="setApprPreset({{ st.id }}, 'Bon ensemble. Poursuivez vos efforts avec régularité.')">Bon ensemble</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 text-nowrap" onclick="setApprPreset({{ st.id }}, 'Travail convenable. Peut progresser avec plus d\'assiduité.')">Convenable</button>
+                            <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2 text-nowrap" onclick="setApprPreset({{ st.id }}, 'Résultats insuffisants. Manque de travail et d\'attention en TP.')">Insuffisant</button>
+                        </div>
+                        <button type="button" class="btn btn-xs btn-primary px-2 text-nowrap" onclick="saveAppreciationAjax({{ st.id }})">
+                            <i class="fas fa-check mr-1"></i> Enregistrer
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Section Signatures Officielles -->
+        <div class="signature-section">
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="small font-weight-bold text-muted text-uppercase mb-1">Le Professeur d'Informatique</div>
+                    <div class="signature-box d-flex align-items-center justify-content-center text-muted small">
+                        Signature & Cachet
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="small font-weight-bold text-muted text-uppercase mb-1">La Direction de l'Établissement</div>
+                    <div class="signature-box d-flex align-items-center justify-content-center text-muted small">
+                        Cachet de l'Établissement
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="small font-weight-bold text-muted text-uppercase mb-1">Signature des Parents / Tuteur</div>
+                    <div class="signature-box d-flex align-items-center justify-content-center text-muted small">
+                        Lu et approuvé
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Scripts pour l'enregistrement asynchrone des remarques -->
+    <script>
+    function setApprPreset(studentId, text) {
+        document.getElementById('appr_input_' + studentId).value = text;
+        saveAppreciationAjax(studentId);
+    }
+
+    function saveAppreciationAjax(studentId) {
+        const val = document.getElementById('appr_input_' + studentId).value;
+        const sem = "{{ semester }}";
+
+        fetch("{{ url_for('evaluation.api_save_appreciation') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                student_id: studentId,
+                semester: parseInt(sem),
+                appreciation: val
+            })
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                const printEl = document.getElementById('appr_print_' + studentId);
+                if (printEl) printEl.textContent = val;
+            }
+        })
+        .catch(err => console.error("Erreur enregistrement appréciation:", err));
+    }
+    </script>
+</body>
+</html>

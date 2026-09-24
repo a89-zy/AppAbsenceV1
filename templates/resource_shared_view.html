@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{{ resource.title }} - Support Pédagogique</title>
+
+    <!-- Custom fonts -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+
+    <!-- SB Admin 2 / Bootstrap styles -->
+    <link href="https://cdn.jsdelivr.net/npm/startbootstrap-sb-admin-2@4.1.4/css/sb-admin-2.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar-brand-custom {
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: #1e3a8a !important;
+        }
+
+        .resource-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            width: 100%;
+            padding: 0 1rem;
+        }
+
+        .card-resource {
+            border: 0;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .preview-box {
+            background: #f1f5f9;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            min-height: 200px;
+        }
+
+        .btn-download-main {
+            padding: 0.85rem 1.75rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 14px 0 rgba(78, 115, 223, 0.39);
+            transition: all 0.2s ease;
+        }
+
+        .btn-download-main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(78, 115, 223, 0.45);
+        }
+
+        .pin-box {
+            max-width: 400px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Barre supérieure de navigation épurée -->
+    <nav class="navbar navbar-expand navbar-light bg-white shadow-xs border-bottom py-3">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span class="navbar-brand-custom d-flex align-items-center">
+                <i class="fas fa-graduation-cap text-primary fa-lg mr-2"></i>
+                <span>{{ institution.name or 'Espace Pédagogique' }}</span>
+            </span>
+            <span class="badge badge-light border text-muted px-3 py-1.5 font-weight-bold">
+                <i class="fas fa-shield-alt mr-1 text-success"></i> Accès Étudiant Sécurisé
+            </span>
+        </div>
+    </nav>
+
+    <!-- Corps Principal -->
+    <main class="flex-grow-1">
+        <div class="resource-container">
+
+            <!-- Flash messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm mb-4" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            <div class="card card-resource mb-4">
+                <!-- En-tête de la Ressource -->
+                <div class="card-header bg-white border-bottom p-4">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+                        <div>
+                            <span class="badge badge-{{ resource.type_badge_color }} px-3 py-1.5 font-weight-bold">
+                                {% if resource.resource_type == 'Cours' %}📘 Cours & Synthèse
+                                {% elif resource.resource_type == 'Présentation' %}🖥️ Présentation & Slides
+                                {% elif resource.resource_type == 'TP' %}🔬 Travaux Pratiques (TP)
+                                {% elif resource.resource_type == 'TD' %}📝 Travaux Dirigés (TD)
+                                {% elif resource.resource_type == 'Projet' %}🚀 Projet & Cahier des Charges
+                                {% else %}{{ resource.resource_type }}{% endif %}
+                            </span>
+                            {% if resource.target_class %}
+                            <span class="badge badge-light border ml-1 px-2.5 py-1.5 text-dark font-weight-bold">
+                                <i class="fas fa-users text-muted mr-1"></i> Classe {{ resource.target_class.name }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="text-muted small mt-2 mt-sm-0">
+                            <i class="far fa-clock mr-1"></i> Mis à disposition le {{ resource.created_at.strftime('%d/%m/%Y') }}
+                        </div>
+                    </div>
+
+                    <h1 class="h3 font-weight-bold text-gray-900 mb-2">{{ resource.title }}</h1>
+
+                    <!-- Hiérarchie Pédagogique -->
+                    <div class="d-flex flex-wrap align-items-center text-muted small bg-light p-2.5 rounded mt-3">
+                        <div class="mr-3 font-weight-bold text-primary">
+                            <i class="fas fa-book-open mr-1"></i>{{ resource.module.name }}
+                        </div>
+                        {% if resource.section %}
+                        <div class="text-secondary font-weight-bold">
+                            <i class="fas fa-chevron-right mx-1 text-gray-400"></i>
+                            <i class="fas fa-bookmark mr-1"></i>{{ resource.section.name }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Contenu de la Carte -->
+                <div class="card-body p-4">
+
+                    {% if needs_pin %}
+                    <!-- Formulaire de Saisie du Code PIN -->
+                    <div class="pin-box text-center py-4">
+                        <div class="mb-3">
+                            <div class="rounded-circle bg-light d-inline-flex p-3 border">
+                                <i class="fas fa-lock fa-3x text-warning"></i>
+                            </div>
+                        </div>
+                        <h4 class="font-weight-bold text-gray-900 mb-2">Code d'accès requis</h4>
+                        <p class="text-muted small mb-4">
+                            Cette ressource est protégée par un code PIN. Veuillez entrer le code communiqué par votre enseignant pour accéder au document.
+                        </p>
+
+                        <form method="POST" action="{{ url_for('resource.verify_pin', token=token) }}">
+                            <div class="form-group mb-3">
+                                <input type="password" name="pin_code" class="form-control form-control-lg text-center font-weight-bold" 
+                                       placeholder="Entrez le code PIN..." required autofocus maxlength="20" style="letter-spacing: 4px;">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block btn-lg font-weight-bold shadow-sm">
+                                <i class="fas fa-unlock-alt mr-2"></i> Déverrouiller l'accès
+                            </button>
+                        </form>
+                    </div>
+
+                    {% else %}
+
+                    <!-- Description / Consigne pédagogique -->
+                    {% if resource.description %}
+                    <div class="mb-4">
+                        <h6 class="font-weight-bold text-gray-900 mb-2">
+                            <i class="fas fa-info-circle text-info mr-1"></i> Consignes & Remarques :
+                        </h6>
+                        <div class="p-3 bg-light rounded text-muted" style="white-space: pre-line;">
+                            {{ resource.description }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Bouton de Téléchargement Proéminent -->
+                    <div class="text-center my-4">
+                        {% if resource.file_type == 'link' %}
+                        <a href="{{ url_for('resource.download_file', token=token) }}" target="_blank" class="btn btn-primary btn-download-main">
+                            <i class="fas fa-external-link-alt mr-2"></i> Accéder au lien externe
+                        </a>
+                        <p class="text-muted small mt-2">
+                            <i class="fas fa-link mr-1"></i> Ouvre le support hébergé (Drive, Vidéo, GitHub...)
+                        </p>
+                        {% else %}
+                        <a href="{{ url_for('resource.download_file', token=token) }}" class="btn btn-primary btn-download-main">
+                            <i class="fas fa-cloud-download-alt mr-2"></i> Télécharger le document
+                            {% if resource.human_file_size %}
+                            <span class="badge badge-light text-primary ml-2">{{ resource.human_file_size }}</span>
+                            {% endif %}
+                        </a>
+                        <p class="text-muted small mt-2">
+                            <i class="fas fa-file mr-1"></i> Fichier : <strong>{{ resource.original_filename }}</strong>
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Visionneuse / Prévisualisation Intégrée -->
+                    {% if resource.file_type != 'link' and resource.file_path %}
+                        {% set ext = resource.file_extension %}
+                        
+                        <!-- Cas 1 : Document PDF (Visionneuse native) -->
+                        {% if ext == 'pdf' %}
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="font-weight-bold text-gray-900 mb-0">
+                                    <i class="fas fa-eye text-primary mr-1"></i> Prévisualisation directe :
+                                </h6>
+                                <a href="{{ url_for('resource.download_file', token=token) }}?view=1" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-expand mr-1"></i> Plein écran
+                                </a>
+                            </div>
+                            <div class="preview-box">
+                                <iframe src="{{ url_for('resource.download_file', token=token) }}?view=1" style="width: 100%; height: 580px; border: none;"></iframe>
+                            </div>
+                        </div>
+
+                        <!-- Cas 2 : Image / Schéma -->
+                        {% elif ext in ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'] %}
+                        <div class="mt-4">
+                            <h6 class="font-weight-bold text-gray-900 mb-2">
+                                <i class="fas fa-image text-success mr-1"></i> Aperçu de l'image :
+                            </h6>
+                            <div class="preview-box p-3 text-center">
+                                <img src="{{ url_for('resource.download_file', token=token) }}?view=1" alt="{{ resource.title }}" class="img-fluid rounded shadow-xs" style="max-height: 550px;">
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    {% endif %}
+
+                </div>
+
+                <!-- Pied de la Carte -->
+                <div class="card-footer bg-light border-top text-center py-3 text-muted small">
+                    <span>
+                        <i class="fas fa-graduation-cap mr-1"></i> Document mis à disposition pour vos révisions et activités pédagogiques.
+                    </span>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Pied de page officiel -->
+    <footer class="bg-white border-top py-3 text-center text-muted small">
+        <div class="container">
+            <span>&copy; {{ institution.name or 'Établissement Scolaire' }} — Plateforme Pédagogique & Gestion Scolaire</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap core JavaScript-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>

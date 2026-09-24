@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 class="h3 mb-4 text-gray-800">Gestion des Photos Élèves</h1>
+
+<style>
+    .drop-zone {
+        max-width: 100%;
+        height: 200px;
+        padding: 25px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-family: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        color: #858796;
+        border: 2px dashed #4e73df;
+        border-radius: 10px;
+        background-color: #f8f9fc;
+        transition: all 0.3s ease;
+    }
+
+    .drop-zone:hover {
+        background-color: #eaecf4;
+    }
+
+    .drop-zone--over {
+        border-style: solid;
+        background-color: #d1d3e2;
+        border-color: #2e59d9;
+    }
+
+    .drop-zone__input {
+        display: none;
+    }
+
+    .drop-zone__prompt {
+        font-size: 1.1em;
+        margin-bottom: 10px;
+    }
+
+    .drop-zone__icon {
+        font-size: 3em;
+        color: #4e73df;
+        margin-bottom: 15px;
+    }
+</style>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Uploader Photos en Masse</h6>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('configuration.upload_photos') }}" method="POST" enctype="multipart/form-data"
+                    id="uploadForm">
+                    <div class="alert alert-info border-left-info">
+                        <i class="fas fa-info-circle"></i> <strong>Instructions :</strong>
+                        <ul class="mb-0 pl-3 small">
+                            <li>Glissez-déposez vos fichiers directement dans la zone ci-dessous.</li>
+                            <li>Les fichiers <strong>doivent être nommés avec le CNE</strong> de l'élève (ex:
+                                <code>R130123.jpg</code>).</li>
+                            <li>Formats acceptés : JPG, PNG, JPEG.</li>
+                        </ul>
+                    </div>
+
+                    <div class="drop-zone" id="dropZone">
+                        <i class="fas fa-cloud-upload-alt drop-zone__icon"></i>
+                        <span class="drop-zone__prompt">Glissez les photos ici ou cliquez pour parcourir</span>
+                        <input type="file" name="photos" class="drop-zone__input" multiple accept="image/*"
+                            id="fileInput">
+                        <div id="fileCount" class="text-success font-weight-bold mt-2" style="display:none;"></div>
+                    </div>
+
+                    <div id="file-list-preview" class="mt-3 small text-muted text-truncate"></div>
+
+                    <button type="submit" class="btn btn-primary btn-block mt-4" id="submitBtn" disabled>
+                        <i class="fas fa-upload"></i> Envoyer les photos
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const inputElement = document.getElementById('fileInput');
+    const fileCountDiv = document.getElementById('fileCount');
+    const fileListPreview = document.getElementById('file-list-preview');
+    const submitBtn = document.getElementById('submitBtn');
+    const promptSpan = dropZone.querySelector('.drop-zone__prompt');
+    const icon = dropZone.querySelector('.drop-zone__icon');
+
+    dropZone.addEventListener('click', () => {
+        inputElement.click();
+    });
+
+    inputElement.addEventListener('change', () => {
+        if (inputElement.files.length) {
+            updateThumbnail(inputElement.files);
+        }
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drop-zone--over');
+    });
+
+    ['dragleave', 'dragend'].forEach(type => {
+        dropZone.addEventListener(type, (e) => {
+            dropZone.classList.remove('drop-zone--over');
+        });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+
+        if (e.dataTransfer.files.length) {
+            inputElement.files = e.dataTransfer.files;
+            updateThumbnail(e.dataTransfer.files);
+        }
+
+        dropZone.classList.remove('drop-zone--over');
+    });
+
+    function updateThumbnail(files) {
+        if (files.length > 0) {
+            // Update UI to show selection
+            promptSpan.style.display = 'none';
+            icon.classList.remove('fa-cloud-upload-alt');
+            icon.classList.add('fa-check-circle', 'text-success');
+
+            fileCountDiv.style.display = 'block';
+            fileCountDiv.innerText = `${files.length} fichier(s) prêt(s) à l'envoi`;
+
+            // Enable button
+            submitBtn.disabled = false;
+
+            // Preview names (max 5)
+            const names = Array.from(files).map(f => f.name);
+            const previewText = names.slice(0, 5).join(', ') + (names.length > 5 ? `... (+${names.length - 5} autres)` : '');
+            fileListPreview.innerText = previewText;
+        }
+    }
+</script>
+{% endblock %}

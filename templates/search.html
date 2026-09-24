@@ -1,0 +1,353 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-search-location text-primary mr-2"></i>Recherche & Assiduité
+    </h1>
+    {% if request.args %}
+    <a href="{{ url_for('absence.search') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm">
+        <i class="fas fa-times-circle mr-1"></i>Réinitialiser les filtres
+    </a>
+    {% endif %}
+</div>
+
+<!-- Carte Moderne de Recherche -->
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 16px; background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%);">
+    <div class="card-body p-4">
+        <form method="GET" action="{{ url_for('absence.search') }}" id="mainSearchForm">
+            <!-- Barre de Recherche Universelle Principale -->
+            <div class="input-group input-group-lg mb-3 shadow-sm" style="border-radius: 50px; overflow: hidden; border: 2px solid #e2e8f0; background: #fff; transition: all 0.2s ease;">
+                <div class="input-group-prepend">
+                    <span class="input-group-text bg-transparent border-0 pl-3 pr-2 text-primary">
+                        <i class="fas fa-search fa-lg"></i>
+                    </span>
+                </div>
+                <input type="text" name="full_name" class="form-control border-0 px-2" 
+                       placeholder="Rechercher par Nom, Prénom ou CNE (ex: D151057126, Alami...)"
+                       value="{{ request.args.get('full_name', '') }}"
+                       style="font-size: 1.05rem; box-shadow: none;"
+                       autocomplete="off">
+                <div class="input-group-append p-1">
+                    <button type="button" class="btn btn-light rounded-pill px-3 mr-1 text-muted border-0 d-flex align-items-center" 
+                            data-toggle="collapse" data-target="#advancedFilters" aria-expanded="false" aria-controls="advancedFilters"
+                            title="Filtres avancés" style="font-weight: 500; font-size: 0.9rem;">
+                        <i class="fas fa-sliders-h mr-1 text-primary"></i> 
+                        <span>Filtres</span>
+                        {% if request.args.get('class_id') or request.args.get('cne') or request.args.get('date_seance') %}
+                            <span class="badge badge-primary ml-1" style="font-size: 0.7rem;">Actifs</span>
+                        {% endif %}
+                    </button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 font-weight-bold shadow-sm" style="letter-spacing: 0.3px;">
+                        Rechercher
+                    </button>
+                </div>
+            </div>
+
+            <!-- Filtres Avancés Rétractables -->
+            <div class="collapse {% if request.args.get('class_id') or request.args.get('cne') or request.args.get('date_seance') %}show{% endif %}" id="advancedFilters">
+                <div class="p-3 mt-3 rounded-lg" style="background: rgba(241, 245, 249, 0.7); border: 1px dashed #cbd5e1; border-radius: 12px;">
+                    <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+                        <span class="small font-weight-bold text-uppercase text-muted" style="letter-spacing: 0.5px;">
+                            <i class="fas fa-filter text-primary mr-1"></i>Critères de filtrage ciblés
+                        </span>
+                        {% if request.args.get('class_id') or request.args.get('cne') or request.args.get('date_seance') %}
+                        <a href="{{ url_for('absence.search') }}" class="small text-danger font-weight-bold">
+                            <i class="fas fa-trash-alt mr-1"></i>Effacer les filtres
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <!-- Classe -->
+                        <div class="form-group col-md-4 mb-2">
+                            <label class="small font-weight-bold text-gray-700 mb-1">
+                                <i class="fas fa-chalkboard text-info mr-1"></i>Classe
+                            </label>
+                            <select name="class_id" class="form-control form-control-sm rounded-pill border-0 shadow-sm" style="height: 38px;">
+                                <option value="">Toutes les classes</option>
+                                {% for c in classes %}
+                                <option value="{{ c.id }}" {% if request.args.get('class_id')|int==c.id %}selected{% endif %}>
+                                    {{ c.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <!-- CNE spécifique -->
+                        <div class="form-group col-md-4 mb-2">
+                            <label class="small font-weight-bold text-gray-700 mb-1">
+                                <i class="fas fa-id-card text-success mr-1"></i>Code CNE (précis)
+                            </label>
+                            <input type="text" name="cne" class="form-control form-control-sm rounded-pill border-0 shadow-sm" 
+                                   placeholder="ex: D151057126" value="{{ request.args.get('cne', '') }}" style="height: 38px;">
+                        </div>
+                        <!-- Date de séance -->
+                        <div class="form-group col-md-4 mb-2">
+                            <label class="small font-weight-bold text-gray-700 mb-1">
+                                <i class="far fa-calendar-alt text-warning mr-1"></i>Date de séance
+                            </label>
+                            <input type="date" name="date_seance" class="form-control form-control-sm rounded-pill border-0 shadow-sm" 
+                                   value="{{ request.args.get('date_seance', '') }}" style="height: 38px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Badges des Filtres Actifs -->
+            {% if request.args %}
+            <div class="d-flex flex-wrap align-items-center mt-3 pt-2">
+                <span class="small font-weight-bold text-muted mr-2">Filtres appliqués :</span>
+                {% if request.args.get('full_name') %}
+                <span class="badge badge-pill badge-light border text-dark py-1 px-3 mr-2 mb-1 shadow-sm">
+                    <i class="fas fa-user text-primary mr-1"></i> Mot-clé : <strong>{{ request.args.get('full_name') }}</strong>
+                </span>
+                {% endif %}
+                {% if request.args.get('class_id') %}
+                    {% for c in classes %}
+                        {% if request.args.get('class_id')|int == c.id %}
+                        <span class="badge badge-pill badge-light border text-dark py-1 px-3 mr-2 mb-1 shadow-sm">
+                            <i class="fas fa-chalkboard text-info mr-1"></i> Classe : <strong>{{ c.name }}</strong>
+                        </span>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% if request.args.get('cne') %}
+                <span class="badge badge-pill badge-light border text-dark py-1 px-3 mr-2 mb-1 shadow-sm">
+                    <i class="fas fa-id-card text-success mr-1"></i> CNE : <strong>{{ request.args.get('cne') }}</strong>
+                </span>
+                {% endif %}
+                {% if request.args.get('date_seance') %}
+                <span class="badge badge-pill badge-light border text-dark py-1 px-3 mr-2 mb-1 shadow-sm">
+                    <i class="far fa-calendar-alt text-warning mr-1"></i> Date : <strong>{{ request.args.get('date_seance') }}</strong>
+                </span>
+                {% endif %}
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+{% if students_absences %}
+<div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-users mr-1"></i> Résultats : {{ students_absences|length }} étudiant(s) trouvé(s) ({{ absences|length }} absence(s) au total)
+        </h6>
+        <span class="badge badge-secondary">Cliquez sur un étudiant pour déplier ses dates d'absence</span>
+    </div>
+    <div class="card-body p-3">
+        <div class="accordion" id="accordionStudents">
+            {% for item in students_absences %}
+            {% set s = item.student %}
+            {% set s_id = s.id %}
+            <div class="card mb-2 border">
+                <div class="card-header py-2 px-3 bg-light d-flex justify-content-between align-items-center" id="headingStudent{{ s_id }}">
+                    <div class="d-flex align-items-center flex-grow-1 cursor-pointer" 
+                         data-toggle="collapse" 
+                         data-target="#collapseStudent{{ s_id }}" 
+                         aria-expanded="false" 
+                         aria-controls="collapseStudent{{ s_id }}"
+                         style="cursor: pointer;">
+                        <img src="{{ url_for('main.uploaded_file', filename=s.photo_path if s.photo_path else 'photos/Default.jpg') }}" 
+                             alt="Photo" 
+                             class="rounded-circle mr-3 border" 
+                             style="width: 42px; height: 42px; object-fit: cover;">
+                        <div>
+                            <h6 class="mb-0 font-weight-bold text-dark">
+                                <i class="fas fa-chevron-right mr-1 text-primary collapse-icon" id="icon{{ s_id }}"></i>
+                                {{ s.last_name }} {{ s.first_name }}
+                            </h6>
+                            <small class="text-muted">
+                                <strong>CNE:</strong> {{ s.cne or '-' }} | 
+                                <strong>Classe:</strong> {{ s.student_class.name if s.student_class else '-' }}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center ml-2">
+                        {% if item.total == 0 %}
+                        <span class="badge badge-success mr-2 py-1 px-2">
+                            <i class="fas fa-check-circle mr-1"></i> 0 Absence (100% Assiduité)
+                        </span>
+                        {% else %}
+                        <span class="badge badge-info mr-2 py-1 px-2">
+                            Total: {{ item.total }} absence(s)
+                        </span>
+                        {% if item.unjustified_count > 0 %}
+                        <span class="badge badge-danger mr-2 py-1 px-2">
+                            {{ item.unjustified_count }} Non justifiée(s)
+                        </span>
+                        {% else %}
+                        <span class="badge badge-success mr-2 py-1 px-2">
+                            Toutes justifiées
+                        </span>
+                        {% endif %}
+                        {% endif %}
+                        <a href="{{ url_for('absence.student_detail', student_id=s_id) }}" 
+                           class="btn btn-outline-info btn-sm ml-2" 
+                           title="Voir fiche complète">
+                            <i class="fas fa-user"></i> Fiche
+                        </a>
+                    </div>
+                </div>
+
+                <div id="collapseStudent{{ s_id }}" 
+                     class="collapse" 
+                     aria-labelledby="headingStudent{{ s_id }}" 
+                     data-parent="#accordionStudents">
+                    <div class="card-body p-0">
+                        {% if item.absences %}
+                        <div class="table-responsive mb-0">
+                            <table class="table table-hover table-striped mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th style="width: 50px;">#</th>
+                                        <th>Date d'Absence</th>
+                                        <th>Statut</th>
+                                        <th>Motif</th>
+                                        <th style="width: 130px;" class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for absence in item.absences %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>
+                                            <i class="far fa-calendar-alt text-muted mr-1"></i>
+                                            <strong>{{ absence.date.strftime('%d/%m/%Y') }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if absence.justified %}
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-check-circle mr-1"></i> Justifié
+                                            </span>
+                                            {% else %}
+                                            <span class="badge badge-danger">
+                                                <i class="fas fa-times-circle mr-1"></i> Non justifié
+                                            </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if absence.justified and absence.reason %}
+                                            <span class="text-gray-800">{{ absence.reason }}</span>
+                                            {% elif absence.justified %}
+                                            <span class="text-muted font-italic">Sans motif précisé</span>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <button class="btn btn-sm btn-primary"
+                                                onclick="openJustifyModal({{ absence.id }}, {{ absence.justified|lower }}, '{{ absence.reason or '' }}')">
+                                                <i class="fas fa-check mr-1"></i> Justifier
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="p-3 text-center text-muted">
+                            <i class="fas fa-user-check text-success mr-1"></i> Cet étudiant n'a aucune absence enregistrée.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Justification -->
+<div class="modal fade" id="justifyModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Justifier l'absence</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="justifyForm">
+                    <input type="hidden" id="absenceId">
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <select id="justifyStatus" class="form-control" onchange="toggleReasonField()">
+                            <option value="false">Non justifié</option>
+                            <option value="true">Justifié</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="reasonGroup" style="display:none;">
+                        <label>Motif de justification</label>
+                        <select id="justifyReason" class="form-control">
+                            <option value="">Sélectionner un motif...</option>
+                            <option value="Maladie">Maladie</option>
+                            <option value="Accident">Accident</option>
+                            <option value="Retard de transport">Retard de transport</option>
+                            <option value="Urgence familiale">Urgence familiale</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="saveJustification()">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openJustifyModal(id, justified, reason) {
+        document.getElementById('absenceId').value = id;
+        document.getElementById('justifyStatus').value = justified;
+        document.getElementById('justifyReason').value = reason;
+        toggleReasonField();
+        $('#justifyModal').modal('show');
+    }
+
+    function toggleReasonField() {
+        const isJustified = document.getElementById('justifyStatus').value === 'true';
+        document.getElementById('reasonGroup').style.display = isJustified ? 'block' : 'none';
+    }
+
+    function saveJustification() {
+        const id = document.getElementById('absenceId').value;
+        const justified = document.getElementById('justifyStatus').value === 'true';
+        const reason = document.getElementById('justifyReason').value;
+
+        if (justified && !reason) {
+            alert('Veuillez sélectionner un motif.');
+            return;
+        }
+
+        fetch(`/absence/update_justification/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                justified: justified,
+                reason: reason
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + data.error);
+                }
+            });
+    }
+</script>
+{% elif request.args %}
+<div class="card shadow mb-4">
+    <div class="card-body text-center">
+        <p class="mb-0 text-gray-500">Aucun étudiant trouvé avec ces critères.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

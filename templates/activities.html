@@ -1,0 +1,1412 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- En-tête de la page -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1 text-gray-800 font-weight-bold">
+            <i class="fas fa-tasks text-primary mr-2"></i>Activités & Évaluations Pédagogiques
+        </h1>
+        <p class="text-muted small mb-0">
+            Planifiez des activités (TP, TD, Projets), composez vos groupes de travail et suivez la réalisation des travaux des élèves.
+        </p>
+    </div>
+    <div class="app-toolbar mt-3 mt-sm-0">
+        <div class="toolbar-capsule">
+            <a href="{{ url_for('activity.activity_search') }}" class="toolbar-btn" title="Rechercher des activités avec filtres avancés">
+                <i class="fas fa-search text-primary mr-1"></i> Recherche
+            </a>
+            <a href="{{ url_for('activity.activities_report') }}" class="toolbar-btn" title="Consulter le bilan par élève">
+                <i class="fas fa-user-graduate text-info mr-1"></i> Bilan par Élève
+            </a>
+        </div>
+        <a href="{{ url_for('evaluation.grades_grid') }}" class="toolbar-btn-cta shadow-sm" title="Accéder au carnet des 5 notes">
+            <i class="fas fa-graduation-cap mr-1"></i> Carnet des 5 Notes
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Formulaire Nouvelle Activité -->
+    <div class="col-12 mb-4">
+        <div class="card shadow-sm border-0" style="border-radius: 14px; overflow: hidden;">
+            <div class="card-header py-3 bg-gradient-primary text-white d-flex align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-plus-circle mr-2"></i>Nouvelle Activité Pédagogique
+                </h6>
+                <span class="badge badge-light text-primary font-weight-bold px-2 py-1">
+                    Étape 1 : Définition & Modalités
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('activity.create_activity') }}" id="newActivityForm">
+                    
+                    <!-- SECTION 1 : PÉDAGOGIE & CONTENU -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="badge badge-primary rounded-circle mr-2" style="width: 26px; height: 26px; line-height: 20px; font-size: 0.85rem; text-align: center;">1</span>
+                            <h6 class="font-weight-bold text-gray-800 mb-0">Contenu & Rattachement Pédagogique</h6>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-3">
+                                <label class="font-weight-bold text-gray-700 small">
+                                    <i class="fas fa-users text-primary mr-1"></i>Classe <span class="text-danger">*</span>
+                                </label>
+                                <select name="class_id" id="classSelect" class="form-control rounded-lg" required onchange="onClassChange()">
+                                    <option value="">Choisir une classe...</option>
+                                    {% for c in classes %}
+                                    <option value="{{ c.id }}">{{ c.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group col-md-3">
+                                <label class="font-weight-bold text-gray-700 small">
+                                    <i class="fas fa-book text-info mr-1"></i>Module <span class="text-danger">*</span>
+                                </label>
+                                <select name="module" id="moduleSelect" class="form-control rounded-lg" required onchange="onModuleChange()">
+                                    <option value="">Choisir un module...</option>
+                                    {% for m in modules %}
+                                    <option value="{{ m.name }}">{{ m.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group col-md-3">
+                                <label class="font-weight-bold text-gray-700 small">
+                                    <i class="fas fa-layer-group text-secondary mr-1"></i>Chapitre / Section <span class="text-danger">*</span>
+                                </label>
+                                <select name="section" id="sectionSelect" class="form-control rounded-lg" required disabled onchange="onSectionChange()">
+                                    <option value="">En attente du module...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group col-md-3">
+                                <label class="font-weight-bold text-gray-700 small">
+                                    <i class="fas fa-tag text-warning mr-1"></i>Type d'activité <span class="text-danger">*</span>
+                                </label>
+                                <select name="activity_type" id="typeSelect" class="form-control rounded-lg" required>
+                                    <option value="">Choisir un type...</option>
+                                    {% for t in types %}
+                                    <option value="{{ t.name }}">{{ t.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold text-gray-700 small">
+                                    <i class="fas fa-heading text-primary mr-1"></i>Titre de l'activité
+                                </label>
+                                <input type="text" name="title" id="titleInput" class="form-control rounded-lg" 
+                                       placeholder="Ex: TP 1 - Conception de Base de Données (optionnel)">
+                                <small class="form-text text-muted">Si laissé vide, généré automatiquement (Type + Chapitre).</small>
+                            </div>
+
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold text-gray-700 small d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-paperclip text-success mr-1"></i>Ressource de cours liée</span>
+                                    <a id="resourcePreviewBtn" href="#" target="_blank" class="btn btn-xs btn-outline-success font-weight-bold d-none" style="font-size: 0.75rem;">
+                                        <i class="fas fa-external-link-alt mr-1"></i>Aperçu
+                                    </a>
+                                </label>
+                                <select name="resource_id" id="resourceSelect" class="form-control rounded-lg" onchange="onResourceChange()">
+                                    <option value="">-- Aucune ressource liée --</option>
+                                    {% for r in resources %}
+                                    <option value="{{ r.id }}" data-token="{{ r.share_token }}" data-module="{{ r.module.name if r.module else '' }}">
+                                        [{{ r.resource_type }}] {{ r.title }} ({{ r.human_file_size }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted" id="resourceHint">Sélectionnez un énoncé, un support de TP ou un cours.</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="font-weight-bold text-gray-700 small">
+                                <i class="fas fa-align-left text-muted mr-1"></i>Consignes & Objectifs pédagogiques
+                            </label>
+                            <textarea name="description" rows="2" class="form-control rounded-lg" 
+                                      placeholder="Instructions spécifiques pour les élèves, barème indicatif, critères de validation..."></textarea>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- SECTION 2 : MODALITÉS, GROUPES & CIBLAGE -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="badge badge-primary rounded-circle mr-2" style="width: 26px; height: 26px; line-height: 20px; font-size: 0.85rem; text-align: center;">2</span>
+                            <h6 class="font-weight-bold text-gray-800 mb-0">Modalités & Composition des Groupes de Travail</h6>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group col-md-3">
+                                <label class="font-weight-bold text-gray-700 small">
+                                    <i class="fas fa-calendar-day text-info mr-1"></i>Date de séance
+                                </label>
+                                <input type="date" name="date" class="form-control rounded-lg" value="{{ now_date if now_date else '' }}" id="sessionDateInput">
+                            </div>
+
+                            <div class="form-group col-md-3">
+                                <label class="font-weight-bold text-gray-700 small">
+                                    <i class="fas fa-calendar-check text-warning mr-1"></i>Date limite / Échéance
+                                </label>
+                                <input type="date" name="due_date" class="form-control rounded-lg">
+                                <small class="form-text text-muted">Facultatif (pour suivi des retards)</small>
+                            </div>
+
+                            <div class="form-group col-md-3">
+                                <label class="font-weight-bold text-gray-700 small">
+                                    <i class="fas fa-user-friends text-primary mr-1"></i>Mode de travail & Groupes
+                                </label>
+                                <div class="mt-2">
+                                    <div class="custom-control custom-radio custom-control-inline">
+                                        <input type="radio" id="modeIndiv" name="work_mode" value="Individuel" class="custom-control-input" checked onchange="onWorkModeToggle()">
+                                        <label class="custom-control-label small font-weight-bold" for="modeIndiv">Individuel</label>
+                                    </div>
+                                    <div class="custom-control custom-radio custom-control-inline">
+                                        <input type="radio" id="modeBinome" name="work_mode" value="Binôme" class="custom-control-input" onchange="onWorkModeToggle()">
+                                        <label class="custom-control-label small font-weight-bold" for="modeBinome">Binôme / Groupes</label>
+                                    </div>
+                                </div>
+                                <div class="mt-2" id="groupWorkshopTriggerBox">
+                                    <button type="button" class="btn btn-xs btn-outline-primary font-weight-bold shadow-xs py-1 px-2" onclick="openGroupWorkshopModal()" id="btnOpenWorkshop">
+                                        <i class="fas fa-users-cog mr-1"></i> Atelier des Groupes
+                                    </button>
+                                    <span id="workshopSummaryBadge" class="badge badge-light border text-muted ml-1 small">Non configuré</span>
+                                </div>
+                                <input type="hidden" name="groups_json" id="groupsJsonInput" value="">
+                            </div>
+
+                            <div class="form-group col-md-3">
+                                <label class="font-weight-bold text-gray-700 small">
+                                    <i class="fas fa-bullseye text-danger mr-1"></i>Barème & Coeff
+                                </label>
+                                <div class="input-group">
+                                    <select name="max_score" class="form-control form-control-sm rounded-left font-weight-bold">
+                                        <option value="20" selected>/20 pts</option>
+                                        <option value="10">/10 pts</option>
+                                        <option value="40">/40 pts</option>
+                                        <option value="100">/100 %</option>
+                                    </select>
+                                    <div class="input-group-append">
+                                        <span class="input-group-text small bg-light border-left-0 font-weight-bold">Coeff</span>
+                                    </div>
+                                    <input type="number" step="0.5" min="0.5" max="10" name="coefficient" value="1.0" class="form-control form-control-sm rounded-right font-weight-bold text-center" style="max-width: 65px;">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ciblage Élèves -->
+                        <div class="card bg-light border-0 p-3 rounded-lg mt-2">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between mb-2">
+                                <div>
+                                    <span class="font-weight-bold text-gray-700 small">
+                                        <i class="fas fa-user-check text-primary mr-1"></i>Élèves assignés :
+                                    </span>
+                                    <span id="targetBadge" class="badge badge-info ml-2 px-2 py-1 font-weight-bold">
+                                        Veuillez d'abord choisir une classe
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex flex-wrap align-items-center" style="gap: 15px;">
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="tgtAll" name="target_group" value="all" class="custom-control-input" checked onchange="onTargetGroupChange()">
+                                    <label class="custom-control-label small font-weight-bold" for="tgtAll">
+                                        <i class="fas fa-users mr-1 text-primary"></i>Toute la classe (<span id="countAll">0</span>)
+                                    </label>
+                                </div>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="tgtG1" name="target_group" value="g1" class="custom-control-input" onchange="onTargetGroupChange()">
+                                    <label class="custom-control-label small font-weight-bold" for="tgtG1">
+                                        <i class="fas fa-user-tag mr-1 text-info"></i>Groupe 1 TP (<span id="countG1">0</span>)
+                                    </label>
+                                </div>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="tgtG2" name="target_group" value="g2" class="custom-control-input" onchange="onTargetGroupChange()">
+                                    <label class="custom-control-label small font-weight-bold" for="tgtG2">
+                                        <i class="fas fa-user-tag mr-1 text-info"></i>Groupe 2 TP (<span id="countG2">0</span>)
+                                    </label>
+                                </div>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="tgtCustom" name="target_group" value="custom" class="custom-control-input" onchange="onTargetGroupChange()">
+                                    <label class="custom-control-label small font-weight-bold" for="tgtCustom">
+                                        <i class="fas fa-sliders-h mr-1 text-secondary"></i>Sélection personnalisée (<span id="countCustom">0</span>)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Sélecteur personnalisé déroulant -->
+                            <div id="customStudentsBox" class="mt-3 pt-3 border-top d-none">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small font-weight-bold text-muted">Cochez les élèves concernés par cette activité :</span>
+                                    <div>
+                                        <button type="button" class="btn btn-xs btn-outline-primary" onclick="toggleAllCheckboxes(true)">Tout cocher</button>
+                                        <button type="button" class="btn btn-xs btn-outline-secondary ml-1" onclick="toggleAllCheckboxes(false)">Tout décocher</button>
+                                    </div>
+                                </div>
+                                <div class="row" id="customStudentsList" style="max-height: 180px; overflow-y: auto;">
+                                    <!-- Rempli en JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BOUTONS D'ACTION CLAIRS -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <div class="small text-muted">
+                            <i class="fas fa-info-circle mr-1 text-info"></i>
+                            Vous pouvez planifier l'activité maintenant et saisir les notes ultérieurement.
+                        </div>
+                        <div class="d-flex align-items-center" style="gap: 10px;">
+                            <button type="submit" name="action_type" value="plan" class="btn btn-outline-primary shadow-sm font-weight-bold px-3 py-2">
+                                <i class="fas fa-calendar-plus mr-1"></i> Enregistrer & Planifier
+                            </button>
+                            <button type="submit" name="action_type" value="grade_now" class="btn btn-primary shadow-sm font-weight-bold px-4 py-2">
+                                <i class="fas fa-pen-alt mr-1"></i> Saisir les notes maintenant <i class="fas fa-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau Historique des Activités -->
+    <div class="col-12">
+        <div class="card shadow-sm border-0 mb-4" style="border-radius: 14px;">
+            <div class="card-header py-3 bg-white d-flex align-items-center justify-content-between border-0">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-history mr-2"></i>Historique & Suivi de Réalisation des Activités
+                </h6>
+                <span class="badge badge-light border text-muted px-2 py-1 font-weight-bold">
+                    {{ activities|length }} activité(s) au total
+                </span>
+            </div>
+            <div class="card-body p-0">
+                {% if activities %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" width="100%" cellspacing="0" style="vertical-align: middle;">
+                        <thead class="bg-light text-muted small text-uppercase">
+                            <tr>
+                                <th width="120">Dates</th>
+                                <th>Activité & Module</th>
+                                <th width="180">Classe & Public</th>
+                                <th width="170">Ressource Liée</th>
+                                <th width="180">Réalisation</th>
+                                <th width="110" class="text-center">Statut</th>
+                                <th width="140" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for act in activities %}
+                            {% set stats = act.completion_stats %}
+                            <tr>
+                                <!-- Date & Échéance -->
+                                <td class="align-middle">
+                                    <div class="font-weight-bold text-dark">{{ act.date.strftime('%d/%m/%Y') }}</div>
+                                    {% if act.due_date %}
+                                    <div class="small text-muted" title="Date limite">
+                                        <i class="fas fa-hourglass-half mr-1"></i>{{ act.due_date.strftime('%d/%m/%Y') }}
+                                    </div>
+                                    {% if act.is_overdue %}
+                                    <span class="badge badge-danger text-uppercase" style="font-size: 0.65rem;">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>Retard
+                                    </span>
+                                    {% endif %}
+                                    {% endif %}
+                                </td>
+
+                                <!-- Activité & Module -->
+                                <td class="align-middle">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="badge badge-primary font-weight-bold mr-2">{{ act.activity_type }}</span>
+                                        <strong class="text-dark">{{ act.display_title }}</strong>
+                                    </div>
+                                    <div class="small text-muted">
+                                        <span class="text-info font-weight-bold">{{ act.module }}</span> › {{ act.section }}
+                                        &nbsp;•&nbsp;
+                                        <span class="badge badge-light border text-dark">/{{ act.max_score or 20 }}</span>
+                                        <span class="badge badge-secondary font-weight-bold">x{{ act.coefficient or 1.0 }}</span>
+                                    </div>
+                                    {% if act.description %}
+                                    <small class="text-muted text-truncate d-block mt-1" style="max-width: 320px;" title="{{ act.description }}">
+                                        <i class="fas fa-info-circle mr-1"></i>{{ act.description }}
+                                    </small>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Classe & Modalité -->
+                                <td class="align-middle">
+                                    {% set c = Class.query.get(act.class_id) %}
+                                    <div class="font-weight-bold text-dark mb-1">
+                                        <span class="badge badge-dark px-2 py-1">{{ c.name if c else 'Classe N/A' }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="badge badge-light border text-muted" style="font-size: 0.72rem;">
+                                            <i class="fas fa-user-friends mr-1"></i>{{ act.work_mode or 'Individuel' }}
+                                        </span>
+                                        {% if act.target_group == 'g1' %}
+                                        <span class="badge badge-info" style="font-size: 0.72rem;">G1 TP</span>
+                                        {% elif act.target_group == 'g2' %}
+                                        <span class="badge badge-info" style="font-size: 0.72rem;">G2 TP</span>
+                                        {% elif act.target_group == 'custom' %}
+                                        <span class="badge badge-secondary" style="font-size: 0.72rem;">Ciblé</span>
+                                        {% endif %}
+                                        {% if act.groups_summary %}
+                                        <br><span class="badge badge-light border text-primary mt-1 font-weight-bold text-truncate d-inline-block" style="max-width: 170px; font-size: 0.68rem;" title="{{ act.groups_summary }}">
+                                            <i class="fas fa-users mr-1"></i>{{ act.groups_summary }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
+                                <!-- Ressource Liée -->
+                                <td class="align-middle">
+                                    {% if act.resource %}
+                                    <a href="{{ url_for('resource.shared_view', token=act.resource.share_token) }}" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-outline-success text-left font-weight-bold shadow-xs py-1 px-2 d-inline-block text-truncate"
+                                       style="max-width: 160px; border-radius: 8px;"
+                                       title="Consulter : {{ act.resource.title }}">
+                                        <i class="{{ act.resource.icon_class or 'fas fa-file' }} mr-1"></i>
+                                        {{ act.resource.title }}
+                                        <i class="fas fa-external-link-alt ml-1" style="font-size: 0.65rem;"></i>
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted small italic">Aucune</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Progression Réalisation -->
+                                <td class="align-middle">
+                                    <div class="d-flex justify-content-between small font-weight-bold mb-1">
+                                        <span class="text-dark">{{ stats.done }}/{{ stats.total }} faits</span>
+                                        <span class="text-muted">{{ stats.percent }}%</span>
+                                    </div>
+                                    <div class="progress progress-sm rounded-pill" style="height: 6px; background-color: #e2e8f0;">
+                                        <div class="progress-bar {% if stats.percent == 100 %}bg-success{% elif stats.percent > 0 %}bg-info{% else %}bg-secondary{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ stats.percent }}%;" 
+                                             aria-valuenow="{{ stats.percent }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                    {% if stats.assigned > 0 %}
+                                    <div class="small text-warning font-weight-bold mt-1" style="font-size: 0.72rem;">
+                                        <i class="fas fa-clock mr-1"></i>{{ stats.assigned }} en attente
+                                    </div>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Statut -->
+                                <td class="align-middle text-center">
+                                    {% if act.status == 'Terminé' %}
+                                    <span class="badge badge-success px-2 py-1 font-weight-bold">
+                                        <i class="fas fa-check-circle mr-1"></i>Terminé
+                                    </span>
+                                    {% elif act.status == 'En cours' %}
+                                    <span class="badge badge-info px-2 py-1 font-weight-bold">
+                                        <i class="fas fa-spinner fa-spin mr-1"></i>En cours
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-warning text-dark px-2 py-1 font-weight-bold">
+                                        <i class="fas fa-clock mr-1"></i>Assigné
+                                    </span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="align-middle text-center">
+                                    <div class="btn-group btn-group-sm shadow-xs" role="group">
+                                        {% if act.groups_list %}
+                                        <a href="{{ url_for('activity.activity_groups_pdf', activity_id=act.id) }}"
+                                           target="_blank"
+                                           class="btn btn-outline-info" 
+                                           data-toggle="tooltip"
+                                           title="Fiche des groupes (PDF / Impression)">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                        {% endif %}
+                                        <a href="{{ url_for('activity.grading_view', activity_id=act.id) }}"
+                                           class="btn btn-primary" 
+                                           data-toggle="tooltip"
+                                           title="Saisir les notes et évaluer">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('activity.edit_activity', activity_id=act.id) }}"
+                                           class="btn btn-outline-secondary" 
+                                           data-toggle="tooltip"
+                                           title="Modifier l'activité">
+                                            <i class="fas fa-cog"></i>
+                                        </a>
+                                        <form action="{{ url_for('activity.delete_activity', activity_id=act.id) }}"
+                                              method="POST" class="d-inline"
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette activité et ses notes ?');">
+                                            <button type="submit" class="btn btn-outline-danger" data-toggle="tooltip" title="Supprimer">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="text-gray-400 mb-3" style="font-size: 3rem;">
+                        <i class="fas fa-clipboard-list"></i>
+                    </div>
+                    <h6 class="font-weight-bold text-gray-700">Aucune activité enregistrée</h6>
+                    <p class="text-muted small">Créez votre première activité à l'aide du formulaire ci-dessus.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================================== -->
+<!-- MODAL ATELIER DE COMPOSITION DES GROUPES (FORMULE C)                          -->
+<!-- ============================================================================== -->
+<div class="modal fade" id="groupWorkshopModal" tabindex="-1" role="dialog" aria-labelledby="groupWorkshopModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header bg-gradient-primary text-white py-3">
+                <div>
+                    <h5 class="modal-title font-weight-bold mb-0" id="groupWorkshopModalLabel">
+                        <i class="fas fa-users-cog mr-2"></i>Atelier de Composition des Groupes de Travail
+                    </h5>
+                    <small class="text-white-50">Composez des groupes personnalisés (Binômes, Trinômes, Solo) avec l'assistant automatique ou manuellement.</small>
+                </div>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fermer">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            
+            <div class="modal-body p-3 bg-light">
+                <!-- KPI Bar en direct -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between p-2 mb-3 bg-white rounded-lg border shadow-xs" style="gap: 8px;">
+                    <div class="d-flex align-items-center flex-wrap" style="gap: 6px;">
+                        <span class="badge badge-dark px-2 py-1 font-weight-bold" id="mwClassBadge">Classe non choisie</span>
+                        <span class="badge badge-secondary px-2 py-1" id="mwTotalBadge">0 élèves</span>
+                        <span class="badge badge-success px-2 py-1 font-weight-bold" id="mwAssignedBadge">0 assignés</span>
+                        <span class="badge badge-warning text-dark px-2 py-1 font-weight-bold" id="mwUnassignedBadge">0 restants</span>
+                    </div>
+                    <div>
+                        <span class="badge badge-info px-3 py-1 font-weight-bold" id="mwGroupsBadge" style="font-size: 0.85rem;">0 groupes formés</span>
+                    </div>
+                </div>
+
+                <!-- Panneau Assistant Générateur Automatique Intelligent -->
+                <div class="card border-0 shadow-sm mb-3" style="border-radius: 10px;">
+                    <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                        <strong class="text-primary small">
+                            <i class="fas fa-magic mr-1"></i> Assistant de Génération Automatique
+                        </strong>
+                        <span class="text-muted small">Générez une première répartition puis déplacez les élèves à volonté ci-dessous.</span>
+                    </div>
+                    <div class="card-body p-3 bg-white">
+                        <div class="form-row align-items-end">
+                            <div class="form-group col-md-3 mb-2">
+                                <label class="small font-weight-bold text-gray-700">Format principal :</label>
+                                <select id="genFormat" class="form-control form-control-sm rounded-lg">
+                                    <option value="2" selected>Binômes (2 élèves)</option>
+                                    <option value="3">Trinômes (3 élèves)</option>
+                                    <option value="4">Quatuors (4 élèves)</option>
+                                    <option value="1">Individuel (1 élève / groupe)</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-3 mb-2">
+                                <label class="small font-weight-bold text-gray-700">Ordre / Répartition :</label>
+                                <select id="genOrder" class="form-control form-control-sm rounded-lg">
+                                    <option value="random" selected>🎲 Aléatoire équilibré</option>
+                                    <option value="alpha">🔤 Ordre Alphabétique</option>
+                                    <option value="groups">👥 Par demi-groupes TP (G1 / G2)</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-3 mb-2">
+                                <label class="small font-weight-bold text-gray-700">Reliquat effectif impair :</label>
+                                <select id="genResidual" class="form-control form-control-sm rounded-lg">
+                                    <option value="trio" selected>Créer un Trinôme (recommandé)</option>
+                                    <option value="solo">Laisser un élève seul (Solo)</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-3 mb-2 d-flex" style="gap: 6px;">
+                                <button type="button" class="btn btn-sm btn-primary font-weight-bold flex-fill shadow-xs" onclick="workshopAutoGenerate()">
+                                    <i class="fas fa-bolt mr-1"></i> Générer
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="workshopResetAll()" title="Tout désassigner">
+                                    <i class="fas fa-undo"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zone Visuelle de Travail : 2 Colonnes -->
+                <div class="row">
+                    <!-- Colonne 1 : Élèves non assignés -->
+                    <div class="col-lg-4 col-md-5 mb-3">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                            <div class="card-header bg-white py-2 d-flex flex-wrap justify-content-between align-items-center" style="gap: 5px;">
+                                <div class="d-flex align-items-center">
+                                    <strong class="small text-gray-800 mr-1">
+                                        <i class="fas fa-user-clock text-warning mr-1"></i> Non Assignés :
+                                    </strong>
+                                    <span id="unassignedCountBadge" class="badge badge-warning text-dark font-weight-bold px-2 py-1" style="font-size: 0.85rem;">0</span>
+                                </div>
+                                <input type="text" id="unassignedSearch" class="form-control form-control-sm py-0 px-2 rounded-pill" 
+                                       placeholder="Filtrer..." style="max-width: 105px; font-size: 0.75rem;" oninput="filterUnassignedList()">
+                            </div>
+                            <!-- Barre d'actions multi-sélection rapide -->
+                            <div class="p-2 border-bottom bg-light d-flex justify-content-between align-items-center" style="font-size: 0.75rem;">
+                                <div>
+                                    <a href="javascript:void(0)" onclick="toggleSelectAllUnassigned(true)" class="text-primary font-weight-bold mr-1">Tout</a>
+                                    / <a href="javascript:void(0)" onclick="toggleSelectAllUnassigned(false)" class="text-secondary ml-1">Rien</a>
+                                </div>
+                                <div class="d-flex align-items-center" style="gap: 4px;">
+                                    <button type="button" class="btn btn-xs btn-outline-primary font-weight-bold px-2 py-1" onclick="createGroupFromSelectedUnassigned()" id="btnCreateGroupFromSelected" title="Créer un groupe avec les élèves cochés">
+                                        <i class="fas fa-plus mr-1"></i> Groupe (<span id="selectedUnassignedCount">0</span>)
+                                    </button>
+                                    <div class="dropdown d-inline-block">
+                                        <button class="btn btn-xs btn-outline-secondary dropdown-toggle py-1 px-2 font-weight-bold" type="button" id="moveSelectedDrop" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Déplacer vers un groupe existant">
+                                            Vers
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-right shadow-sm p-1" aria-labelledby="moveSelectedDrop" id="moveSelectedGroupMenu" style="font-size: 0.8rem; min-width: 160px; max-height: 220px; overflow-y: auto;">
+                                            <!-- Rempli en JS -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-body p-2" id="unassignedListContainer" style="max-height: 340px; overflow-y: auto;">
+                                <!-- Rempli dynamiquement -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Colonne 2 : Groupes formés -->
+                    <div class="col-lg-8 col-md-7 mb-3">
+                        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                            <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                                <strong class="small text-gray-800">
+                                    <i class="fas fa-layer-group text-primary mr-1"></i> Groupes de Travail (<span id="groupsCountLabel">0</span>)
+                                </strong>
+                                <button type="button" class="btn btn-xs btn-outline-primary font-weight-bold py-1 px-2" onclick="workshopAddEmptyGroup()">
+                                    <i class="fas fa-plus mr-1"></i> Nouveau Groupe Vide
+                                </button>
+                            </div>
+                            <div class="card-body p-2" id="groupsListContainer" style="max-height: 380px; overflow-y: auto;">
+                                <!-- Cartes de groupes dynamiques -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-white py-2 border-top d-flex justify-content-between">
+                <div class="small text-muted" id="workshopFooterHint">
+                    <i class="fas fa-info-circle text-primary mr-1"></i> Cliquez sur le nom d'un groupe pour le renommer (ex: Binôme 1, Solo, etc.).
+                </div>
+                <div>
+                    <button type="button" class="btn btn-sm btn-light border mr-2" data-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-sm btn-primary font-weight-bold px-3 shadow-sm" onclick="workshopSaveAndApply()">
+                        <i class="fas fa-check mr-1"></i> Valider la Composition des Groupes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentStudentsData = { total: 0, g1_count: 0, g2_count: 0, students: [], g1_ids: [], g2_ids: [] };
+    let currentWorkshopGroups = []; // Array of { id, name, members: [student_id] }
+
+    // Initialisation date aujourd'hui
+    document.addEventListener('DOMContentLoaded', function() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const sessionInput = document.getElementById('sessionDateInput');
+        if (sessionInput && !sessionInput.value) {
+            sessionInput.value = todayStr;
+        }
+    });
+
+    function onWorkModeToggle() {
+        const mode = document.querySelector('input[name="work_mode"]:checked').value;
+        const box = document.getElementById('groupWorkshopTriggerBox');
+        if (mode === 'Binôme') {
+            box.style.opacity = '1';
+        }
+    }
+
+    // 1. Changement de Module -> Charger Chapitres et Filtrer Ressources
+    function onModuleChange() {
+        const moduleName = document.getElementById('moduleSelect').value;
+        const sectionSelect = document.getElementById('sectionSelect');
+
+        if (!moduleName) {
+            sectionSelect.innerHTML = '<option value="">En attente du module...</option>';
+            sectionSelect.disabled = true;
+            loadResources('', '');
+            return;
+        }
+
+        // Charger les sections
+        fetch(`/activity/api/get_sections?module_name=${encodeURIComponent(moduleName)}`)
+            .then(response => response.json())
+            .then(data => {
+                sectionSelect.innerHTML = '<option value="">Choisir un chapitre/section...</option>';
+                data.forEach(sec => {
+                    const opt = document.createElement('option');
+                    opt.value = sec;
+                    opt.textContent = sec;
+                    sectionSelect.appendChild(opt);
+                });
+                sectionSelect.disabled = false;
+            });
+
+        // Recharger les ressources liées au module
+        loadResources(moduleName, '');
+    }
+
+    // 2. Changement de Section -> Affiner les ressources
+    function onSectionChange() {
+        const moduleName = document.getElementById('moduleSelect').value;
+        const sectionName = document.getElementById('sectionSelect').value;
+        loadResources(moduleName, sectionName);
+    }
+
+    // 3. Charger les ressources du module/section
+    function loadResources(moduleName, sectionName) {
+        const resSelect = document.getElementById('resourceSelect');
+        const previewBtn = document.getElementById('resourcePreviewBtn');
+        previewBtn.classList.add('d-none');
+
+        if (!moduleName) {
+            return;
+        }
+
+        let url = `/activity/api/resources-by-module?module_name=${encodeURIComponent(moduleName)}`;
+        if (sectionName) {
+            url += `&section_name=${encodeURIComponent(sectionName)}`;
+        }
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                resSelect.innerHTML = '<option value="">-- Aucune ressource liée --</option>';
+                if (data.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.disabled = true;
+                    opt.textContent = 'Aucun document trouvé pour ce module/chapitre';
+                    resSelect.appendChild(opt);
+                } else {
+                    data.forEach(r => {
+                        const opt = document.createElement('option');
+                        opt.value = r.id;
+                        opt.dataset.token = r.share_token;
+                        opt.textContent = `[${r.resource_type}] ${r.title} (${r.human_size}) - ${r.section_name}`;
+                        resSelect.appendChild(opt);
+                    });
+                }
+            });
+    }
+
+    function onResourceChange() {
+        const resSelect = document.getElementById('resourceSelect');
+        const previewBtn = document.getElementById('resourcePreviewBtn');
+        const selectedOpt = resSelect.options[resSelect.selectedIndex];
+
+        if (selectedOpt && selectedOpt.dataset.token) {
+            previewBtn.href = `/resources/partage/${selectedOpt.dataset.token}`;
+            previewBtn.classList.remove('d-none');
+        } else {
+            previewBtn.classList.add('d-none');
+        }
+    }
+
+    // 4. Changement de Classe -> Charger les effectifs et groupes G1/G2
+    function onClassChange() {
+        const classId = document.getElementById('classSelect').value;
+        // Réinitialiser les groupes lors du changement de classe
+        currentWorkshopGroups = [];
+        document.getElementById('groupsJsonInput').value = '';
+        document.getElementById('workshopSummaryBadge').textContent = 'Non configuré';
+        document.getElementById('workshopSummaryBadge').className = 'badge badge-light border text-muted ml-1 small';
+
+        if (!classId) {
+            document.getElementById('targetBadge').textContent = "Veuillez d'abord choisir une classe";
+            document.getElementById('countAll').textContent = '0';
+            document.getElementById('countG1').textContent = '0';
+            document.getElementById('countG2').textContent = '0';
+            document.getElementById('countCustom').textContent = '0';
+            document.getElementById('customStudentsList').innerHTML = '';
+            return;
+        }
+
+        fetch(`/activity/api/class-students-groups?class_id=${classId}`)
+            .then(res => res.json())
+            .then(data => {
+                currentStudentsData = data;
+                document.getElementById('countAll').textContent = data.total;
+                document.getElementById('countG1').textContent = data.g1_count;
+                document.getElementById('countG2').textContent = data.g2_count;
+
+                // Remplir le conteneur personnalisé
+                const listDiv = document.getElementById('customStudentsList');
+                listDiv.innerHTML = '';
+                data.students.forEach(st => {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-4 col-sm-6 mb-1';
+                    col.innerHTML = `
+                        <div class="custom-control custom-checkbox small">
+                            <input type="checkbox" name="selected_students" value="${st.id}" 
+                                   class="custom-control-input student-checkbox" id="st_chk_${st.id}" 
+                                   checked onchange="updateCustomCount()">
+                            <label class="custom-control-label" for="st_chk_${st.id}">
+                                ${st.name} ${st.group ? '<span class="badge badge-light border">G' + st.group + '</span>' : ''}
+                            </label>
+                        </div>
+                    `;
+                    listDiv.appendChild(col);
+                });
+
+                updateCustomCount();
+                onTargetGroupChange();
+            });
+    }
+
+    // 5. Gestion du mode de ciblage
+    function onTargetGroupChange() {
+        const tgtVal = document.querySelector('input[name="target_group"]:checked').value;
+        const customBox = document.getElementById('customStudentsBox');
+        const badge = document.getElementById('targetBadge');
+
+        if (tgtVal === 'custom') {
+            customBox.classList.remove('d-none');
+            updateCustomCount();
+        } else {
+            customBox.classList.add('d-none');
+            if (tgtVal === 'all') {
+                badge.className = 'badge badge-primary ml-2 px-2 py-1 font-weight-bold';
+                badge.textContent = `${currentStudentsData.total} élèves (Toute la classe)`;
+            } else if (tgtVal === 'g1') {
+                badge.className = 'badge badge-info ml-2 px-2 py-1 font-weight-bold';
+                badge.textContent = `${currentStudentsData.g1_count} élèves (Groupe 1 TP)`;
+            } else if (tgtVal === 'g2') {
+                badge.className = 'badge badge-info ml-2 px-2 py-1 font-weight-bold';
+                badge.textContent = `${currentStudentsData.g2_count} élèves (Groupe 2 TP)`;
+            }
+        }
+    }
+
+    function updateCustomCount() {
+        const checked = document.querySelectorAll('.student-checkbox:checked').length;
+        document.getElementById('countCustom').textContent = checked;
+        const badge = document.getElementById('targetBadge');
+        badge.className = 'badge badge-secondary ml-2 px-2 py-1 font-weight-bold';
+        badge.textContent = `${checked} élève(s) sélectionné(s)`;
+    }
+
+    function toggleAllCheckboxes(check) {
+        document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = check);
+        updateCustomCount();
+    }
+
+    // ==============================================================================
+    // LOGIQUE DE L'ATELIER DE COMPOSITION DES GROUPES (FORMULE C)
+    // ==============================================================================
+
+    function getTargetedStudentsList() {
+        const tgtVal = document.querySelector('input[name="target_group"]:checked').value;
+        if (tgtVal === 'all') {
+            return currentStudentsData.students.slice();
+        } else if (tgtVal === 'g1') {
+            return currentStudentsData.students.filter(s => currentStudentsData.g1_ids.includes(s.id));
+        } else if (tgtVal === 'g2') {
+            return currentStudentsData.students.filter(s => currentStudentsData.g2_ids.includes(s.id));
+        } else if (tgtVal === 'custom') {
+            const checkedIds = Array.from(document.querySelectorAll('.student-checkbox:checked')).map(cb => parseInt(cb.value));
+            return currentStudentsData.students.filter(s => checkedIds.includes(s.id));
+        }
+        return currentStudentsData.students.slice();
+    }
+
+    function openGroupWorkshopModal() {
+        const classSelect = document.getElementById('classSelect');
+        if (!classSelect || !classSelect.value) {
+            alert("Veuillez d'abord sélectionner une classe.");
+            return;
+        }
+
+        const className = classSelect.options[classSelect.selectedIndex].text;
+        const mwClass = document.getElementById('mwClassBadge');
+        if (mwClass) mwClass.textContent = className;
+
+        // Si les données d'élèves ne sont pas encore chargées, on les charge avant
+        if (!currentStudentsData || !currentStudentsData.students || currentStudentsData.students.length === 0) {
+            fetch(`/activity/api/class-students-groups?class_id=${classSelect.value}`)
+                .then(res => res.json())
+                .then(data => {
+                    currentStudentsData = data;
+                    initAndShowWorkshopModal();
+                })
+                .catch(err => {
+                    console.error("Erreur chargement élèves:", err);
+                    initAndShowWorkshopModal();
+                });
+        } else {
+            initAndShowWorkshopModal();
+        }
+    }
+
+    function initAndShowWorkshopModal() {
+        // Si des groupes étaient déjà enregistrés en JSON
+        const rawJson = document.getElementById('groupsJsonInput').value;
+        if (rawJson && currentWorkshopGroups.length === 0) {
+            try {
+                currentWorkshopGroups = JSON.parse(rawJson);
+            } catch(e) {
+                currentWorkshopGroups = [];
+            }
+        }
+
+        renderWorkshopUI();
+        $('#groupWorkshopModal').modal('show');
+    }
+
+    // Assistant de Génération Automatique Intelligent
+    function workshopAutoGenerate() {
+        const targeted = getTargetedStudentsList();
+        if (targeted.length === 0) {
+            alert("Aucun élève concerné dans la sélection actuelle.");
+            return;
+        }
+
+        const k = parseInt(document.getElementById('genFormat').value) || 2;
+        const orderMode = document.getElementById('genOrder').value;
+        const residualMode = document.getElementById('genResidual').value;
+
+        let pool = targeted.slice();
+
+        // 1. Ordonnancement
+        if (orderMode === 'random') {
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+        } else if (orderMode === 'alpha') {
+            pool.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (orderMode === 'groups') {
+            pool.sort((a, b) => {
+                const gA = a.group || '9';
+                const gB = b.group || '9';
+                if (gA !== gB) return gA.localeCompare(gB);
+                return a.name.localeCompare(b.name);
+            });
+        }
+
+        // 2. Découpage
+        const newGroups = [];
+        let groupCounter = 1;
+
+        if (k === 1) {
+            // Tous en individuel
+            pool.forEach(st => {
+                newGroups.push({
+                    id: groupCounter,
+                    name: `Solo - ${st.name.split(' ')[0]}`,
+                    members: [parseInt(st.id)]
+                });
+                groupCounter++;
+            });
+        } else {
+            let i = 0;
+            const N = pool.length;
+
+            while (i < N) {
+                const remaining = N - i;
+
+                // Cas spécial : si on veut des binômes (k=2) et qu'il reste 3 élèves
+                if (k === 2 && remaining === 3 && residualMode === 'trio') {
+                    // Former un trinôme pour les 3 derniers
+                    newGroups.push({
+                        id: groupCounter,
+                        name: `Groupe ${groupCounter} (Trinôme)`,
+                        members: [parseInt(pool[i].id), parseInt(pool[i+1].id), parseInt(pool[i+2].id)]
+                    });
+                    i += 3;
+                    groupCounter++;
+                    break;
+                }
+
+                // Taille du groupe courant
+                const take = Math.min(k, remaining);
+                const chunk = pool.slice(i, i + take);
+                const mIds = chunk.map(s => parseInt(s.id));
+
+                let label = `Groupe ${groupCounter}`;
+                if (take === 1) label = `Solo - ${chunk[0].name.split(' ')[0]}`;
+                else if (take === 2) label = `Groupe ${groupCounter} (Binôme)`;
+                else if (take === 3) label = `Groupe ${groupCounter} (Trinôme)`;
+
+                newGroups.push({
+                    id: groupCounter,
+                    name: label,
+                    members: mIds
+                });
+
+                i += take;
+                groupCounter++;
+            }
+        }
+
+        currentWorkshopGroups = newGroups;
+        renderWorkshopUI();
+    }
+
+    function workshopResetAll() {
+        currentWorkshopGroups = [];
+        renderWorkshopUI();
+    }
+
+    function workshopAddEmptyGroup() {
+        const nextId = currentWorkshopGroups.length > 0 
+            ? Math.max(...currentWorkshopGroups.map(g => parseInt(g.id) || 0)) + 1 
+            : 1;
+        currentWorkshopGroups.push({
+            id: nextId,
+            name: `Groupe ${nextId}`,
+            members: []
+        });
+        renderWorkshopUI();
+    }
+
+    function deleteGroup(groupId) {
+        groupId = parseInt(groupId);
+        currentWorkshopGroups = currentWorkshopGroups.filter(g => parseInt(g.id) !== groupId);
+        renderWorkshopUI();
+    }
+
+    function renameGroup(groupId, newName) {
+        groupId = parseInt(groupId);
+        const grp = currentWorkshopGroups.find(g => parseInt(g.id) === groupId);
+        if (grp) {
+            grp.name = newName.trim() || `Groupe ${groupId}`;
+        }
+        updateHeaderCounts();
+    }
+
+    function addMemberToGroup(groupId, studentId) {
+        groupId = parseInt(groupId);
+        studentId = parseInt(studentId);
+        // Retirer d'abord de tout autre groupe
+        currentWorkshopGroups.forEach(g => {
+            g.members = (g.members || []).map(m => parseInt(m)).filter(id => id !== studentId);
+        });
+        const grp = currentWorkshopGroups.find(g => parseInt(g.id) === groupId);
+        if (grp) {
+            if (!grp.members.some(id => parseInt(id) === studentId)) {
+                grp.members.push(studentId);
+            }
+        }
+        renderWorkshopUI();
+    }
+
+    function removeMemberFromGroup(groupId, studentId) {
+        groupId = parseInt(groupId);
+        studentId = parseInt(studentId);
+        const grp = currentWorkshopGroups.find(g => parseInt(g.id) === groupId);
+        if (grp) {
+            grp.members = (grp.members || []).map(m => parseInt(m)).filter(id => id !== studentId);
+        }
+        renderWorkshopUI();
+    }
+
+    // Gestion multi-sélection des non-assignés
+    function updateSelectedUnassignedCount() {
+        const checked = document.querySelectorAll('.unassigned-checkbox:checked').length;
+        const countBadge = document.getElementById('selectedUnassignedCount');
+        if (countBadge) countBadge.textContent = checked;
+        const btn = document.getElementById('btnCreateGroupFromSelected');
+        if (btn) btn.disabled = (checked === 0);
+    }
+
+    function toggleSelectAllUnassigned(check) {
+        document.querySelectorAll('.unassigned-checkbox').forEach(cb => {
+            const item = cb.closest('.unassigned-item');
+            if (!item || item.style.display !== 'none') {
+                cb.checked = check;
+            }
+        });
+        updateSelectedUnassignedCount();
+    }
+
+    function createGroupFromSelectedUnassigned() {
+        const checkedBoxes = Array.from(document.querySelectorAll('.unassigned-checkbox:checked'));
+        if (checkedBoxes.length === 0) {
+            alert("Veuillez cocher au moins un élève non assigné.");
+            return;
+        }
+        const studentIds = checkedBoxes.map(cb => parseInt(cb.value));
+
+        const nextId = currentWorkshopGroups.length > 0 
+            ? Math.max(...currentWorkshopGroups.map(g => parseInt(g.id) || 0)) + 1 
+            : 1;
+
+        let groupLabel = `Groupe ${nextId}`;
+        if (studentIds.length === 1) {
+            const targeted = getTargetedStudentsList();
+            const st = targeted.find(s => parseInt(s.id) === studentIds[0]);
+            groupLabel = `Solo - ${st ? st.name.split(' ')[0] : nextId}`;
+        } else if (studentIds.length === 2) {
+            groupLabel = `Groupe ${nextId} (Binôme)`;
+        } else if (studentIds.length === 3) {
+            groupLabel = `Groupe ${nextId} (Trinôme)`;
+        }
+
+        // Retirer ces élèves de tout autre groupe existant
+        currentWorkshopGroups.forEach(g => {
+            g.members = (g.members || []).map(m => parseInt(m)).filter(id => !studentIds.includes(id));
+        });
+
+        currentWorkshopGroups.push({
+            id: nextId,
+            name: groupLabel,
+            members: studentIds
+        });
+
+        renderWorkshopUI();
+    }
+
+    function moveSelectedUnassignedToGroup(targetGroupId) {
+        targetGroupId = parseInt(targetGroupId);
+        const grp = currentWorkshopGroups.find(g => parseInt(g.id) === targetGroupId);
+        if (!grp) return;
+
+        const checkedBoxes = Array.from(document.querySelectorAll('.unassigned-checkbox:checked'));
+        if (checkedBoxes.length === 0) {
+            alert("Veuillez cocher au moins un élève non assigné.");
+            return;
+        }
+
+        const studentIds = checkedBoxes.map(cb => parseInt(cb.value));
+        currentWorkshopGroups.forEach(g => {
+            g.members = (g.members || []).map(m => parseInt(m)).filter(id => !studentIds.includes(id));
+        });
+
+        studentIds.forEach(id => {
+            if (!grp.members.some(m => parseInt(m) === id)) {
+                grp.members.push(id);
+            }
+        });
+
+        renderWorkshopUI();
+    }
+
+    // Mise à jour de l'affichage complet de l'atelier
+    function renderWorkshopUI() {
+        const targeted = getTargetedStudentsList();
+        const targetedMap = {};
+        targeted.forEach(s => targetedMap[parseInt(s.id)] = s);
+
+        // Retirer des groupes les élèves qui ne sont plus ciblés
+        currentWorkshopGroups.forEach(g => {
+            g.members = (g.members || []).map(mId => parseInt(mId)).filter(mId => mId in targetedMap);
+        });
+
+        // Calculer les assignés et non-assignés
+        const assignedIds = new Set();
+        currentWorkshopGroups.forEach(g => {
+            (g.members || []).forEach(id => assignedIds.add(parseInt(id)));
+        });
+
+        const unassignedList = targeted.filter(s => !assignedIds.has(parseInt(s.id)));
+
+        // 1. Mettre à jour les compteurs et badges
+        const mwTotal = document.getElementById('mwTotalBadge');
+        if (mwTotal) mwTotal.textContent = `${targeted.length} élève${targeted.length > 1 ? 's' : ''}`;
+
+        const mwAssigned = document.getElementById('mwAssignedBadge');
+        if (mwAssigned) mwAssigned.textContent = `${assignedIds.size} assigné${assignedIds.size > 1 ? 's' : ''}`;
+
+        const mwUnassigned = document.getElementById('mwUnassignedBadge');
+        if (mwUnassigned) {
+            mwUnassigned.textContent = `${unassignedList.length} restant${unassignedList.length > 1 ? 's' : ''}`;
+            mwUnassigned.className = unassignedList.length === 0 
+                ? 'badge badge-success font-weight-bold px-2 py-1' 
+                : 'badge badge-warning text-dark font-weight-bold px-2 py-1';
+        }
+
+        const unassignedBadge = document.getElementById('unassignedCountBadge');
+        if (unassignedBadge) {
+            if (unassignedList.length === 0) {
+                unassignedBadge.textContent = '0 (Complet)';
+                unassignedBadge.className = 'badge badge-success font-weight-bold px-2 py-1';
+            } else {
+                unassignedBadge.textContent = `${unassignedList.length} restant${unassignedList.length > 1 ? 's' : ''}`;
+                unassignedBadge.className = 'badge badge-warning text-dark font-weight-bold px-2 py-1';
+            }
+        }
+
+        const groupsCountEl = document.getElementById('groupsCountLabel');
+        if (groupsCountEl) groupsCountEl.textContent = currentWorkshopGroups.length;
+
+        updateHeaderCounts();
+
+        // 2. Remplir le menu déroulant 'Vers...' pour déplacer les élèves cochés
+        const moveMenu = document.getElementById('moveSelectedGroupMenu');
+        if (moveMenu) {
+            moveMenu.innerHTML = '';
+            if (currentWorkshopGroups.length === 0) {
+                moveMenu.innerHTML = '<span class="dropdown-item text-muted disabled small">Aucun groupe créé</span>';
+            } else {
+                currentWorkshopGroups.forEach(g => {
+                    const a = document.createElement('a');
+                    a.className = 'dropdown-item py-1 small d-flex justify-content-between align-items-center';
+                    a.href = 'javascript:void(0)';
+                    a.innerHTML = `<span><i class="fas fa-users text-primary mr-1"></i> ${g.name}</span> <span class="badge badge-light border ml-2">${g.members.length}</span>`;
+                    a.onclick = function() { moveSelectedUnassignedToGroup(g.id); };
+                    moveMenu.appendChild(a);
+                });
+            }
+        }
+
+        // 3. Remplir la colonne non-assignés
+        renderUnassignedContainer(unassignedList);
+
+        // 4. Remplir les cartes de groupes
+        renderGroupsContainer(targetedMap, unassignedList);
+
+        // 5. Réinitialiser la sélection de cases non assignées
+        updateSelectedUnassignedCount();
+    }
+
+    function updateHeaderCounts() {
+        let binomes = 0, trinomes = 0, solos = 0, others = 0;
+        currentWorkshopGroups.forEach(g => {
+            const c = (g.members || []).length;
+            if (c === 1) solos++;
+            else if (c === 2) binomes++;
+            else if (c === 3) trinomes++;
+            else if (c > 3) others++;
+        });
+
+        const parts = [];
+        if (binomes) parts.push(`${binomes} Binôme(s)`);
+        if (trinomes) parts.push(`${trinomes} Trinôme(s)`);
+        if (solos) parts.push(`${solos} Solo`);
+        if (others) parts.push(`${others} Groupe(s)`);
+
+        const summaryStr = parts.length > 0 ? parts.join(', ') : '0 groupe';
+        const mwGroups = document.getElementById('mwGroupsBadge');
+        if (mwGroups) mwGroups.textContent = `${currentWorkshopGroups.length} groupe(s) (${summaryStr})`;
+    }
+
+    function renderUnassignedContainer(unassignedList) {
+        const container = document.getElementById('unassignedListContainer');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (unassignedList.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4 text-success">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <div class="small font-weight-bold">Tous les élèves sont assignés !</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">0 élève restant en attente.</div>
+                </div>
+            `;
+            return;
+        }
+
+        unassignedList.forEach(st => {
+            const div = document.createElement('div');
+            div.className = 'unassigned-item d-flex align-items-center justify-content-between p-2 mb-2 bg-white rounded border shadow-xs';
+            div.dataset.name = (st.name || '').toLowerCase();
+
+            // Menu déroulant rapide pour l'ajouter à un groupe existant
+            let optionsHtml = '<option value="">+ Groupe...</option>';
+            currentWorkshopGroups.forEach(g => {
+                optionsHtml += `<option value="${g.id}">${g.name} (${g.members.length})</option>`;
+            });
+
+            div.innerHTML = `
+                <div class="d-flex align-items-center text-truncate mr-2" style="min-width: 0;">
+                    <input type="checkbox" class="unassigned-checkbox mr-2" value="${st.id}" onchange="updateSelectedUnassignedCount()">
+                    <div class="rounded-circle bg-light border mr-2 text-center text-primary font-weight-bold flex-shrink-0" 
+                         style="width: 28px; height: 28px; line-height: 28px; font-size: 0.75rem;">
+                        ${(st.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div class="text-truncate">
+                        <div class="small font-weight-bold text-dark text-truncate" title="${st.name}">${st.name}</div>
+                        <span class="badge badge-light border text-muted" style="font-size: 0.65rem;">${st.group ? 'G' + st.group : (st.cne || '')}</span>
+                    </div>
+                </div>
+                <div class="flex-shrink-0">
+                    <select class="form-control form-control-sm py-0 px-1 rounded-pill" style="font-size: 0.72rem; height: 26px; width: 110px;"
+                            onchange="if(this.value){ addMemberToGroup(this.value, ${st.id}); }">
+                        ${optionsHtml}
+                    </select>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function filterUnassignedList() {
+        const query = (document.getElementById('unassignedSearch').value || '').toLowerCase();
+        document.querySelectorAll('.unassigned-item').forEach(item => {
+            if (item.dataset.name.includes(query)) {
+                item.style.display = 'flex';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    function renderGroupsContainer(targetedMap, unassignedList) {
+        const container = document.getElementById('groupsListContainer');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (currentWorkshopGroups.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-layer-group fa-3x mb-2 text-gray-300"></i>
+                    <p class="small mb-2">Aucun groupe créé pour le moment.</p>
+                    <button type="button" class="btn btn-sm btn-primary font-weight-bold shadow-xs" onclick="workshopAutoGenerate()">
+                        <i class="fas fa-magic mr-1"></i> Générer Automatiquement
+                    </button>
+                </div>
+            `;
+            return;
+        }
+
+        const row = document.createElement('div');
+        row.className = 'row';
+
+        currentWorkshopGroups.forEach(g => {
+            const mCount = (g.members || []).length;
+            let badgeClass = 'badge-secondary';
+            let typeLabel = 'Individuel';
+
+            if (mCount === 2) {
+                badgeClass = 'badge-primary';
+                typeLabel = 'Binôme';
+            } else if (mCount === 3) {
+                badgeClass = 'badge-info';
+                typeLabel = 'Trinôme';
+            } else if (mCount >= 4) {
+                badgeClass = 'badge-success';
+                typeLabel = `Groupe de ${mCount}`;
+            } else if (mCount === 0) {
+                badgeClass = 'badge-light border text-muted';
+                typeLabel = 'Vide (0)';
+            }
+
+            // Options des non-assignés pour ajout rapide
+            let addOptions = '<option value="">+ Ajouter un élève...</option>';
+            unassignedList.forEach(st => {
+                addOptions += `<option value="${st.id}">${st.name}</option>`;
+            });
+
+            const col = document.createElement('div');
+            col.className = 'col-md-6 mb-3';
+
+            let membersHtml = '';
+            (g.members || []).forEach(mId => {
+                const st = targetedMap[parseInt(mId)];
+                if (st) {
+                    membersHtml += `
+                        <div class="d-flex align-items-center justify-content-between p-1 px-2 mb-1 bg-white rounded border small">
+                            <span class="text-dark text-truncate mr-1 font-weight-bold" style="font-size: 0.8rem;">
+                                <i class="fas fa-user text-muted mr-1" style="font-size: 0.7rem;"></i>${st.name}
+                            </span>
+                            <button type="button" class="btn btn-xs text-danger font-weight-bold py-0" 
+                                    onclick="removeMemberFromGroup(${g.id}, ${st.id})" title="Retirer du groupe">
+                                &times;
+                            </button>
+                        </div>
+                    `;
+                }
+            });
+
+            col.innerHTML = `
+                <div class="card border h-100 shadow-xs" style="border-radius: 10px; background: #fafbfc;">
+                    <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center border-bottom">
+                        <div class="d-flex align-items-center text-truncate mr-1">
+                            <input type="text" class="form-control form-control-sm font-weight-bold text-dark border-0 p-0 shadow-none" 
+                                   value="${g.name}" style="background: transparent; max-width: 140px; font-size: 0.88rem;"
+                                   onblur="renameGroup(${g.id}, this.value)" title="Cliquer pour renommer">
+                        </div>
+                        <div class="d-flex align-items-center" style="gap: 5px;">
+                            <span class="badge ${badgeClass} px-2 py-1">${typeLabel}</span>
+                            <button type="button" class="btn btn-xs btn-outline-danger py-0 px-1 rounded" onclick="deleteGroup(${g.id})" title="Supprimer ce groupe">
+                                <i class="fas fa-trash-alt" style="font-size: 0.7rem;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="members-box mb-2" style="min-height: 48px;">
+                            ${membersHtml || '<div class="text-center text-muted small py-2 font-italic">Aucun élève affecté</div>'}
+                        </div>
+                        ${unassignedList.length > 0 ? `
+                        <select class="form-control form-control-sm rounded-pill" style="font-size: 0.75rem; height: 26px;"
+                                onchange="if(this.value){ addMemberToGroup(${g.id}, this.value); }">
+                            ${addOptions}
+                        </select>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            row.appendChild(col);
+        });
+
+        container.appendChild(row);
+    }
+
+    function workshopSaveAndApply() {
+        // Enregistrer le JSON dans le champ masqué
+        const jsonStr = JSON.stringify(currentWorkshopGroups);
+        document.getElementById('groupsJsonInput').value = jsonStr;
+
+        // Mettre à jour le badge sur le formulaire principal
+        let binomes = 0, trinomes = 0, solos = 0, others = 0;
+        currentWorkshopGroups.forEach(g => {
+            const c = g.members.length;
+            if (c === 1) solos++;
+            else if (c === 2) binomes++;
+            else if (c === 3) trinomes++;
+            else if (c > 3) others++;
+        });
+
+        const parts = [];
+        if (binomes) parts.push(`${binomes} Binôme(s)`);
+        if (trinomes) parts.push(`${trinomes} Trinôme(s)`);
+        if (solos) parts.push(`${solos} Solo`);
+        if (others) parts.push(`${others} Groupe(s)`);
+
+        const summaryStr = parts.length > 0 ? parts.join(', ') : 'Non configuré';
+        const badge = document.getElementById('workshopSummaryBadge');
+
+        if (currentWorkshopGroups.length > 0) {
+            badge.textContent = `${currentWorkshopGroups.length} grp (${summaryStr})`;
+            badge.className = 'badge badge-success ml-1 small font-weight-bold';
+            // Basculer automatiquement sur le mode Binôme / Groupe
+            document.getElementById('modeBinome').checked = true;
+        } else {
+            badge.textContent = 'Non configuré';
+            badge.className = 'badge badge-light border text-muted ml-1 small';
+        }
+
+        $('#groupWorkshopModal').modal('hide');
+    }
+</script>
+{% endblock %}

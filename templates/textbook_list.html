@@ -1,0 +1,1038 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- FullCalendar 5 Assets -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script>
+
+<!-- En-tête de la Page -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h1 class="h3 mb-1 text-gray-800 font-weight-bold">
+            <i class="fas fa-book-open text-primary mr-2"></i>Cahier de Texte Numérique
+        </h1>
+        <p class="text-muted small mb-0">Gestion pédagogique, suivi des compétences et conformité ministérielle.</p>
+    </div>
+    <div class="app-toolbar mt-3 mt-sm-0">
+        <!-- Bouton Partage / Magic Link -->
+        <div class="d-flex align-items-center bg-white px-3 py-1 rounded-pill border shadow-xs" style="height: 32px;">
+            <span class="mr-2 small font-weight-bold {% if share_enabled %}text-success{% else %}text-muted{% endif %}" id="shareStatusLabel" style="font-size: 0.78rem;">
+                <i class="fas fa-share-alt mr-1"></i>Partage : {% if share_enabled %}ACTIF{% else %}INACTIF{% endif %}
+            </span>
+            <div class="custom-control custom-switch d-inline-block">
+                <input type="checkbox" class="custom-control-input" id="shareToggleSwitch" 
+                       {% if share_enabled %}checked{% endif %} onchange="toggleTextbookShare()">
+                <label class="custom-control-label cursor-pointer" for="shareToggleSwitch" style="cursor: pointer;"></label>
+            </div>
+            <button type="button" class="btn btn-sm btn-link p-0 ml-2 text-primary" data-toggle="modal" data-target="#shareModal" title="Voir le lien de partage et le QR Code">
+                <i class="fas fa-qrcode"></i>
+            </button>
+        </div>
+
+        {% if not is_year_read_only %}
+        <a href="{{ url_for('textbook.new_session') }}" class="toolbar-btn-cta shadow-sm font-weight-bold">
+            <i class="fas fa-plus mr-1"></i> Nouvelle Séance
+        </a>
+        {% else %}
+        <span class="badge badge-warning text-dark px-3 py-2 shadow-sm font-weight-bold" style="border-radius: 8px;">
+            <i class="fas fa-lock mr-1"></i> Année Archivée
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Indicateurs KPIs en Haut du Dashboard -->
+<div class="row mb-4">
+    <!-- Total Séances Année -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-primary shadow-sm h-100 py-2" style="border-radius: 12px;">
+            <div class="card-body py-2 px-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Séances Totales (Année)</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_sessions }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Volume Horaire Total -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-success shadow-sm h-100 py-2" style="border-radius: 12px;">
+            <div class="card-body py-2 px-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Volume Horaire Dispensé</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_hours }}h</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Classes Actives -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-info shadow-sm h-100 py-2" style="border-radius: 12px;">
+            <div class="card-body py-2 px-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Classes Enregistrées</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.active_classes }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modules Traités -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-warning shadow-sm h-100 py-2" style="border-radius: 12px;">
+            <div class="card-body py-2 px-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Modules Abordés</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.covered_modules }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-layer-group fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bandeau Interactif : Emploi du Temps d'Aujourd'hui -->
+{% if today_schedule %}
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 14px; background: linear-gradient(135deg, #ffffff 0%, #f8faff 100%); border-left: 5px solid #4e73df !important;">
+    <div class="card-body p-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+            <div>
+                <h6 class="m-0 font-weight-bold text-gray-900 d-flex align-items-center">
+                    <i class="fas fa-calendar-day text-primary mr-2 fa-lg"></i>
+                    Cours Prévus Aujourd'hui ({{ today_date_str }})
+                    <span class="badge badge-primary ml-2 font-weight-normal">{{ today_schedule|length }} séance(s) au planning</span>
+                </h6>
+                <small class="text-muted">Détection directe depuis votre emploi du temps hebdomadaire. Remplissez le cahier de texte ou faites l'appel en un clic.</small>
+            </div>
+            <a href="{{ url_for('configuration.settings') }}#tab-schedule" class="btn btn-xs btn-outline-secondary font-weight-bold">
+                <i class="fas fa-calendar-alt mr-1"></i>Gérer mon planning
+            </a>
+        </div>
+        <div class="row">
+            {% for item in today_schedule %}
+            <div class="col-lg-4 col-md-6 mb-2 mb-lg-0">
+                <div class="p-3 rounded-lg border bg-white shadow-xs d-flex justify-content-between align-items-center h-100" 
+                     style="border-left: 4px solid {{ item.entry.color or '#4e73df' }} !important;">
+                    <div>
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="badge badge-primary mr-2 font-weight-bold">{{ item.class_name }}</span>
+                            <span class="badge badge-light border text-muted font-weight-normal" style="font-size: 0.72rem;">
+                                <i class="far fa-clock mr-1"></i>{{ item.slot.start_time }}-{{ item.slot.end_time }}
+                            </span>
+                        </div>
+                        <div class="small text-gray-800 font-weight-bold mb-1">
+                            <i class="fas fa-map-marker-alt text-info mr-1"></i>{{ item.room or 'Salle Info' }} &bull; {{ item.subject }}
+                        </div>
+                        <div>
+                            {% if item.has_session %}
+                            <span class="badge badge-success px-2 py-1 font-weight-normal" style="font-size: 0.7rem;">
+                                <i class="fas fa-check-circle mr-1"></i>Séance enregistrée
+                            </span>
+                            {% else %}
+                            <span class="badge badge-warning text-dark px-2 py-1 font-weight-bold" style="font-size: 0.7rem;">
+                                <i class="fas fa-hourglass-half mr-1"></i>À renseigner
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="btn-group-vertical btn-group-sm ml-2">
+                        {% if not item.has_session %}
+                        <a href="{{ url_for('textbook.new_session', class_id=item.class_id, start_time=item.slot.start_time, end_time=item.slot.end_time) }}" 
+                           class="btn btn-sm btn-primary font-weight-bold shadow-xs py-1" title="Remplir le cahier de texte pour ce cours">
+                            <i class="fas fa-edit mr-1"></i>Remplir
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('absence.index', class_id=item.class_id) }}" 
+                           class="btn btn-sm btn-outline-success font-weight-bold shadow-xs py-1 mt-1" title="Faire l'appel de cette classe">
+                            <i class="fas fa-user-check mr-1"></i>Appel
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Section Progression Pédagogique du Programme -->
+{% if module_progress %}
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 14px; background: #ffffff;">
+    <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-dark d-flex align-items-center">
+            <i class="fas fa-chart-line text-primary mr-2"></i>Avancement Pédagogique du Programme
+            {% if selected_class_id %}
+            <span class="badge badge-primary ml-2 font-weight-normal">Filtre classe actif</span>
+            {% else %}
+            <span class="badge badge-light border text-muted ml-2 font-weight-normal">Global annuel</span>
+            {% endif %}
+        </h6>
+        <button class="btn btn-sm btn-link text-muted p-0" type="button" data-toggle="collapse" data-target="#collapseProgression" aria-expanded="true">
+            <i class="fas fa-chevron-down"></i>
+        </button>
+    </div>
+    <div class="collapse show" id="collapseProgression">
+        <div class="card-body pt-0 pb-3 px-4">
+            <div class="row">
+                {% for prog in module_progress %}
+                <div class="col-lg-6 col-md-12 mb-3">
+                    <div class="p-3 rounded-lg border bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="font-weight-bold text-dark small">{{ prog.module.name }}</span>
+                            <div class="text-right">
+                                <span class="badge badge-info font-weight-bold mr-1">{{ prog.hours }}h</span>
+                                <span class="font-weight-bold small {% if prog.percent == 100 %}text-success{% elif prog.percent > 50 %}text-primary{% else %}text-warning{% endif %}">
+                                    {{ prog.percent }}%
+                                </span>
+                            </div>
+                        </div>
+                        <div class="progress mb-2" style="height: 7px; border-radius: 10px;">
+                            <div class="progress-bar {% if prog.percent == 100 %}bg-success{% elif prog.percent > 50 %}bg-primary{% else %}bg-warning{% endif %}" 
+                                 role="progressbar" style="width: {{ prog.percent }}%;" 
+                                 aria-valuenow="{{ prog.percent }}" aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted small" style="font-size: 0.75rem;">
+                            <span>{{ prog.covered_objectives }} / {{ prog.total_objectives }} objectifs abordés</span>
+                            {% if prog.total_objectives > 0 and prog.covered_objectives == prog.total_objectives %}
+                            <span class="text-success font-weight-bold"><i class="fas fa-check-circle"></i> Programme bouclé</span>
+                            {% elif prog.covered_objectives == 0 %}
+                            <span class="text-muted">Non débuté</span>
+                            {% else %}
+                            <span>{{ prog.total_objectives - prog.covered_objectives }} restant(s)</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Carte de Filtres & Recherche Dynamique -->
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 14px; background: #ffffff;">
+    <div class="card-body p-3">
+        <form method="GET" action="{{ url_for('textbook.index') }}" id="textbookFilterForm">
+            <div class="form-row align-items-center">
+                <!-- Recherche textuelle universelle -->
+                <div class="col-lg-4 col-md-6 mb-2 mb-lg-0">
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-light border-right-0" style="border-radius: 20px 0 0 20px;">
+                                <i class="fas fa-search text-muted"></i>
+                            </span>
+                        </div>
+                        <input type="text" name="q" class="form-control bg-light border-left-0 small" 
+                               placeholder="Chercher cours, chapitre, mot-clé..." 
+                               value="{{ search_q or '' }}" style="border-radius: 0 20px 20px 0;">
+                    </div>
+                </div>
+
+                <!-- Filtre Année Scolaire -->
+                <div class="col-lg-3 col-md-3 mb-2 mb-lg-0">
+                    <select name="year_id" class="form-control form-control-sm rounded-pill shadow-xs" onchange="this.form.submit()">
+                        {% for y in years %}
+                        <option value="{{ y.id }}" {% if current_year and current_year.id==y.id %}selected{% endif %}>
+                            📅 {{ y.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtre Classe -->
+                <div class="col-lg-3 col-md-3 mb-2 mb-lg-0">
+                    <select name="class_id" class="form-control form-control-sm rounded-pill shadow-xs" onchange="this.form.submit()">
+                        <option value="">🏫 Toutes les classes</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if selected_class_id==c.id %}selected{% endif %}>
+                            {{ c.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Boutons d'Action & Exports -->
+                <div class="col-lg-2 col-md-12 text-right mt-2 mt-lg-0">
+                    <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 shadow-xs">
+                        Filtrer
+                    </button>
+                    {% if search_q or selected_class_id %}
+                    <a href="{{ url_for('textbook.index') }}" class="btn btn-sm btn-outline-secondary rounded-pill ml-1" title="Réinitialiser">
+                        <i class="fas fa-times"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Contenu Principal : Barre d'Outils & Bascule de Vue -->
+<div class="card shadow mb-4" style="border-radius: 14px;">
+    <div class="card-header py-3 d-flex flex-wrap align-items-center justify-content-between" style="border-radius: 14px 14px 0 0;">
+        <div class="d-flex align-items-center mb-2 mb-md-0">
+            <h6 class="m-0 font-weight-bold text-primary mr-3">
+                Séances Récentes ({{ sessions|length }})
+            </h6>
+            <!-- Bascule Vue Tableau / Vue Timeline / Vue Calendrier -->
+            <div class="toolbar-capsule" id="textbookViewToggle">
+                <button type="button" class="toolbar-btn active" id="btnViewTable" onclick="switchTextbookView('table')" title="Vue Tableau">
+                    <i class="fas fa-table mr-1"></i> Tableau
+                </button>
+                <button type="button" class="toolbar-btn" id="btnViewTimeline" onclick="switchTextbookView('timeline')" title="Vue Flux Chronologique">
+                    <i class="fas fa-stream mr-1"></i> Timeline
+                </button>
+                <button type="button" class="toolbar-btn" id="btnViewCalendar" onclick="switchTextbookView('calendar')" title="Vue Calendrier / Emploi du temps">
+                    <i class="fas fa-calendar-alt mr-1"></i> Calendrier
+                </button>
+            </div>
+        </div>
+
+        <div class="app-toolbar my-1">
+            <!-- Capsule 1 : Neutralisations & Suivi -->
+            <div class="toolbar-capsule">
+                <button type="button" class="toolbar-btn text-danger font-weight-bold" data-toggle="modal" data-target="#exceptionalEventsRegistryModal" title="Consulter le journal des jours de grèves et événements d'arrêt des cours">
+                    <i class="fas fa-calendar-times mr-1"></i> Jours Neutralisés
+                    {% if exceptional_events %}
+                    <span class="badge badge-danger ml-1">{{ exceptional_events|length }}</span>
+                    {% endif %}
+                </button>
+                <a href="{{ url_for('textbook.progression_report', year_id=current_year.id if current_year else None) }}"
+                   class="toolbar-btn" title="Suivi de la progression pédagogique">
+                    <i class="fas fa-chart-line mr-1 text-info"></i> Progression
+                </a>
+            </div>
+
+            <!-- Capsule 2 : Exports & Documents Officiels -->
+            <div class="toolbar-capsule">
+                <a href="{{ url_for('textbook.export_excel', class_id=selected_class_id, year_id=current_year.id if current_year else None, q=search_q) }}" 
+                   class="toolbar-btn text-success" title="Télécharger le Cahier de Texte au format Excel">
+                    <i class="fas fa-file-excel mr-1"></i> Excel
+                </a>
+                {% if selected_class_id %}
+                <a href="{{ url_for('textbook.print_full', class_id=selected_class_id) }}" target="_blank"
+                   class="toolbar-btn text-danger" title="Ouvrir la fiche officielle avec signatures pour cette classe">
+                    <i class="fas fa-print mr-1"></i> Bilan Officiel PDF
+                </a>
+                {% else %}
+                <button class="toolbar-btn text-muted" disabled title="Sélectionnez une classe spécifique pour imprimer le Cahier de Texte officiel">
+                    <i class="fas fa-print mr-1"></i> Bilan Officiel
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body p-3">
+        <!-- VUE TABLEAU (Par défaut) -->
+        <div id="viewTableContainer">
+            <form method="POST" action="{{ url_for('textbook.delete_multiple_sessions') }}" id="bulkDeleteForm"
+                  onsubmit="return confirm('Voulez-vous vraiment supprimer les séances sélectionnées ?');">
+                <div class="mb-3" id="bulkDeleteBox" style="display: none;">
+                    <button type="submit" class="btn btn-danger btn-sm font-weight-bold shadow-sm" id="deleteSelectedBtn">
+                        <i class="fas fa-trash-alt mr-1"></i> Supprimer la sélection
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered align-middle" width="100%" cellspacing="0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th style="width: 38px;" class="text-center">
+                                    <input type="checkbox" id="selectAll" onclick="toggleSelectAll()">
+                                </th>
+                                <th style="width: 100px;">Date</th>
+                                <th style="width: 110px;">Classe</th>
+                                <th style="width: 240px;">Module & Chapitre</th>
+                                <th>Contenu du Cours</th>
+                                <th style="width: 130px;" class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                            <tr>
+                                <td class="text-center align-middle">
+                                    <input type="checkbox" name="session_ids" value="{{ session.id }}"
+                                           class="session-checkbox" onclick="toggleDeleteButton()">
+                                </td>
+                                <td class="align-middle">
+                                    <span class="font-weight-bold text-dark">{{ session.date.strftime('%d/%m/%Y') }}</span>
+                                    {% if session.start_time and session.end_time %}
+                                    <br><small class="text-muted"><i class="far fa-clock mr-1"></i>{{ session.start_time }}-{{ session.end_time }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="align-middle">
+                                    <span class="badge badge-primary px-2 py-1 font-weight-bold">{{ session.classe.name }}</span>
+                                </td>
+                                <td class="align-middle">
+                                    <span class="badge badge-info mb-1" style="font-size: 0.72rem;">{{ session.module.name }}</span><br>
+                                    <strong class="text-dark small">{{ session.section.name }}</strong><br>
+                                    <small class="text-muted">
+                                        <i class="fas fa-bullseye text-primary"></i> {{ session.objectives|length }} obj. &nbsp;|&nbsp; 
+                                        <i class="fas fa-award text-success"></i> {{ session.competencies|length }} comp.
+                                    </small>
+                                </td>
+                                <td class="align-middle">
+                                    <div class="d-flex align-items-center mb-1">
+                                        {% if session.session_type == 'TP' %}
+                                            <span class="badge badge-success mr-2 font-weight-bold">🔬 TP</span>
+                                        {% elif session.session_type == 'TD' %}
+                                            <span class="badge badge-warning text-dark mr-2 font-weight-bold">📝 TD</span>
+                                        {% elif session.session_type == 'Évaluation' %}
+                                            <span class="badge badge-danger mr-2 font-weight-bold">📊 Contrôle</span>
+                                        {% elif session.session_type == 'Projet' %}
+                                            <span class="badge badge-dark mr-2 font-weight-bold">💡 Projet</span>
+                                        {% elif session.session_type == 'Soutien' %}
+                                            <span class="badge badge-secondary mr-2 font-weight-bold">🤝 Soutien</span>
+                                        {% elif session.session_type == 'Séance Neutralisée' %}
+                                            <span class="badge badge-danger mr-2 font-weight-bold" style="background:#be123c;"><i class="fas fa-calendar-times mr-1"></i> Neutralisé</span>
+                                        {% else %}
+                                            <span class="badge badge-primary mr-2 font-weight-bold">📘 Cours</span>
+                                        {% endif %}
+                                        <span class="text-dark font-weight-bold small">{{ session.course_titles }}</span>
+                                    </div>
+
+                                    {% if session.homework %}
+                                    <div class="small p-1 px-2 rounded mb-1 border" style="background: #fff8e1; border-color: #ffe082 !important;">
+                                        <i class="fas fa-tasks text-warning mr-1"></i>
+                                        <strong class="text-dark">Devoirs :</strong> {{ session.homework }}
+                                        {% if session.homework_due_date %}
+                                        <span class="text-danger font-weight-bold ml-1">(pour le {{ session.homework_due_date.strftime('%d/%m/%Y') }})</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+
+                                    {% if session.remark %}
+                                    <div class="small text-muted font-italic">
+                                        <i class="fas fa-comment-dots mr-1"></i>{{ session.remark }}
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center align-middle">
+                                    <div class="toolbar-capsule d-inline-flex">
+                                        <!-- Dupliquer -->
+                                        <a href="{{ url_for('textbook.new_session', duplicate_from=session.id) }}"
+                                           class="toolbar-btn text-info" title="Dupliquer cette séance">
+                                            <i class="fas fa-clone"></i>
+                                        </a>
+                                        <!-- Faire l'appel de cette séance -->
+                                        <a href="{{ url_for('absence.index', class_id=session.class_id, date=session.date.strftime('%Y-%m-%d')) }}"
+                                           class="toolbar-btn text-success" title="Faire l'appel">
+                                            <i class="fas fa-user-check"></i>
+                                        </a>
+                                        <!-- Modifier -->
+                                        <a href="{{ url_for('textbook.edit_session', id=session.id) }}"
+                                           class="toolbar-btn text-warning" title="Modifier">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <!-- Fiche PDF Séance -->
+                                        <a href="{{ url_for('textbook.export_pdf', id=session.id) }}" target="_blank"
+                                           class="toolbar-btn text-primary" title="Fiche de séance PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                        <!-- Supprimer -->
+                                        {% if not is_year_read_only %}
+                                        <button type="button" class="toolbar-btn text-danger" title="Supprimer"
+                                                onclick="deleteSession({{ session.id }})">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">
+                                    <i class="fas fa-folder-open fa-2x mb-2 text-gray-400"></i><br>
+                                    Aucune séance enregistrée pour ces critères.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        </div>
+
+        <!-- VUE TIMELINE CHRONOLOGIQUE -->
+        <div id="viewTimelineContainer" style="display: none;">
+            <div class="p-3">
+                {% if sessions %}
+                    <div class="timeline-stream">
+                        {% for session in sessions %}
+                        <div class="timeline-item mb-4 pb-3 border-bottom d-flex align-items-start">
+                            <div class="timeline-date mr-4 text-center" style="min-width: 85px;">
+                                <div class="badge badge-light border text-primary font-weight-bold px-3 py-2 shadow-xs" style="font-size: 0.95rem; border-radius: 10px;">
+                                    {{ session.date.strftime('%d %b') }}<br>
+                                    <small class="text-muted font-weight-normal">{{ session.date.strftime('%Y') }}</small>
+                                    {% if session.start_time and session.end_time %}
+                                    <div class="badge badge-secondary mt-1 py-1 font-weight-normal" style="font-size: 0.68rem;">
+                                        {{ session.start_time }}-{{ session.end_time }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="timeline-content flex-grow-1 bg-light p-3 rounded-lg border shadow-xs" style="border-radius: 12px;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <span class="badge badge-primary mr-2 font-weight-bold">{{ session.classe.name }}</span>
+                                        <span class="badge badge-info mr-2">{{ session.module.name }}</span>
+                                        <strong class="text-dark">{{ session.section.name }}</strong>
+                                    </div>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('textbook.new_session', duplicate_from=session.id) }}" class="btn btn-light btn-sm" title="Dupliquer">
+                                            <i class="fas fa-clone text-info"></i>
+                                        </a>
+                                        <a href="{{ url_for('absence.index', class_id=session.class_id, date=session.date.strftime('%Y-%m-%d')) }}" class="btn btn-light btn-sm" title="Faire l'appel">
+                                            <i class="fas fa-user-check text-success"></i>
+                                        </a>
+                                        <a href="{{ url_for('textbook.edit_session', id=session.id) }}" class="btn btn-light btn-sm" title="Modifier">
+                                            <i class="fas fa-edit text-warning"></i>
+                                        </a>
+                                        <a href="{{ url_for('textbook.export_pdf', id=session.id) }}" target="_blank" class="btn btn-light btn-sm" title="PDF">
+                                            <i class="fas fa-file-pdf text-danger"></i>
+                                        </a>
+                                        {% if not is_year_read_only %}
+                                        <button type="button" class="btn btn-light btn-sm" title="Supprimer" onclick="deleteSession({{ session.id }})">
+                                            <i class="fas fa-trash-alt text-danger"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="d-flex align-items-center mb-2">
+                                    {% if session.session_type == 'TP' %}
+                                        <span class="badge badge-success mr-2 font-weight-bold">🔬 TP</span>
+                                    {% elif session.session_type == 'TD' %}
+                                        <span class="badge badge-warning text-dark mr-2 font-weight-bold">📝 TD</span>
+                                    {% elif session.session_type == 'Évaluation' %}
+                                        <span class="badge badge-danger mr-2 font-weight-bold">📊 Contrôle</span>
+                                    {% elif session.session_type == 'Projet' %}
+                                        <span class="badge badge-dark mr-2 font-weight-bold">💡 Projet</span>
+                                    {% elif session.session_type == 'Soutien' %}
+                                        <span class="badge badge-secondary mr-2 font-weight-bold">🤝 Soutien</span>
+                                    {% else %}
+                                        <span class="badge badge-primary mr-2 font-weight-bold">📘 Cours</span>
+                                    {% endif %}
+                                    <h6 class="font-weight-bold text-gray-800 mb-0">{{ session.course_titles }}</h6>
+                                </div>
+                                {% if session.objectives %}
+                                <div class="small text-muted mb-2">
+                                    <i class="fas fa-bullseye text-primary mr-1"></i>
+                                    {% for o in session.objectives %}
+                                        <span class="badge badge-white border mr-1">{{ o.description }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                {% if session.homework %}
+                                <div class="small p-2 rounded mb-2 border" style="background: #fff8e1; border-color: #ffe082 !important;">
+                                    <i class="fas fa-tasks text-warning mr-1"></i>
+                                    <strong class="text-dark">Devoirs pour les élèves :</strong> {{ session.homework }}
+                                    {% if session.homework_due_date %}
+                                    <span class="text-danger font-weight-bold ml-1">(pour le {{ session.homework_due_date.strftime('%d/%m/%Y') }})</span>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                {% if session.remark %}
+                                <div class="small text-muted font-italic bg-white p-2 rounded border">
+                                    <i class="fas fa-info-circle text-info mr-1"></i> {{ session.remark }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        Aucune séance trouvée pour le mode timeline.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- VUE CALENDRIER INTERACTIF -->
+        <div id="viewCalendarContainer" style="display: none;">
+            <div class="p-3">
+                <!-- Légende des couleurs par type de séance -->
+                <div class="d-flex flex-wrap align-items-center mb-3 p-2 bg-light rounded border" style="gap: 12px; font-size: 0.8rem;">
+                    <span class="font-weight-bold text-dark"><i class="fas fa-palette mr-1 text-muted"></i>Légende :</span>
+                    <span><span class="badge" style="background:#4e73df; color:white;">■</span> Cours</span>
+                    <span><span class="badge" style="background:#f6c23e; color:black;">■</span> TD</span>
+                    <span><span class="badge" style="background:#1cc88a; color:white;">■</span> TP</span>
+                    <span><span class="badge" style="background:#e74a3b; color:white;">■</span> Contrôle</span>
+                    <span><span class="badge" style="background:#36b9cc; color:white;">■</span> Projet</span>
+                    <span><span class="badge" style="background:#6c757d; color:white;">■</span> Soutien</span>
+                </div>
+                <div id="calendar" style="min-height: 600px;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Détails de Séance (au clic sur le calendrier) -->
+<div class="modal fade" id="sessionCalendarModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+            <div class="modal-header bg-primary text-white" style="border-radius: 14px 14px 0 0;">
+                <h5 class="modal-title font-weight-bold" id="calModalTitle">
+                    <i class="fas fa-book-open mr-2"></i>Détail de la Séance
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                    <div>
+                        <span class="badge badge-primary font-weight-bold px-2 py-1 mr-1" id="calModalClass">Classe</span>
+                        <span class="badge badge-info font-weight-bold px-2 py-1" id="calModalType">Type</span>
+                    </div>
+                    <div class="small text-muted font-weight-bold" id="calModalDate">Date</div>
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted text-uppercase font-weight-bold">Module & Chapitre</small>
+                    <div class="font-weight-bold text-dark" id="calModalModuleSection">-</div>
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted text-uppercase font-weight-bold">Contenu Abordé</small>
+                    <div class="text-dark bg-light p-2 rounded border" id="calModalContent">-</div>
+                </div>
+
+                <div class="mb-3" id="calModalHomeworkBlock" style="display: none;">
+                    <small class="text-muted text-uppercase font-weight-bold text-warning">Travail à Faire / Devoirs</small>
+                    <div class="p-2 rounded border" style="background:#fff8e1; border-color:#ffe082 !important;" id="calModalHomework">-</div>
+                </div>
+
+                <div class="mb-2" id="calModalRemarkBlock" style="display: none;">
+                    <small class="text-muted text-uppercase font-weight-bold">Remarque</small>
+                    <div class="small text-muted font-italic" id="calModalRemark">-</div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light" style="border-radius: 0 0 14px 14px;">
+                <a href="#" id="calBtnAttendance" class="btn btn-sm btn-success rounded-pill px-3">
+                    <i class="fas fa-user-check mr-1"></i>Faire l'Appel
+                </a>
+                <a href="#" id="calBtnPdf" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                    <i class="fas fa-file-pdf mr-1"></i>Fiche PDF
+                </a>
+                <a href="#" id="calBtnEdit" class="btn btn-sm btn-outline-warning rounded-pill px-3">
+                    <i class="fas fa-edit mr-1"></i>Modifier
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Partage / Lien Magique (Option 3) -->
+<div class="modal fade" id="shareModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header bg-gradient-primary text-white" style="border-radius: 16px 16px 0 0;">
+                <h5 class="modal-title font-weight-bold">
+                    <i class="fas fa-share-alt mr-2"></i>Partage du Cahier de Texte
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <!-- État actuel -->
+                <div class="mb-3">
+                    <span class="badge {% if share_enabled %}badge-success{% else %}badge-secondary{% endif %} px-3 py-2 font-weight-bold" id="shareModalBadge" style="font-size: 0.9rem;">
+                        <i class="fas fa-circle mr-1" style="font-size: 0.6rem;"></i>
+                        {% if share_enabled %}Partage Actuellement ACTIF{% else %}Partage DÉSACTIVÉ{% endif %}
+                    </span>
+                </div>
+
+                <p class="text-muted small mb-3">
+                    Partagez ce lien sécurisé avec la <strong>direction</strong> ou <strong>l'inspecteur pédagogique</strong>. Ils pourront consulter le cahier de texte en lecture seule, sans avoir besoin de compte.
+                </p>
+
+                <!-- QR Code Box -->
+                <div class="p-3 bg-light rounded-lg border d-inline-block mb-3 shadow-xs">
+                    <img id="shareQrImage" src="{{ url_for('textbook.shared_qr', class_id=selected_class_id) }}" 
+                         alt="QR Code de partage" style="width: 170px; height: 170px; display: block;">
+                </div>
+
+                <!-- Input Lien de partage avec bouton Copier -->
+                <div class="input-group mb-3">
+                    <input type="text" id="shareUrlInput" class="form-control form-control-sm bg-light text-dark font-weight-bold" 
+                           value="{{ share_url }}" readonly>
+                    <div class="input-group-append">
+                        <button class="btn btn-sm btn-primary" type="button" onclick="copyShareUrl()" id="btnCopyShareUrl">
+                            <i class="fas fa-copy mr-1"></i>Copier
+                        </button>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    <a href="{{ share_url }}" target="_blank" class="btn btn-sm btn-outline-info rounded-pill px-3 font-weight-bold" id="btnPreviewShare">
+                        <i class="fas fa-external-link-alt mr-1"></i>Tester la vue
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="revokeShareToken()" title="Régénérer un nouveau lien et invalider l'ancien">
+                        <i class="fas fa-redo-alt mr-1"></i>Révoquer l'ancien lien
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer bg-light" style="border-radius: 0 0 16px 16px;">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Single Delete Form -->
+<form id="singleDeleteForm" method="POST" style="display: none;"></form>
+
+<script>
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const checkboxes = document.querySelectorAll('.session-checkbox');
+        checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        toggleDeleteButton();
+    }
+
+    function toggleDeleteButton() {
+        const checkboxes = document.querySelectorAll('.session-checkbox:checked');
+        const box = document.getElementById('bulkDeleteBox');
+        const btn = document.getElementById('deleteSelectedBtn');
+        if (checkboxes.length > 0) {
+            box.style.display = 'block';
+            btn.innerHTML = `<i class="fas fa-trash-alt mr-1"></i> Supprimer la sélection (${checkboxes.length})`;
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+    function deleteSession(id) {
+        if (confirm('Supprimer cette séance ?')) {
+            const form = document.getElementById('singleDeleteForm');
+            form.action = `/textbook/${id}/delete`;
+            form.submit();
+        }
+    }
+
+    // Basculer entre Vue Tableau, Vue Timeline et Vue Calendrier
+    let calendarInstance = null;
+
+    function switchTextbookView(mode) {
+        const tableContainer = document.getElementById('viewTableContainer');
+        const timelineContainer = document.getElementById('viewTimelineContainer');
+        const calendarContainer = document.getElementById('viewCalendarContainer');
+        const btnTable = document.getElementById('btnViewTable');
+        const btnTimeline = document.getElementById('btnViewTimeline');
+        const btnCalendar = document.getElementById('btnViewCalendar');
+
+        // Reset boutons
+        btnTable.classList.remove('active');
+        btnTimeline.classList.remove('active');
+        btnCalendar.classList.remove('active');
+
+        tableContainer.style.display = 'none';
+        timelineContainer.style.display = 'none';
+        calendarContainer.style.display = 'none';
+
+        if (mode === 'timeline') {
+            timelineContainer.style.display = 'block';
+            btnTimeline.classList.add('active');
+            localStorage.setItem('textbook_view_mode', 'timeline');
+        } else if (mode === 'calendar') {
+            calendarContainer.style.display = 'block';
+            btnCalendar.classList.add('active');
+            localStorage.setItem('textbook_view_mode', 'calendar');
+            initCalendarIfNeeded();
+        } else {
+            tableContainer.style.display = 'block';
+            btnTable.classList.add('active');
+            localStorage.setItem('textbook_view_mode', 'table');
+        }
+    }
+
+    function initCalendarIfNeeded() {
+        const calendarEl = document.getElementById('calendar');
+        if (!calendarInstance) {
+            const yearId = "{{ current_year.id if current_year else '' }}";
+            const classId = "{{ selected_class_id or '' }}";
+            let eventsUrl = `/api/textbook/events?year_id=${yearId}&class_id=${classId}`;
+
+            calendarInstance = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'fr',
+                firstDay: 1, // Lundi
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,listWeek'
+                },
+                buttonText: {
+                    today: "Aujourd'hui",
+                    month: 'Mois',
+                    week: 'Semaine',
+                    list: 'Planning'
+                },
+                slotMinTime: '08:00:00',
+                slotMaxTime: '19:00:00',
+                allDaySlot: false,
+                events: eventsUrl,
+                eventClick: function(info) {
+                    info.jsEvent.preventDefault();
+                    showEventModal(info.event);
+                }
+            });
+            calendarInstance.render();
+        } else {
+            setTimeout(() => { calendarInstance.render(); }, 50);
+        }
+    }
+
+    function showEventModal(event) {
+        const props = event.extendedProps;
+        document.getElementById('calModalTitle').textContent = props.sessionType + ' : ' + props.courseTitles;
+        document.getElementById('calModalClass').textContent = props.className;
+        document.getElementById('calModalType').textContent = props.sessionType;
+        document.getElementById('calModalDate').textContent = props.dateFormatted + ' (' + props.timeSlot + ')';
+        document.getElementById('calModalModuleSection').textContent = props.moduleName + ' › ' + props.sectionName;
+        document.getElementById('calModalContent').textContent = props.courseTitles;
+
+        // Devoirs
+        const hwBlock = document.getElementById('calModalHomeworkBlock');
+        if (props.homework) {
+            hwBlock.style.display = 'block';
+            let hwText = props.homework;
+            if (props.homeworkDueDate) {
+                hwText += ` (Pour le ${props.homeworkDueDate})`;
+            }
+            document.getElementById('calModalHomework').textContent = hwText;
+        } else {
+            hwBlock.style.display = 'none';
+        }
+
+        // Remarque
+        const remBlock = document.getElementById('calModalRemarkBlock');
+        if (props.remark) {
+            remBlock.style.display = 'block';
+            document.getElementById('calModalRemark').textContent = props.remark;
+        } else {
+            remBlock.style.display = 'none';
+        }
+
+        // Liens d'action
+        document.getElementById('calBtnAttendance').href = props.attendanceUrl;
+        document.getElementById('calBtnPdf').href = props.pdfUrl;
+        document.getElementById('calBtnEdit').href = props.editUrl;
+
+        $('#sessionCalendarModal').modal('show');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const saved = localStorage.getItem('textbook_view_mode');
+        if (saved === 'timeline') {
+            switchTextbookView('timeline');
+        } else if (saved === 'calendar') {
+            switchTextbookView('calendar');
+        }
+    });
+
+    // Fonctions de gestion du Partage Externe (Option 3)
+    async function toggleTextbookShare() {
+        const sw = document.getElementById('shareToggleSwitch');
+        const label = document.getElementById('shareStatusLabel');
+        const modalBadge = document.getElementById('shareModalBadge');
+
+        try {
+            const resp = await fetch("{{ url_for('textbook.toggle_share') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                if (data.enabled) {
+                    label.className = 'mr-2 small font-weight-bold text-success';
+                    label.innerHTML = '<i class="fas fa-share-alt mr-1"></i>Partage : ACTIF';
+                    modalBadge.className = 'badge badge-success px-3 py-2 font-weight-bold';
+                    modalBadge.innerHTML = '<i class="fas fa-circle mr-1" style="font-size:0.6rem;"></i>Partage Actuellement ACTIF';
+                } else {
+                    label.className = 'mr-2 small font-weight-bold text-muted';
+                    label.innerHTML = '<i class="fas fa-share-alt mr-1"></i>Partage : INACTIF';
+                    modalBadge.className = 'badge badge-secondary px-3 py-2 font-weight-bold';
+                    modalBadge.innerHTML = '<i class="fas fa-circle mr-1" style="font-size:0.6rem;"></i>Partage DÉSACTIVÉ';
+                }
+            } else {
+                sw.checked = !sw.checked;
+            }
+        } catch (e) {
+            sw.checked = !sw.checked;
+            alert("Erreur lors de la mise à jour du partage.");
+        }
+    }
+
+    function copyShareUrl() {
+        const input = document.getElementById('shareUrlInput');
+        input.select();
+        input.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(input.value).then(() => {
+            const btn = document.getElementById('btnCopyShareUrl');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check mr-1"></i>Copié !';
+            btn.className = 'btn btn-sm btn-success';
+            setTimeout(() => {
+                btn.innerHTML = originalHtml;
+                btn.className = 'btn btn-sm btn-primary';
+            }, 2000);
+        });
+    }
+
+    async function revokeShareToken() {
+        if (!confirm("Voulez-vous révoquer le lien actuel et en générer un nouveau ? Tous les anciens liens partagés cesseront immédiatement de fonctionner.")) {
+            return;
+        }
+
+        try {
+            const resp = await fetch("{{ url_for('textbook.revoke_share_token') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                document.getElementById('shareUrlInput').value = data.share_url;
+                document.getElementById('btnPreviewShare').href = data.share_url;
+                // Recharger le QR code avec le nouveau jeton
+                const qrImg = document.getElementById('shareQrImage');
+                qrImg.src = "{{ url_for('textbook.shared_qr') }}?t=" + new Date().getTime();
+                alert(data.message);
+            }
+        } catch (e) {
+            alert("Erreur lors de la révocation du jeton.");
+        }
+    }
+</script>
+
+<!-- MODAL : REGISTRE DES JOURS & CRÉNEAUX EXCEPTIONNELS (GRÈVES, ÉVÉNEMENTS) -->
+<div class="modal fade" id="exceptionalEventsRegistryModal" tabindex="-1" role="dialog" aria-labelledby="registryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 14px;">
+            <div class="modal-header bg-gradient-danger text-white py-3 px-4" style="border-radius: 14px 14px 0 0;">
+                <h5 class="modal-title font-weight-bold" id="registryModalLabel">
+                    <i class="fas fa-calendar-times mr-2"></i> Registre des Jours &amp; Périodes Neutralisés
+                </h5>
+                <button type="button" class="close text-white opacity-90" data-dismiss="modal" aria-label="Fermer">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="text-muted small mb-3">
+                    Historique officiel des interruptions d'études pour l'année scolaire en cours (justification auprès de l'administration et des inspecteurs).
+                </p>
+
+                {% if exceptional_events %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered small align-middle mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Période</th>
+                                <th>Motif &amp; Intitulé</th>
+                                <th>Portée</th>
+                                <th>Cahier de Texte</th>
+                                <th class="text-center" style="width: 80px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ev in exceptional_events %}
+                            <tr>
+                                <td class="font-weight-bold">{{ ev.date.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <span class="badge badge-light border font-weight-bold">
+                                        {{ ev.period_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge badge-{{ ev.badge_color }} mr-1">{{ ev.type_display }}</span>
+                                    <strong>{{ ev.title }}</strong>
+                                    {% if ev.description %}
+                                    <div class="text-muted small mt-1 font-italic">{{ ev.description }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ev.classe %}
+                                        <span class="badge badge-primary">{{ ev.classe.name }}</span>
+                                    {% else %}
+                                        <span class="badge badge-secondary">Toutes les classes</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if ev.sync_textbook %}
+                                        <span class="text-success font-weight-bold"><i class="fas fa-check-circle mr-1"></i>Inscrit</span>
+                                    {% else %}
+                                        <span class="text-muted">&mdash;</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-xs btn-outline-danger" onclick="deleteRegistryEvent({{ ev.id }})" title="Supprimer cet événement">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-calendar-check fa-3x mb-2 text-gray-300"></i>
+                    <p class="mb-0 font-weight-bold">Aucune interruption de cours enregistrée cette année.</p>
+                    <small>Toutes les séances planifiées sont réputées tenues normalement.</small>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer bg-light py-2 px-3">
+                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function deleteRegistryEvent(id) {
+        if (!confirm('Supprimer cette entrée du registre des événements exceptionnels ?')) return;
+        try {
+            const resp = await fetch(`/absence/api/exceptional_event/${id}/delete`, { method: 'POST' });
+            const data = await resp.json();
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Erreur lors de la suppression.');
+            }
+        } catch (e) {
+            alert('Erreur réseau.');
+        }
+    }
+</script>
+{% endblock %}

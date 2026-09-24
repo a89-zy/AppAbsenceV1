@@ -1,0 +1,2676 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">
+        <i class="fas fa-sliders-h text-primary mr-2"></i>Paramètres Généraux
+    </h1>
+</div>
+
+<!-- Tabs Navigation -->
+<div class="settings-tabs-wrapper mb-4">
+    <ul class="nav nav-pills settings-nav-pills bg-white p-2 rounded-xl shadow-sm" id="settingsTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" id="account-tab" data-toggle="pill" href="#tab-account" role="tab"
+                aria-controls="tab-account" aria-selected="true" title="Mon Compte & Accès">
+                <i class="fas fa-user-lock tab-icon"></i>
+                <span class="tab-label">Mon Compte</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="years-tab" data-toggle="pill" href="#tab-years" role="tab"
+                aria-controls="tab-years" aria-selected="false" title="Années Scolaires">
+                <i class="fas fa-calendar-alt tab-icon"></i>
+                <span class="tab-label">Années Scolaires</span>
+                <span class="badge tab-badge">{{ all_school_years|length }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="classes-tab" data-toggle="pill" href="#tab-classes" role="tab"
+                aria-controls="tab-classes" aria-selected="false" title="Classes & Structure">
+                <i class="fas fa-school tab-icon"></i>
+                <span class="tab-label">Classes</span>
+                <span class="badge tab-badge">{{ classes|length }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="pedagogy-tab" data-toggle="pill" href="#tab-pedagogy" role="tab"
+                aria-controls="tab-pedagogy" aria-selected="false" title="Pédagogie & Programme">
+                <i class="fas fa-book-reader tab-icon"></i>
+                <span class="tab-label">Pédagogie</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="timeslots-tab" data-toggle="pill" href="#tab-timeslots" role="tab"
+                aria-controls="tab-timeslots" aria-selected="false" title="Créneaux & Horaires">
+                <i class="far fa-clock tab-icon"></i>
+                <span class="tab-label">Créneaux</span>
+                <span class="badge tab-badge">{{ time_slots|length }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="schedule-tab" data-toggle="pill" href="#tab-schedule" role="tab"
+                aria-controls="tab-schedule" aria-selected="false" title="Emploi du Temps Hebdomadaire">
+                <i class="fas fa-calendar-week tab-icon"></i>
+                <span class="tab-label">Planning</span>
+                <span class="badge tab-badge">{{ schedule_entries|length }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="activities-tab" data-toggle="pill" href="#tab-activities" role="tab"
+                aria-controls="tab-activities" aria-selected="false" title="Évaluations, Activités & Assiduité">
+                <i class="fas fa-tasks tab-icon"></i>
+                <span class="tab-label">Évaluations & Assiduité</span>
+                <span class="badge tab-badge">{{ types|length }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="mail-tab" data-toggle="pill" href="#tab-mail" role="tab"
+                aria-controls="tab-mail" aria-selected="false" title="Notifications & Emails">
+                <i class="fas fa-envelope-open-text tab-icon"></i>
+                <span class="tab-label">Emails</span>
+                <span class="badge tab-badge-status {{ 'badge-status-on' if mail_frequency != 'disabled' else 'badge-status-off' }}">
+                    {{ 'Actif' if mail_frequency != 'disabled' else 'Off' }}
+                </span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="theme-tab" data-toggle="pill" href="#tab-theme" role="tab"
+                aria-controls="tab-theme" aria-selected="false" title="Thème UI">
+                <i class="fas fa-palette tab-icon"></i>
+                <span class="tab-label">Thème UI</span>
+                <span class="badge tab-badge-new">Nouveau</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="backup-tab" data-toggle="pill" href="#tab-backup" role="tab"
+                aria-controls="tab-backup" aria-selected="false" title="Sauvegarde & Sécurité">
+                <i class="fas fa-database tab-icon"></i>
+                <span class="tab-label">Sauvegarde</span>
+            </a>
+        </li>
+    </ul>
+</div>
+
+<!-- Tabs Content -->
+<div class="tab-content" id="settingsTabsContent">
+
+    <!-- ============================================== -->
+    <!-- ONGLET 1 : COMPTE & SÉCURITÉ -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade show active" id="tab-account" role="tabpanel" aria-labelledby="account-tab">
+        <div class="row">
+            <!-- Carte 1 : Identifiants & Mot de passe -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow border-left-primary h-100">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-lock mr-2"></i>Identifiants de l'Enseignant
+                        </h6>
+                        <span class="badge badge-primary px-2 py-1"><i class="fas fa-shield-alt mr-1"></i>Sécurisé</span>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('auth.change_password') }}" method="POST" id="changePasswordForm">
+                            <div class="form-group">
+                                <label class="font-weight-bold small text-gray-700">Identifiant de connexion</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                    </div>
+                                    <input type="text" name="username" class="form-control"
+                                        value="{{ session.get('username', '') }}" required>
+                                </div>
+                                <small class="form-text text-muted">Nom d'utilisateur utilisé pour vous connecter.</small>
+                            </div>
+
+                            <hr class="my-3">
+
+                            <div class="form-group">
+                                <label class="font-weight-bold small text-danger">Mot de passe actuel *</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                    </div>
+                                    <input type="password" name="current_password" class="form-control"
+                                        placeholder="Obligatoire pour valider" required>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label class="font-weight-bold small text-gray-700">Nouveau mot de passe</label>
+                                    <input type="password" id="newPasswordInput" name="new_password" class="form-control"
+                                        placeholder="8 car. min, lettres + chiffres">
+                                    <div class="progress mt-2" style="height: 5px;">
+                                        <div id="pwdStrengthBar" class="progress-bar bg-danger" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small id="pwdStrengthText" class="form-text text-muted" style="font-size: 0.75rem;">Force : Inchangé</small>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label class="font-weight-bold small text-gray-700">Confirmer</label>
+                                    <input type="password" name="confirm_password" class="form-control"
+                                        placeholder="Confirmer nouveau mot de passe">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block shadow-sm py-2 font-weight-bold mt-3">
+                                <i class="fas fa-save mr-1"></i> Enregistrer les modifications
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Carte 2 : Double Facteur (2FA TOTP) -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow border-left-success h-100">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                        <h6 class="m-0 font-weight-bold text-success">
+                            <i class="fas fa-mobile-alt mr-2"></i>Double Facteur (2FA TOTP)
+                        </h6>
+                        {% if user_obj and user_obj.is_totp_enabled %}
+                        <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i>2FA Activé</span>
+                        {% else %}
+                        <span class="badge badge-secondary px-2 py-1"><i class="fas fa-times-circle mr-1"></i>2FA Désactivé</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">
+                            Protégez votre compte contre le vol de mot de passe en demandant un code temporaire à 6 chiffres via <strong>Google Authenticator</strong> ou <strong>Microsoft Authenticator</strong> lors de chaque connexion.
+                        </p>
+
+                        {% if user_obj and user_obj.is_totp_enabled %}
+                        <div class="alert alert-success d-flex align-items-center mb-4">
+                            <i class="fas fa-shield-alt fa-2x mr-3 text-success"></i>
+                            <div>
+                                <strong class="d-block">Protection 2FA Active</strong>
+                                <span class="small">Votre compte est sécurisé par double facteur TOTP.</span>
+                            </div>
+                        </div>
+
+                        <!-- Bouton Désactivation -->
+                        <button type="button" class="btn btn-outline-danger btn-block font-weight-bold" data-toggle="collapse" data-target="#disable2FaBox">
+                            <i class="fas fa-power-off mr-1"></i> Désactiver le 2FA
+                        </button>
+                        <div class="collapse mt-3" id="disable2FaBox">
+                            <div class="p-3 bg-light rounded border">
+                                <form action="{{ url_for('auth.disable_2fa') }}" method="POST">
+                                    <div class="form-group mb-2">
+                                        <label class="small font-weight-bold text-danger">Confirmez votre mot de passe :</label>
+                                        <input type="password" name="password" class="form-control form-control-sm" placeholder="Mot de passe actuel" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-sm btn-danger btn-block font-weight-bold">
+                                        Confirmer la désactivation
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {% else %}
+                        
+                        {% if not user_obj or not user_obj.totp_secret %}
+                        <!-- Étape 1 : Génération du QR Code -->
+                        <div class="text-center py-3">
+                            <form action="{{ url_for('auth.setup_2fa') }}" method="POST">
+                                <button type="submit" class="btn btn-success font-weight-bold shadow-sm px-4">
+                                    <i class="fas fa-qrcode mr-2"></i> Configurer l'authentification 2FA
+                                </button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <!-- Étape 2 : Scanner le QR Code et Valider le premier code -->
+                        <div class="text-center mb-3">
+                            <div class="p-2 d-inline-block bg-white border rounded shadow-xs mb-2">
+                                <img src="{{ url_for('auth.get_2fa_qr') }}" alt="QR Code 2FA" style="width: 160px; height: 160px;">
+                            </div>
+                            <div class="small text-muted mb-2">Scannez ce QR Code avec Google Authenticator ou Microsoft Authenticator</div>
+                            <div class="font-monospace small bg-light p-1 rounded d-inline-block text-secondary">
+                                Clé manuelle : <code>{{ user_obj.totp_secret }}</code>
+                            </div>
+                        </div>
+
+                        <form action="{{ url_for('auth.enable_2fa') }}" method="POST" class="mt-3">
+                            <div class="input-group">
+                                <input type="text" name="code" class="form-control text-center font-weight-bold" 
+                                       placeholder="Code à 6 chiffres" maxlength="6" inputmode="numeric" required>
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-success font-weight-bold">
+                                        <i class="fas fa-check mr-1"></i> Activer
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted text-center mt-1">Saisissez le code affiché sur votre smartphone pour confirmer.</small>
+                        </form>
+                        {% endif %}
+
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Carte 3 : Journal d'audit des connexions (Audit Log) -->
+            <div class="col-12 mb-4">
+                <div class="card shadow border-left-info">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                        <h6 class="m-0 font-weight-bold text-info">
+                            <i class="fas fa-history mr-2"></i>Journal d'Audit des Connexions & Sécurité
+                        </h6>
+                        <span class="badge badge-info px-2 py-1">10 derniers événements</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped mb-0 align-middle">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th style="width: 180px;">Date & Heure</th>
+                                        <th>Identifiant</th>
+                                        <th>Statut</th>
+                                        <th>Adresse IP</th>
+                                        <th>Détails & Navigateur</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if login_logs %}
+                                    {% for log in login_logs %}
+                                    <tr>
+                                        <td class="small font-weight-bold text-muted">
+                                            <i class="far fa-clock mr-1"></i>{{ log.created_at.strftime('%d/%m/%Y %H:%M:%S') if log.created_at else '-' }}
+                                        </td>
+                                        <td class="font-weight-bold text-dark">{{ log.username or '-' }}</td>
+                                        <td>
+                                            {% if log.status == 'SUCCESS' %}
+                                            <span class="badge badge-success px-2 py-1"><i class="fas fa-check-circle mr-1"></i>Succès</span>
+                                            {% elif log.status == 'LOCKED' %}
+                                            <span class="badge badge-danger px-2 py-1"><i class="fas fa-ban mr-1"></i>Verrouillé</span>
+                                            {% elif log.status == '2FA_FAILED' %}
+                                            <span class="badge badge-warning px-2 py-1 text-dark"><i class="fas fa-key mr-1"></i>2FA Échoué</span>
+                                            {% else %}
+                                            <span class="badge badge-secondary px-2 py-1"><i class="fas fa-times mr-1"></i>Échec</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="font-monospace small">{{ log.ip_address or 'Local' }}</td>
+                                        <td class="small text-muted text-truncate" style="max-width: 320px;" title="{{ log.details }} | {{ log.user_agent }}">
+                                            {% if log.details %}<strong class="text-dark">{{ log.details }}</strong> — {% endif %}
+                                            <span>{{ log.user_agent }}</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">
+                                            <i class="fas fa-info-circle mr-1"></i> Aucun historique de connexion enregistré pour l'instant.
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ONGLET : ANNÉES SCOLAIRES -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade" id="tab-years" role="tabpanel" aria-labelledby="years-tab">
+        <div class="row">
+            <!-- Liste des années -->
+            <div class="col-lg-7">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-history mr-2"></i>Historique des Années Scolaires
+                        </h6>
+                        <span class="badge badge-info">{{ all_school_years|length }} année(s)</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Année Scolaire</th>
+                                        <th>Période</th>
+                                        <th class="text-center">Statut</th>
+                                        <th class="text-center" width="170">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for y in all_school_years %}
+                                    <tr class="{% if y.is_active %}table-primary-light font-weight-bold{% endif %}">
+                                        <td class="align-middle">
+                                            <i class="fas fa-graduation-cap mr-2 {% if y.is_active %}text-success{% else %}text-muted{% endif %}"></i>
+                                            <strong>{{ y.name }}</strong>
+                                            {% if y.is_active %}
+                                                <span class="badge badge-success ml-2">En cours</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="align-middle small text-muted">
+                                            {{ y.start_date.strftime('%d/%m/%Y') }} au {{ y.end_date.strftime('%d/%m/%Y') }}
+                                        </td>
+                                        <td class="align-middle text-center">
+                                            {% if y.is_read_only() %}
+                                                <span class="badge badge-warning text-dark"><i class="fas fa-lock mr-1"></i>Archivée (Lecture)</span>
+                                            {% else %}
+                                                <span class="badge badge-light text-success border border-success"><i class="fas fa-unlock mr-1"></i>Active</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="align-middle text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <!-- Bouton Activer par défaut -->
+                                                {% if not y.is_active %}
+                                                <form action="{{ url_for('configuration.set_active_year', year_id=y.id) }}" method="POST" class="d-inline">
+                                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Définir comme année par défaut">
+                                                        <i class="fas fa-check"></i> Activer
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+
+                                                <!-- Bouton Verrouiller / Déverrouiller (Archive) -->
+                                                <form action="{{ url_for('configuration.toggle_archive_year', year_id=y.id) }}" method="POST" class="d-inline ml-1">
+                                                    <button type="submit" class="btn btn-sm {% if y.is_archived %}btn-warning{% else %}btn-outline-secondary{% endif %}" 
+                                                            title="{% if y.is_archived %}Déverrouiller les modifications{% else %}Verrouiller en lecture seule (Archiver){% endif %}">
+                                                        <i class="fas {% if y.is_archived %}fa-lock{% else %}fa-lock-open{% endif %}"></i>
+                                                    </button>
+                                                </form>
+
+                                                <!-- Suppression (seulement si pas active et aucune séance) -->
+                                                {% if not y.is_active and y.sessions|length == 0 %}
+                                                <form action="{{ url_for('configuration.delete_year', year_id=y.id) }}" method="POST" class="d-inline ml-1"
+                                                      onsubmit="return confirm('Supprimer définitivement cette année scolaire ?');">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ajouter une Année Scolaire -->
+            <div class="col-lg-5">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 bg-primary text-white">
+                        <h6 class="m-0 font-weight-bold">
+                            <i class="fas fa-calendar-plus mr-2"></i>Créer une Nouvelle Année Scolaire
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">
+                            L'année scolaire permet d'isoler les absences, les notes d'activités et le cahier de texte d'une promotion. Les années terminées peuvent être verrouillées en lecture seule.
+                        </p>
+                        <form action="{{ url_for('configuration.add_school_year') }}" method="POST">
+                            <div class="form-group mb-3">
+                                <label class="small font-weight-bold" for="year_name">Nom de l'année scolaire <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="year_name" name="name" placeholder="Ex: 2026-2027" required autocomplete="off">
+                            </div>
+                            <div class="form-row mb-3">
+                                <div class="col">
+                                    <label class="small font-weight-bold" for="start_date">Date de début <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="start_date" name="start_date" required>
+                                </div>
+                                <div class="col">
+                                    <label class="small font-weight-bold" for="end_date">Date de fin <span class="text-danger">*</span></label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date" required>
+                                </div>
+                            </div>
+                            <div class="form-group form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="set_as_active" name="set_as_active" value="1">
+                                <label class="form-check-label small" for="set_as_active">Définir immédiatement comme année scolaire en cours</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block shadow-sm">
+                                <i class="fas fa-plus mr-1"></i> Créer l'Année Scolaire
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ONGLET 2 : CLASSES & STRUCTURE -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade" id="tab-classes" role="tabpanel" aria-labelledby="classes-tab">
+        <div class="row">
+            <!-- Liste des classes -->
+            <div class="col-lg-7">
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-chalkboard mr-2"></i>Classes de l'Année Scolaire : <span class="badge badge-primary px-2 py-1">{{ current_school_year.name if current_school_year else 'Non définie' }}</span>
+                        </h6>
+                        <span class="badge badge-info">{{ classes|length }} classe(s)</span>
+                    </div>
+                    <div class="card-body">
+                        {% if is_year_read_only %}
+                        <div class="alert alert-warning py-2 mb-3 small">
+                            <i class="fas fa-lock mr-1"></i> Cette année scolaire est actuellement <strong>archivée ou verrouillée en lecture seule</strong>. Les ajouts et suppressions de classes sont désactivés.
+                        </div>
+                        {% endif %}
+
+                        {% if classes %}
+                        <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                            <table class="table table-hover table-bordered mb-0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>Nom de la classe</th>
+                                        <th width="120" class="text-center">Élèves</th>
+                                        <th width="120" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for classe in classes %}
+                                    <tr>
+                                        <td class="font-weight-bold align-middle">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <a href="{{ url_for('absence.view_class', class_id=classe.id) }}" class="text-primary font-weight-bold" id="classNameText_{{ classe.id }}">
+                                                    <i class="fas fa-chalkboard mr-1 text-gray-400"></i>{{ classe.name }}
+                                                </a>
+                                                {% if not is_year_read_only %}
+                                                <button type="button" class="btn btn-link btn-sm text-secondary p-0 ml-2" 
+                                                        onclick="openEditClassModal({{ classe.id }}, '{{ classe.name }}')" 
+                                                        title="Modifier le titre de cette classe">
+                                                    <i class="fas fa-pen" style="font-size: 0.8rem;"></i>
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td class="text-center align-middle">
+                                            <span class="badge badge-light px-2 py-1">
+                                                {{ classe.students|length }} élève(s)
+                                            </span>
+                                        </td>
+                                        <td class="text-center align-middle">
+                                            {% if not is_year_read_only %}
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" 
+                                                        onclick="openEditClassModal({{ classe.id }}, '{{ classe.name }}')" 
+                                                        title="Renommer la classe">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <form action="{{ url_for('absence.delete_class', class_id=classe.id) }}" method="POST" class="d-inline ml-1"
+                                                    onsubmit="return confirm('Attention : supprimer cette classe supprimera également tous ses étudiants, absences et notes associées. Confirmer ?');">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Supprimer la classe">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            {% else %}
+                                            <span class="text-muted"><i class="fas fa-lock"></i></span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-folder-open fa-3x mb-3 text-gray-300"></i>
+                            <p class="mb-2">Aucune classe n'est configurée pour l'année scolaire <strong>{{ current_school_year.name if current_school_year else '' }}</strong>.</p>
+                            <small class="text-muted">Créez des classes ci-contre ou reconduisez les classes d'une année précédente.</small>
+                        </div>
+                        {% endif %}
+
+                        <!-- Reconduction des classes d'une autre année scolaire -->
+                        {% if not is_year_read_only and all_school_years|length > 1 %}
+                        <hr class="my-3">
+                        <div class="p-3 bg-light rounded border">
+                            <h6 class="font-weight-bold text-dark mb-2 small">
+                                <i class="fas fa-copy text-info mr-1"></i> Reconduire les classes d'une année précédente
+                            </h6>
+                            <p class="small text-muted mb-2">
+                                Copie automatiquement la liste des classes vers <strong>{{ current_school_year.name if current_school_year else '' }}</strong> sans affecter les classes déjà créées.
+                            </p>
+                            <form action="{{ url_for('configuration.copy_classes_from_year') }}" method="POST" class="form-inline">
+                                <label class="small font-weight-bold mr-2">Copier depuis :</label>
+                                <select name="source_year_id" class="form-control form-control-sm mr-2 mb-2" required>
+                                    <option value="" disabled selected>Choisir l'année source...</option>
+                                    {% for y in all_school_years %}
+                                        {% if not current_school_year or y.id != current_school_year.id %}
+                                            <option value="{{ y.id }}">{{ y.name }} ({{ y.classes|length }} classes)</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-outline-info font-weight-bold mb-2 shadow-sm">
+                                    <i class="fas fa-clone mr-1"></i> Reconduire
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ajout classe et Import -->
+            <div class="col-lg-5">
+                {% if not is_year_read_only %}
+                <!-- Ajouter une nouvelle classe vide -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3 bg-primary text-white">
+                        <h6 class="m-0 font-weight-bold">
+                            <i class="fas fa-plus-circle mr-2"></i>Ajouter une Classe Vide
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">
+                            Créez directement une nouvelle classe vide dans l'année <strong>{{ current_school_year.name if current_school_year else '' }}</strong>.
+                        </p>
+                        <form action="{{ url_for('absence.add_single_class') }}" method="POST">
+                            <div class="form-group mb-3">
+                                <label class="small font-weight-bold" for="single_class_name">Libellé de la classe</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-chalkboard"></i></span>
+                                    </div>
+                                    <input type="text" class="form-control" id="single_class_name" name="class_name" 
+                                           placeholder="Ex: 1BAC-SM-1, TCT-2, 2BAC-PC..." required autocomplete="off">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block shadow-sm">
+                                <i class="fas fa-plus mr-1"></i> Créer la Classe
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Import en masse par fichier -->
+                <div class="card shadow mb-4">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-success">
+                            <i class="fas fa-file-import mr-2"></i>Import en Masse par Fichier
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">
+                            Vous pouvez aussi importer une liste de classes en masse pour l'année <strong>{{ current_school_year.name if current_school_year else '' }}</strong> via un fichier texte ou CSV (un libellé par ligne).
+                        </p>
+                        <form action="{{ url_for('absence.upload_classes') }}" method="POST" enctype="multipart/form-data">
+                            <div class="form-group mb-3">
+                                <label class="small font-weight-bold">Fichier (.csv ou .txt)</label>
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="file_classes" name="file"
+                                        accept=".csv,.txt" required onchange="updateLabel(this)">
+                                    <label class="custom-file-label" for="file_classes">Choisir un fichier...</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-block shadow-sm">
+                                <i class="fas fa-upload mr-1"></i> Importer les Classes
+                            </button>
+                        </form>
+
+                        <hr>
+                        <div class="small text-muted">
+                            <i class="fas fa-info-circle text-info mr-1"></i>
+                            Pour importer la liste complète des <strong>élèves</strong> avec CNE et dates de naissance depuis Excel (Massar), utilisez le menu <a href="{{ url_for('absence.import_class') }}">Importer Étudiants</a>.
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="card shadow mb-4 border-left-warning">
+                    <div class="card-body text-center py-4">
+                        <i class="fas fa-lock fa-3x text-warning mb-3"></i>
+                        <h6 class="font-weight-bold text-gray-800">Ajout & Import désactivés</h6>
+                        <p class="small text-muted mb-0">
+                            L'année <strong>{{ current_school_year.name if current_school_year else '' }}</strong> est archivée. Basculez vers une année active depuis la barre supérieure pour ajouter ou modifier des classes.
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Modal Édition / Renommage d'une Classe -->
+        <div class="modal fade" id="modalEditClassName" tabindex="-1" role="dialog" aria-labelledby="modalEditClassNameLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg">
+                    <form id="editClassNameForm" method="POST">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title font-weight-bold" id="modalEditClassNameLabel">
+                                <i class="fas fa-edit mr-2"></i>Modifier le libellé de la classe
+                            </h5>
+                            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fermer">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <p class="small text-muted mb-3">
+                                Modifiez le nom de la classe ci-dessous. Tous les élèves, présences, notes et créneaux d'emploi du temps associés seront automatiquement conservés.
+                            </p>
+                            <div class="form-group mb-2">
+                                <label for="modalEditClassNameInput" class="small font-weight-bold text-dark">
+                                    Nouveau nom de la classe <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-chalkboard"></i></span>
+                                    </div>
+                                    <input type="text" class="form-control font-weight-bold" id="modalEditClassNameInput" 
+                                           name="class_name" placeholder="Ex: 2BAC-PC-1" required autocomplete="off">
+                                </div>
+                                <small class="form-text text-muted mt-1">
+                                    Le nom doit être unique au sein de l'année scolaire en cours.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-primary btn-sm px-3 shadow-sm font-weight-bold">
+                                <i class="fas fa-check mr-1"></i> Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ONGLET 3 : PÉDAGOGIE & PROGRAMME OFFICIEL -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade" id="tab-pedagogy" role="tabpanel" aria-labelledby="pedagogy-tab">
+        
+        <!-- En-tête / Explication Pédagogique -->
+        <div class="alert alert-light border shadow-sm mb-4 d-flex align-items-center justify-content-between flex-wrap" style="border-radius: 12px; gap: 10px;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-sitemap text-primary fa-2x mr-3"></i>
+                <div>
+                    <strong class="text-gray-900">Architecture du Programme :</strong>
+                    <span class="badge badge-primary ml-2 font-weight-bold">Compétences Générales ➜ Module ➜ Chapitre ➜ Objectifs</span>
+                    <div class="text-muted small mt-1">
+                        Consultez et gérez vos compétences générales, modules officiels, chapitres de cours et leurs objectifs pédagogiques directement rattachés.
+                    </div>
+                </div>
+            </div>
+            <a href="#pedagogyFullTree" class="btn btn-sm btn-outline-primary font-weight-bold">
+                <i class="fas fa-tree mr-1"></i>Vue Synthétique du Programme
+            </a>
+        </div>
+
+        <!-- 0. SECTION : COMPÉTENCES GÉNÉRALES DU PROGRAMME -->
+        <div class="card shadow-sm mb-4 border-left-info" style="border-radius: 12px;">
+            <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-info">
+                    <i class="fas fa-award mr-2"></i>Compétences Générales du Programme
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-info" data-toggle="collapse" data-target="#collapseAddGeneralCompForm">
+                    <i class="fas fa-plus mr-1"></i>Ajouter une compétence générale
+                </button>
+            </div>
+            <!-- Formulaire ajout compétence générale -->
+            <div class="collapse border-bottom bg-light p-3" id="collapseAddGeneralCompForm">
+                <form action="{{ url_for('configuration.add_setting') }}" method="POST" class="form-inline justify-content-center">
+                    <input type="hidden" name="category" value="general_competency">
+                    <label class="font-weight-bold small mr-2">Nouvelle Compétence Générale :</label>
+                    <input type="text" name="name" class="form-control form-control-sm mr-2 mb-2 mb-sm-0" style="min-width: 380px;" placeholder="Énoncé de la compétence générale..." required>
+                    <button type="submit" class="btn btn-info btn-sm font-weight-bold"><i class="fas fa-check mr-1"></i>Enregistrer</button>
+                </form>
+            </div>
+            <div class="card-body py-2">
+                {% if general_competencies %}
+                <ul class="list-group list-group-flush">
+                    {% for gc in general_competencies %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-1">
+                        <div class="d-flex align-items-start">
+                            <span class="badge badge-info rounded-circle mr-2 mt-1" style="width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px;">{{ loop.index }}</span>
+                            <span class="text-gray-900 small font-weight-bold">{{ gc.description }}</span>
+                        </div>
+                        <form action="{{ url_for('configuration.delete_setting') }}" method="POST" class="d-inline ml-2" onsubmit="return confirm('Supprimer cette compétence générale ?');">
+                            <input type="hidden" name="category" value="general_competency">
+                            <input type="hidden" name="id" value="{{ gc.id }}">
+                            <button type="submit" class="btn btn-link text-danger p-0" title="Supprimer">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small my-2 text-center">Aucune compétence générale enregistrée.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 1. BARRE DE SÉLECTION EN CASCADE : MODULE -> CHAPITRE (SECTION) -->
+        <div class="card shadow-sm mb-4 border-left-primary" style="border-radius: 12px;">
+            <div class="card-body bg-light py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-6 mb-2 mb-md-0">
+                        <label class="small font-weight-bold text-gray-700 mb-1">
+                            <i class="fas fa-cube text-primary mr-1"></i>1. Choisir le Module :
+                        </label>
+                        <select id="cascadeModuleSelect" class="form-control font-weight-bold" onchange="cascadeOnModuleChange()">
+                            <option value="">-- Sélectionnez un Module --</option>
+                            {% for m in modules %}
+                            <option value="{{ m.id }}">{{ m.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="small font-weight-bold text-gray-700 mb-1">
+                            <i class="fas fa-bookmark text-success mr-1"></i>2. Choisir le Chapitre :
+                        </label>
+                        <select id="cascadeSectionSelect" class="form-control font-weight-bold" onchange="cascadeOnSectionChange()" disabled>
+                            <option value="">Sélectionnez d'abord un module...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. BLOCS D'ACTION EN CASCADE (CHAPITRES DU MODULE & OBJECTIFS DU CHAPITRE) -->
+        <div class="row mb-4">
+            
+            <!-- Colonne 1 : CHAPITRES DU MODULE -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm mb-4 border-top-primary" style="border-radius: 12px;">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-list-ol mr-1"></i>Chapitres du Module
+                        </h6>
+                        <span id="cascadeSectionBadge" class="badge badge-primary">-</span>
+                    </div>
+                    <div class="card-body">
+                        <!-- Liste des chapitres -->
+                        <div id="cascadeSectionsContainer">
+                            <p class="text-muted small text-center my-3">Veuillez sélectionner un module ci-dessus.</p>
+                        </div>
+
+                        <!-- Formulaire d'ajout rapide d'un chapitre -->
+                        <div id="cascadeAddSectionBox" class="mt-3 pt-3 border-top" style="display: none;">
+                            <label class="small font-weight-bold text-gray-700 mb-1">Ajouter un Chapitre à ce module :</label>
+                            <form action="{{ url_for('configuration.add_setting') }}" method="POST">
+                                <input type="hidden" name="category" value="section">
+                                <input type="hidden" name="module_id" id="hidden_section_module_id" value="">
+                                <div class="input-group">
+                                    <input type="text" name="name" class="form-control form-control-sm" placeholder="Ex: Chapitre 5 : Nouvelles notions..." required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary btn-sm font-weight-bold" type="submit">
+                                            <i class="fas fa-plus"></i> Ajouter Chapitre
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colonne 2 : OBJECTIFS DIRECTEMENT RELIÉS AU CHAPITRE -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm mb-4 border-top-success" style="border-radius: 12px;">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                        <h6 class="m-0 font-weight-bold text-success">
+                            <i class="fas fa-bullseye mr-1"></i>Objectifs du Chapitre sélectionné
+                        </h6>
+                        <span id="cascadeObjectiveBadge" class="badge badge-success">-</span>
+                    </div>
+                    <div class="card-body">
+                        <!-- Liste des objectifs du chapitre -->
+                        <div id="cascadeObjectivesContainer">
+                            <p class="text-muted small text-center my-3">Sélectionnez un module puis un chapitre ci-dessus.</p>
+                        </div>
+
+                        <!-- Formulaire d'ajout rapide d'un objectif pour ce chapitre -->
+                        <div id="cascadeAddObjectiveBox" class="mt-3 pt-3 border-top" style="display: none;">
+                            <label class="small font-weight-bold text-gray-700 mb-1">Ajouter un Objectif à ce Chapitre :</label>
+                            <form action="{{ url_for('configuration.add_setting') }}" method="POST">
+                                <input type="hidden" name="category" value="objective">
+                                <input type="hidden" name="section_id" id="hidden_objective_section_id" value="">
+                                <div class="input-group">
+                                    <input type="text" name="name" class="form-control form-control-sm" placeholder="Description de l'objectif pédagogique..." required>
+                                    <div class="input-group-append">
+                                        <button class="btn btn-success btn-sm font-weight-bold" type="submit">
+                                            <i class="fas fa-plus"></i> Ajouter Objectif
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. VUE ARBRE HIÉRARCHIQUE DU PROGRAMME COMPLET (Module -> Chapitre -> Objectifs) -->
+        <div class="card shadow mb-4" id="pedagogyFullTree" style="border-radius: 12px;">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center bg-white">
+                <h6 class="m-0 font-weight-bold text-gray-800">
+                    <i class="fas fa-tree text-info mr-2"></i>Vue Synthétique du Programme (Arbre Pédagogique Complet)
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-primary font-weight-bold" data-toggle="collapse" data-target="#collapseAddModuleForm">
+                    <i class="fas fa-plus-circle mr-1"></i>Créer un Nouveau Module
+                </button>
+            </div>
+            
+            <!-- Formulaire repliable d'ajout de Module -->
+            <div class="collapse border-bottom bg-light p-3" id="collapseAddModuleForm">
+                <form action="{{ url_for('configuration.add_setting') }}" method="POST" class="form-inline justify-content-center">
+                    <input type="hidden" name="category" value="module">
+                    <label class="font-weight-bold small mr-2">Nouveau Module :</label>
+                    <input type="text" name="name" class="form-control form-control-sm mr-2 mb-2 mb-sm-0" style="min-width: 280px;" placeholder="Ex: MODULE 5 : Intelligence Artificielle" required>
+                    <button type="submit" class="btn btn-primary btn-sm font-weight-bold"><i class="fas fa-check mr-1"></i>Enregistrer le Module</button>
+                </form>
+            </div>
+
+            <div class="card-body p-0">
+                {% if modules %}
+                <div class="accordion" id="modulesAccordion">
+                    {% for m in modules %}
+                    <div class="card border-0 border-bottom rounded-0">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center" id="heading_mod_{{ m.id }}">
+                            <div class="d-flex align-items-center">
+                                <button class="btn btn-link text-dark font-weight-bold text-left p-0 d-flex align-items-center" type="button" 
+                                    data-toggle="collapse" data-target="#collapse_mod_{{ m.id }}" aria-expanded="true">
+                                    <i class="fas fa-folder text-warning fa-lg mr-2"></i>
+                                    <span>{{ m.name }}</span>
+                                </button>
+                                <span class="badge badge-light border ml-3 small">{{ m.sections|length }} chapitre(s)</span>
+                            </div>
+                            <div>
+                                <form action="{{ url_for('configuration.delete_setting') }}" method="POST" class="d-inline"
+                                    onsubmit="return confirm('Attention : supprimer ce module supprimera également tous ses chapitres et objectifs associés. Confirmer ?');">
+                                    <input type="hidden" name="category" value="module">
+                                    <input type="hidden" name="id" value="{{ m.id }}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-2" title="Supprimer ce module">
+                                        <i class="fas fa-trash-alt"></i> Supprimer
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div id="collapse_mod_{{ m.id }}" class="collapse show" aria-labelledby="heading_mod_{{ m.id }}">
+                            <div class="card-body bg-light py-3">
+                                {% if m.sections %}
+                                <div class="space-y-3">
+                                    {% for s in m.sections %}
+                                    <div class="bg-white p-3 rounded-lg border shadow-xs mb-3">
+                                        <div class="d-flex justify-content-between align-items-center pb-2 border-bottom">
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge badge-primary mr-2 font-weight-bold" style="font-size: 0.75rem;">Chapitre {{ loop.index }}</span>
+                                                <strong class="text-dark">{{ s.name }}</strong>
+                                            </div>
+                                            <div>
+                                                <span class="badge badge-light border text-muted mr-2">{{ s.objectives|length }} objectif(s)</span>
+                                                <form action="{{ url_for('configuration.delete_setting') }}" method="POST" class="d-inline"
+                                                    onsubmit="return confirm('Supprimer ce chapitre et ses objectifs ?');">
+                                                    <input type="hidden" name="category" value="section">
+                                                    <input type="hidden" name="id" value="{{ s.id }}">
+                                                    <button type="submit" class="btn btn-link text-danger p-0" title="Supprimer le chapitre">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+
+                                        <!-- Objectifs du chapitre -->
+                                        {% if s.objectives %}
+                                        <ul class="list-unstyled pl-3 mt-2 mb-2 border-left border-success">
+                                            {% for obj in s.objectives %}
+                                            <li class="small text-muted py-1 d-flex justify-content-between align-items-center">
+                                                <span>
+                                                    <i class="fas fa-check-circle text-success mr-2" style="font-size: 11px;"></i>
+                                                    <span class="text-gray-800">{{ obj.description }}</span>
+                                                </span>
+                                                <form action="{{ url_for('configuration.delete_setting') }}" method="POST" class="d-inline"
+                                                    onsubmit="return confirm('Supprimer cet objectif ?');">
+                                                    <input type="hidden" name="category" value="objective">
+                                                    <input type="hidden" name="id" value="{{ obj.id }}">
+                                                    <button type="submit" class="btn btn-link text-danger p-0" title="Supprimer cet objectif">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% else %}
+                                        <div class="small text-muted pl-3 mt-2 italic">Aucun objectif défini pour ce chapitre.</div>
+                                        {% endif %}
+
+                                        <!-- Ajout rapide d'un objectif pour ce chapitre dans l'arbre -->
+                                        <form action="{{ url_for('configuration.add_setting') }}" method="POST" class="mt-2 pt-2 border-top">
+                                            <input type="hidden" name="category" value="objective">
+                                            <input type="hidden" name="section_id" value="{{ s.id }}">
+                                            <div class="input-group input-group-sm">
+                                                <input type="text" name="name" class="form-control form-control-sm" placeholder="Ajouter un objectif à ce chapitre..." required>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-outline-success btn-sm font-weight-bold" type="submit">
+                                                        <i class="fas fa-plus"></i> Objectif
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <div class="text-muted small">Aucun chapitre pour ce module.</div>
+                                {% endif %}
+
+                                <!-- Bouton ajout direct de chapitre pour ce module -->
+                                <form action="{{ url_for('configuration.add_setting') }}" method="POST" class="mt-3">
+                                    <input type="hidden" name="category" value="section">
+                                    <input type="hidden" name="module_id" value="{{ m.id }}">
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" name="name" class="form-control" placeholder="Nouveau chapitre pour ce module..." required>
+                                        <div class="input-group-append">
+                                            <button class="btn btn-outline-primary font-weight-bold" type="submit">
+                                                <i class="fas fa-plus mr-1"></i>Ajouter Chapitre
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-book-open fa-3x mb-3 text-gray-300"></i>
+                    <p class="mb-0">Aucun module n'a été créé pour le moment.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ONGLET CRÉNEAUX & HORAIRES DE L'ÉTABLISSEMENT -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade" id="tab-timeslots" role="tabpanel" aria-labelledby="timeslots-tab">
+        <div class="row">
+            <!-- Formulaire d'ajout d'un nouveau créneau -->
+            <div class="col-lg-4 mb-4">
+                <div class="card shadow-sm border-0" style="border-radius: 12px;">
+                    <div class="card-header py-3 bg-white border-bottom">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-plus-circle mr-2"></i>Nouveau Créneau Horaire
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">
+                            Définissez les créneaux officiels de l'établissement (séances de 2h, 1h ou sur-mesure) pour les sélectionner en un clic dans le cahier de texte.
+                        </p>
+                        <form action="{{ url_for('configuration.add_setting') }}" method="POST">
+                            <input type="hidden" name="category" value="time_slot">
+                            
+                            <div class="form-group mb-3">
+                                <label class="small font-weight-bold text-gray-700">Libellé du créneau <span class="text-danger">*</span></label>
+                                <input type="text" name="name" class="form-control form-control-sm rounded-lg" 
+                                       placeholder="Ex: Matin 1 (2h), Séance 1h..." required>
+                            </div>
+
+                            <div class="form-row mb-3">
+                                <div class="col-6">
+                                    <label class="small font-weight-bold text-gray-700">Heure Début <span class="text-danger">*</span></label>
+                                    <input type="time" name="start_time" id="ts_start" class="form-control form-control-sm rounded-lg" value="08:30" required onchange="calcSlotDuration()">
+                                </div>
+                                <div class="col-6">
+                                    <label class="small font-weight-bold text-gray-700">Heure Fin <span class="text-danger">*</span></label>
+                                    <input type="time" name="end_time" id="ts_end" class="form-control form-control-sm rounded-lg" value="10:30" required onchange="calcSlotDuration()">
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="small font-weight-bold text-gray-700 d-flex justify-content-between">
+                                    <span>Volume Horaire (heures)</span>
+                                    <span class="badge badge-info" id="ts_dur_badge">2.0 h</span>
+                                </label>
+                                <input type="number" step="0.25" min="0.25" max="8" name="duration_hours" id="ts_duration" class="form-control form-control-sm rounded-lg" value="2.0">
+                                <small class="text-muted">Calculé automatiquement, modifiable au besoin (ex: 1.0, 1.5, 2.0).</small>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block shadow-sm font-weight-bold">
+                                <i class="fas fa-save mr-1"></i>Enregistrer le Créneau
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Liste des créneaux configurés -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0" style="border-radius: 12px;">
+                    <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center border-bottom">
+                        <h6 class="m-0 font-weight-bold text-dark">
+                            <i class="far fa-clock text-primary mr-2"></i>Grille des Créneaux Actifs
+                        </h6>
+                        <span class="badge badge-light border text-muted font-weight-normal">{{ time_slots|length }} créneaux définis</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th style="width: 40px;" class="text-center">#</th>
+                                        <th>Libellé</th>
+                                        <th style="width: 170px;" class="text-center">Horaires</th>
+                                        <th style="width: 110px;" class="text-center">Volume</th>
+                                        <th style="width: 90px;" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for slot in time_slots %}
+                                    <tr>
+                                        <td class="text-center text-muted font-weight-bold">{{ loop.index }}</td>
+                                        <td>
+                                            <strong class="text-dark">{{ slot.name }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-light border text-primary px-2 py-1 font-weight-bold" style="font-size: 0.85rem;">
+                                                <i class="far fa-clock mr-1"></i>{{ slot.start_time }} - {{ slot.end_time }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if slot.duration_hours == 2.0 %}
+                                            <span class="badge badge-primary px-2 py-1 font-weight-bold">2h (Standard)</span>
+                                            {% elif slot.duration_hours == 1.0 %}
+                                            <span class="badge badge-warning text-dark px-2 py-1 font-weight-bold">1h (Court)</span>
+                                            {% else %}
+                                            <span class="badge badge-info px-2 py-1 font-weight-bold">{{ slot.duration_hours }}h</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <form action="{{ url_for('configuration.delete_setting') }}" method="POST" class="d-inline"
+                                                  onsubmit="return confirm('Voulez-vous vraiment supprimer ce créneau horaire ?');">
+                                                <input type="hidden" name="category" value="time_slot">
+                                                <input type="hidden" name="id" value="{{ slot.id }}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer ce créneau">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">
+                                            Aucun créneau horaire défini pour le moment.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ONGLET EMPLOI DU TEMPS (PLANNING HEBDOMADAIRE) -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade" id="tab-schedule" role="tabpanel" aria-labelledby="schedule-tab">
+        <!-- Bannière explicative -->
+        <div class="alert alert-light border shadow-sm mb-4 d-flex align-items-center justify-content-between flex-wrap" style="border-radius: 12px; gap: 10px;">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-calendar-week text-primary fa-2x mr-3"></i>
+                <div>
+                    <strong class="text-gray-900">Emploi du Temps Hebdomadaire de l'Enseignant :</strong>
+                    <span class="badge badge-primary ml-2 font-weight-bold">{{ current_school_year.name if current_school_year else 'Année en cours' }}</span>
+                    <div class="text-muted small mt-1">
+                        Affectez vos créneaux réguliers (Lundi à Samedi) par classe. Ces créneaux seront utilisés pour détecter automatiquement votre cours en cours, faire l'appel en 1 clic et préremplir le cahier de texte.
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-sm btn-primary font-weight-bold" data-toggle="modal" data-target="#modalAddScheduleEntry">
+                <i class="fas fa-plus mr-1"></i>Ajouter un Cours au Planning
+            </button>
+        </div>
+
+        <!-- Matrice de l'Emploi du Temps Hebdomadaire -->
+        <div class="card shadow-sm border-0 mb-4" style="border-radius: 14px; overflow: hidden;">
+            <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-dark">
+                    <i class="fas fa-th mr-2 text-primary"></i>Grille Hebdomadaire (Lundi - Samedi)
+                </h6>
+                <span class="badge badge-light border text-muted">{{ schedule_entries|length }} créneau(x) assigné(s)</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered mb-0 text-center" style="table-layout: fixed;">
+                        <thead class="bg-light">
+                            <tr>
+                                <th style="width: 14%;">Créneau Horaire</th>
+                                <th style="width: 14%;">Lundi</th>
+                                <th style="width: 14%;">Mardi</th>
+                                <th style="width: 14%;">Mercredi</th>
+                                <th style="width: 14%;">Jeudi</th>
+                                <th style="width: 14%;">Vendredi</th>
+                                <th style="width: 14%;">Samedi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for slot in time_slots %}
+                            <tr>
+                                <td class="align-middle bg-light font-weight-bold small py-3">
+                                    <div class="text-primary">{{ slot.name }}</div>
+                                    <small class="text-muted"><i class="far fa-clock mr-1"></i>{{ slot.start_time }} - {{ slot.end_time }}</small>
+                                </td>
+                                {% for day_idx in range(6) %}
+                                {% set matched_entries = [] %}
+                                {% for e in schedule_entries if e.day_of_week == day_idx and e.time_slot_id == slot.id %}
+                                    {% set _ = matched_entries.append(e) %}
+                                {% endfor %}
+                                <td class="align-middle p-2" style="background: {% if matched_entries %}#fcfdfe{% else %}#ffffff{% endif %}; height: 95px; vertical-align: middle;">
+                                    {% if matched_entries %}
+                                        {% for ent in matched_entries %}
+                                        <div class="p-2 rounded border shadow-xs text-left position-relative mb-1" 
+                                             style="background: #ffffff; border-left: 4px solid {{ ent.color or '#4e73df' }} !important; font-size: 0.8rem;">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <strong class="text-dark">{{ ent.classe.name }}</strong>
+                                                <form action="{{ url_for('configuration.delete_setting') }}" method="POST" class="d-inline"
+                                                      onsubmit="return confirm('Retirer ce cours de l\'emploi du temps ?');">
+                                                    <input type="hidden" name="category" value="schedule_entry">
+                                                    <input type="hidden" name="id" value="{{ ent.id }}">
+                                                    <button type="submit" class="btn btn-link text-danger p-0 ml-1" title="Supprimer">
+                                                        <i class="fas fa-times" style="font-size: 11px;"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                            <div class="text-muted small" style="font-size: 0.72rem;">
+                                                <i class="fas fa-map-marker-alt text-info mr-1"></i>{{ ent.room or 'Salle Info' }}
+                                            </div>
+                                            <div class="text-muted small" style="font-size: 0.72rem;">
+                                                <i class="fas fa-book-reader text-success mr-1"></i>{{ ent.subject_title or 'Info' }}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <button type="button" class="btn btn-link text-muted p-0 small" 
+                                                onclick="openAddScheduleModal({{ day_idx }}, {{ slot.id }})" 
+                                                title="Affecter un cours sur ce créneau" style="opacity: 0.5;">
+                                            <i class="fas fa-plus-circle fa-lg"></i>
+                                        </button>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="py-4 text-muted">
+                                    Veuillez d'abord configurer des créneaux horaires dans l'onglet « Créneaux ».
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal d'Ajout d'un Cours dans l'Emploi du Temps -->
+    <div class="modal fade" id="modalAddScheduleEntry" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content border-0 shadow" style="border-radius: 14px;">
+                <form action="{{ url_for('configuration.add_setting') }}" method="POST">
+                    <input type="hidden" name="category" value="schedule_entry">
+                    <div class="modal-header bg-primary text-white py-3">
+                        <h6 class="modal-title font-weight-bold">
+                            <i class="fas fa-calendar-plus mr-2"></i>Affecter un Cours à l'Emploi du Temps
+                        </h6>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div class="form-group mb-3">
+                            <label class="small font-weight-bold text-gray-700">Jour de la Semaine <span class="text-danger">*</span></label>
+                            <select name="day_of_week" id="modal_sched_day" class="form-control form-control-sm rounded-lg font-weight-bold" required>
+                                <option value="0">Lundi</option>
+                                <option value="1">Mardi</option>
+                                <option value="2">Mercredi</option>
+                                <option value="3">Jeudi</option>
+                                <option value="4">Vendredi</option>
+                                <option value="5">Samedi</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="small font-weight-bold text-gray-700">Créneau Horaire <span class="text-danger">*</span></label>
+                            <select name="time_slot_id" id="modal_sched_slot" class="form-control form-control-sm rounded-lg" required>
+                                {% for slot in time_slots %}
+                                <option value="{{ slot.id }}">{{ slot.name }} ({{ slot.start_time }} - {{ slot.end_time }}) [{{ slot.duration_hours }}h]</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label class="small font-weight-bold text-gray-700">Classe Enseignée <span class="text-danger">*</span></label>
+                            <select name="class_id" class="form-control form-control-sm rounded-lg font-weight-bold" required>
+                                {% for c in classes %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-row mb-3">
+                            <div class="col-6">
+                                <label class="small font-weight-bold text-gray-700">Salle / Laboratoire</label>
+                                <input type="text" name="room" class="form-control form-control-sm rounded-lg" value="Salle Info 1" placeholder="Ex: Salle 3, Labo Info...">
+                            </div>
+                            <div class="col-6">
+                                <label class="small font-weight-bold text-gray-700">Couleur d'accent</label>
+                                <input type="color" name="color" class="form-control form-control-sm rounded-lg p-1" value="#4e73df" style="height: 31px;">
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="small font-weight-bold text-gray-700">Matière / Libellé du cours</label>
+                            <input type="text" name="subject_title" class="form-control form-control-sm rounded-lg" value="Informatique" placeholder="Ex: Informatique, Algorithmique...">
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light py-2">
+                        <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 font-weight-bold shadow-sm">
+                            <i class="fas fa-check mr-1"></i>Enregistrer le Cours
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ONGLET 4 : ÉVALUATIONS, ACTIVITÉS & ASSIDUITÉ -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade" id="tab-activities" role="tabpanel" aria-labelledby="activities-tab">
+        <div class="row">
+            <!-- Colonne Gauche : Types d'évaluations et activités -->
+            <div class="col-lg-6 mb-4">
+                {% with title="Types d'activités & Évaluations", category='type', items=types %}
+                {% include 'partials/settings_card.html' %}
+                {% endwith %}
+            </div>
+
+            <!-- Colonne Droite : Règles de calcul de la note d'assiduité & Seuils d'alerte -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow border-left-warning">
+                    <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-warning">
+                            <i class="fas fa-gavel mr-2"></i>Barème d'Assiduité & Seuils d'Alerte
+                        </h6>
+                        <span class="badge badge-warning text-dark px-2 py-1"><i class="fas fa-calculator mr-1"></i>Automatique</span>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-3">
+                            Configurez la formule de notation de l'assiduité (comptabilisée dans les évaluations) et le déclencheur d'alertes visuelles en cas d'absences répétées.
+                        </p>
+                        <form action="{{ url_for('configuration.save_general') }}" method="POST">
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold small text-gray-800">
+                                    Déduction par absence non justifiée (points) :
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" step="0.25" min="0" max="20" name="absence_penalty"
+                                        class="form-control font-weight-bold" value="{{ absence_penalty }}" required>
+                                    <div class="input-group-append">
+                                        <span class="input-group-text font-weight-bold">pts / absence</span>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted mt-1">
+                                    <strong>Formule de calcul :</strong> <code>Note Assiduité = max(0, 20 - (NJ × Sanction))</code>
+                                </small>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold small text-gray-800">
+                                    <i class="fas fa-bell text-danger mr-1"></i>Seuil d'alerte décrochage (Nombre d'absences) :
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" step="1" min="1" max="50" name="absence_alert_threshold"
+                                        class="form-control font-weight-bold" value="{{ absence_alert_threshold }}" required>
+                                    <div class="input-group-append">
+                                        <span class="input-group-text font-weight-bold">absences</span>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted mt-1">
+                                    Affiche un badge d'alerte sur le tableau de bord et dans la feuille d'appel dès que ce total d'absences non justifiées est atteint.
+                                </small>
+                            </div>
+
+                            <button type="submit" class="btn btn-warning btn-block shadow-sm py-2 font-weight-bold text-dark">
+                                <i class="fas fa-save mr-1"></i> Enregistrer le Barème d'Assiduité
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ONGLET 5 : NOTIFICATIONS & EMAILS -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade" id="tab-mail" role="tabpanel" aria-labelledby="mail-tab">
+        <form action="{{ url_for('configuration.save_mail_settings') }}" method="POST" id="mailSettingsForm">
+            <div class="row">
+                <!-- Colonne Gauche : Paramétrage Global, Fréquence, Délais & Options Anti-Spam -->
+                <div class="col-lg-5 mb-4">
+                    <div class="card shadow mb-4 border-left-primary">
+                        <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-clock mr-2"></i>Fréquence & Automatisation
+                            </h6>
+                            <span class="badge badge-primary px-2 py-1">Envoi d'email</span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Fréquence d'envoi -->
+                            <div class="form-group mb-4">
+                                <label class="font-weight-bold small text-gray-800">Délai / Fréquence d'envoi des notifications</label>
+                                <select name="mail_frequency" class="form-control" id="mailFrequencySelect">
+                                    <option value="daily" {% if mail_frequency == 'daily' %}selected{% endif %}>
+                                        ⚡ Immédiate / Journalière (À chaque appel enregistré)
+                                    </option>
+                                    <option value="weekly" {% if mail_frequency == 'weekly' %}selected{% endif %}>
+                                        📅 Hebdomadaire (Bilan par semaine)
+                                    </option>
+                                    <option value="monthly" {% if mail_frequency == 'monthly' %}selected{% endif %}>
+                                        📆 Mensuelle (Récapitulatif mensuel)
+                                    </option>
+                                    <option value="semester" {% if mail_frequency == 'semester' %}selected{% endif %}>
+                                        🎓 Semestrielle (Bilan de fin de semestre)
+                                    </option>
+                                    <option value="disabled" {% if mail_frequency == 'disabled' %}selected{% endif %}>
+                                        ⛔ Désactivé (Aucun envoi automatique)
+                                    </option>
+                                </select>
+                                <small class="form-text text-muted">
+                                    Détermine à quel rythme les alertes d'absences sont générées et envoyées.
+                                </small>
+                            </div>
+
+                            <!-- Nom affiché de l'enseignant -->
+                            <div class="form-group mb-4">
+                                <label class="font-weight-bold small text-gray-800">Signature / Nom de l'enseignant</label>
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fas fa-signature"></i></span>
+                                    </div>
+                                    <input type="text" name="teacher_name" id="teacherNameInput" class="form-control" 
+                                           value="{{ teacher_name }}" placeholder="Ex: Prof ZYANI Azzeddine">
+                                </div>
+                                <small class="form-text text-muted">Utilisé pour remplacer la variable <code>{nom_enseignant}</code>.</small>
+                            </div>
+
+                            <hr class="my-3">
+
+                            <!-- Innovations & Options Avancées -->
+                            <h6 class="font-weight-bold text-gray-800 small mb-3">
+                                <i class="fas fa-shield-alt text-success mr-1"></i>Options Avancées & Garde-fous
+                            </h6>
+
+                            <!-- Option Innovation C : Copie Enseignant (Bcc) -->
+                            <div class="custom-control custom-checkbox mb-3">
+                                <input type="checkbox" class="custom-control-input" id="mailTeacherCopy" name="mail_teacher_copy" value="1" {% if mail_teacher_copy %}checked{% endif %}>
+                                <label class="custom-control-label small font-weight-bold text-gray-800" for="mailTeacherCopy">
+                                    M'envoyer une copie cachée (Bcc) à chaque envoi
+                                </label>
+                                <div class="text-muted small ml-4">Pratique pour conserver une preuve d'envoi et un historique d'archive.</div>
+                            </div>
+
+                            <!-- Option Innovation C : Alerter uniquement seuil décrochage -->
+                            <div class="custom-control custom-checkbox mb-3">
+                                <input type="checkbox" class="custom-control-input" id="mailOnlyThreshold" name="mail_only_threshold" value="1" {% if mail_only_threshold %}checked{% endif %}>
+                                <label class="custom-control-label small font-weight-bold text-gray-800" for="mailOnlyThreshold">
+                                    Alerter uniquement à partir du seuil de décrochage (≥ {{ absence_alert_threshold }} absences)
+                                </label>
+                                <div class="text-muted small ml-4">Évite d'envoyer un mail dès la 1ère absence isolée.</div>
+                            </div>
+
+                            <!-- Option Innovation B : Anti-Spam -->
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold small text-gray-800">
+                                    <i class="fas fa-history text-warning mr-1"></i>Délai anti-spam entre deux emails
+                                </label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" min="0" max="30" name="mail_antispam_days" class="form-control" 
+                                           value="{{ mail_antispam_days }}">
+                                    <div class="input-group-append">
+                                        <span class="input-group-text">jour(s)</span>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">
+                                    (0 = pas de limite). Ne ré-envoie pas d'email à un même étudiant s'il en a reçu un il y a moins de X jours.
+                                </small>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block font-weight-bold shadow-sm mt-4">
+                                <i class="fas fa-save mr-1"></i> Enregistrer les Réglages Emails
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Innovation A : Testeur d'envoi rapide -->
+                    <div class="card shadow mb-4 border-left-info">
+                        <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-info">
+                                <i class="fas fa-paper-plane mr-2"></i>Tester la Configuration SMTP
+                            </h6>
+                            <span class="badge badge-info px-2 py-1">Diagnostic</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="small text-muted mb-3">
+                                Envoyez immédiatement un email de simulation contenant le template sélectionné pour tester la réception et vérifier le bon fonctionnement du serveur SMTP.
+                            </p>
+                            <div class="input-group mb-2">
+                                <input type="email" id="testEmailInput" name="test_email" class="form-control form-control-sm"
+                                       placeholder="Votre adresse email" value="azzeddine.zyani@gmail.com">
+                                <div class="input-group-append">
+                                    <button type="button" id="triggerTestMailBtn" class="btn btn-info btn-sm font-weight-bold">
+                                        <i class="fas fa-paper-plane mr-1"></i> Tester
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.72rem;">
+                                Expéditeur configuré : <code>{{ config.get('MAIL_USERNAME', 'Non défini') }}</code>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Colonne Droite : Sélection des 4 Templates + Éditeur de contenu + Aperçu Live -->
+                <div class="col-lg-7 mb-4">
+                    <div class="card shadow mb-4 border-left-success">
+                        <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                            <h6 class="m-0 font-weight-bold text-success">
+                                <i class="fas fa-file-alt mr-2"></i>Templates de Notification (4 modèles)
+                            </h6>
+                            <span class="badge badge-success px-2 py-1">Édition en direct</span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Sélection du Template Actif -->
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold small text-gray-800">Modèle actif par défaut :</label>
+                                <div class="row">
+                                    {% for tid, tmpl in mail_templates.items() %}
+                                    <div class="col-sm-6 mb-2">
+                                        <div class="custom-control custom-radio border rounded p-2 bg-light template-card-selector" style="cursor: pointer;">
+                                            <input type="radio" id="radio_tmpl_{{ tid }}" name="active_mail_template" value="{{ tid }}" 
+                                                   class="custom-control-input template-radio" {% if active_mail_template == tid %}checked{% endif %}>
+                                            <label class="custom-control-label font-weight-bold small d-block" for="radio_tmpl_{{ tid }}">
+                                                Modèle {{ tid }} : {{ tmpl.name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Onglets de personnalisation pour chaque template -->
+                            <ul class="nav nav-tabs mt-3" id="templateEditorTabs" role="tablist">
+                                {% for tid, tmpl in mail_templates.items() %}
+                                <li class="nav-item">
+                                    <a class="nav-link {% if active_mail_template == tid %}active font-weight-bold text-primary{% endif %}" 
+                                       id="edit-tmpl-{{ tid }}-tab" data-toggle="tab" href="#edit-tmpl-{{ tid }}" role="tab">
+                                        Modèle {{ tid }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+
+                            <div class="tab-content border-left border-right border-bottom p-3 bg-white rounded-bottom" id="templateEditorTabsContent">
+                                {% for tid, tmpl in mail_templates.items() %}
+                                <div class="tab-pane fade {% if active_mail_template == tid %}show active{% endif %}" 
+                                     id="edit-tmpl-{{ tid }}" role="tabpanel">
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge badge-primary px-2 py-1 font-weight-bold">{{ tmpl.name }}</span>
+                                        <small class="text-muted">Édition du modèle {{ tid }}</small>
+                                    </div>
+
+                                    <div class="form-group mb-3">
+                                        <label class="font-weight-bold small text-gray-700">Objet du message</label>
+                                        <input type="text" name="template_{{ tid }}_subject" id="subject_input_{{ tid }}" 
+                                               class="form-control template-subject-field" value="{{ tmpl.subject }}" data-tid="{{ tid }}">
+                                    </div>
+
+                                    <div class="form-group mb-2">
+                                        <label class="font-weight-bold small text-gray-700">Corps du message</label>
+                                        <textarea name="template_{{ tid }}_body" id="body_input_{{ tid }}" rows="9" 
+                                                  class="form-control font-monospace template-body-field" style="font-size: 0.85rem;" data-tid="{{ tid }}">{{ tmpl.body }}</textarea>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- ============================================== -->
+                            <!-- SÉLECTEUR DE THÈMES (4 THÈMES JEUNES 14-19 ANS) -->
+                            <!-- ============================================== -->
+                            <div class="form-group mb-4">
+                                <label class="font-weight-bold small text-gray-800 d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-palette text-primary mr-1"></i>Thème visuel de l'email (Public 14-19 ans) :</span>
+                                    <span class="badge badge-primary px-2 py-1 font-weight-normal" id="selectedThemeLabel">Campus Bleu</span>
+                                </label>
+                                <div class="row">
+                                    {% for tk, th in mail_themes.items() %}
+                                    <div class="col-sm-6 mb-2">
+                                        <label class="d-block mb-0 border rounded p-2 theme-card-option {% if mail_theme == tk %}active-theme{% endif %}" 
+                                               style="cursor: pointer; transition: all 0.2s ease; border-width: 2px !important; border-color: {% if mail_theme == tk %}#4361ee{% else %}#e3e6f0{% endif %} !important; background: {% if tk == 'neon' %}#0f172a{% else %}#ffffff{% endif %};" 
+                                               for="radio_theme_{{ tk }}">
+                                            <div class="d-flex align-items-center">
+                                                <input type="radio" id="radio_theme_{{ tk }}" name="mail_theme" value="{{ tk }}" 
+                                                       class="mr-2 theme-radio" {% if mail_theme == tk %}checked{% endif %}>
+                                                <span class="mr-2" style="font-size: 1.25rem;">{{ th.icon }}</span>
+                                                <div style="flex: 1; min-width: 0;">
+                                                    <div class="font-weight-bold small text-truncate" style="color: {% if tk == 'neon' %}#f8fafc{% else %}#2b2d42{% endif %};">{{ th.name }}</div>
+                                                    <div class="small text-muted text-truncate" style="font-size: 0.7rem;">{{ th.subtitle }}</div>
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Guide des variables disponibles -->
+                            <div class="alert alert-secondary mt-3 py-2 px-3 small mb-3">
+                                <div class="font-weight-bold text-dark mb-1"><i class="fas fa-code mr-1"></i>Variables dynamiques à insérer :</div>
+                                <div class="d-flex flex-wrap" style="gap: 5px;">
+                                    <code class="badge badge-light border text-dark p-1 pointer-tag" title="Cliquez pour insérer">{prenom}</code>
+                                    <code class="badge badge-light border text-dark p-1 pointer-tag" title="Cliquez pour insérer">{nom}</code>
+                                    <code class="badge badge-light border text-dark p-1 pointer-tag" title="Cliquez pour insérer">{classe}</code>
+                                    <code class="badge badge-light border text-dark p-1 pointer-tag" title="Cliquez pour insérer">{cne}</code>
+                                    <code class="badge badge-light border text-dark p-1 pointer-tag" title="Cliquez pour insérer">{liste_dates}</code>
+                                    <code class="badge badge-light border text-dark p-1 pointer-tag" title="Cliquez pour insérer">{total_absences}</code>
+                                    <code class="badge badge-light border text-dark p-1 pointer-tag" title="Cliquez pour insérer">{note_assiduite}</code>
+                                    <code class="badge badge-light border text-dark p-1 pointer-tag" title="Cliquez pour insérer">{nom_enseignant}</code>
+                                </div>
+                            </div>
+
+                            <!-- Aperçu en direct du mail rendu avec Thème et Responsive (Live Preview) -->
+                            <div class="card bg-light border shadow-sm">
+                                <div class="card-header py-2 px-3 bg-dark text-white d-flex justify-content-between align-items-center">
+                                    <span class="small font-weight-bold"><i class="fas fa-eye mr-1"></i>Aperçu en direct (Rendu dans la boîte de l'étudiant)</span>
+                                    <div>
+                                        <span class="badge badge-info mr-1" id="previewBadge">Modèle {{ active_mail_template }}</span>
+                                        <span class="badge badge-warning" id="previewThemeBadge">{{ mail_themes.get(mail_theme, {}).get('name', 'Campus Bleu') }}</span>
+                                    </div>
+                                </div>
+                                <div class="card-body p-3" id="livePreviewContainer" style="background-color: #f4f6fb; transition: background 0.3s ease;">
+                                    
+                                    <!-- Boîte d'email stylisée -->
+                                    <div id="emailPreviewCard" class="mx-auto rounded shadow-sm border" style="max-width: 520px; background: #ffffff; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                                        <!-- En-tête de l'email -->
+                                        <div id="emailPreviewHeader" class="p-3 text-white" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
+                                            <div id="emailPreviewIcon" class="mb-1" style="font-size: 1.4rem;">🎓</div>
+                                            <div class="font-weight-bold" style="font-size: 1.05rem;">Suivi Pédagogique & Présences</div>
+                                            <div class="small opacity-75" style="opacity: 0.85; font-size: 0.75rem;">Espace Scolaire & Assiduité — 2BAC-SM</div>
+                                        </div>
+
+                                        <!-- Contenu de l'email -->
+                                        <div class="p-3" id="emailPreviewBodyCard" style="color: #2b2d42; font-size: 0.86rem; line-height: 1.6;">
+                                            
+                                            <!-- Option B : Fiche Identité Étudiant intégrée -->
+                                            <div id="emailPreviewIdCard" class="p-2 rounded mb-3 border" style="background-color: #f8fafc; font-size: 0.78rem;">
+                                                <div class="row no-gutters">
+                                                    <div class="col-6 pr-2 border-right">
+                                                        <div class="text-muted small font-weight-bold" style="font-size: 0.68rem; text-transform: uppercase;">👤 Étudiant</div>
+                                                        <div class="font-weight-bold" style="font-size: 0.9rem;">Karim EL IDRISSI</div>
+                                                        <div class="text-muted small">CNE : <strong class="text-primary">R130123456</strong></div>
+                                                    </div>
+                                                    <div class="col-6 pl-2">
+                                                        <div class="text-muted small font-weight-bold" style="font-size: 0.68rem; text-transform: uppercase;">🏫 Classe</div>
+                                                        <div class="font-weight-bold" style="font-size: 0.9rem;">2BAC-SM</div>
+                                                        <div class="text-muted small">Total Absences : <strong class="text-danger">2</strong></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Option C : Barre de Jauge de progression d'Assiduité -->
+                                            <div id="emailPreviewGaugeBox" class="p-2 rounded mb-3 border" style="background-color: #f8fafc; font-size: 0.78rem;">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="font-weight-bold text-muted" style="font-size: 0.72rem; text-transform: uppercase;">
+                                                        Note d'assiduité <span class="text-success font-weight-bold ml-1">(Excellente / Régulière)</span>
+                                                    </span>
+                                                    <span class="font-weight-bold" style="font-size: 1rem; color: #10b981;">19.0 <span class="text-muted small">/ 20</span></span>
+                                                </div>
+                                                <div class="progress" style="height: 6px; border-radius: 4px; background-color: #e2e8f0;">
+                                                    <div class="progress-bar bg-success" role="progressbar" style="width: 95%; border-radius: 4px;"></div>
+                                                </div>
+                                            </div>
+
+                                            <div class="border-bottom pb-2 mb-2">
+                                                <strong class="text-muted small">Objet :</strong> 
+                                                <span id="livePreviewSubject" class="font-weight-bold text-primary"></span>
+                                            </div>
+
+                                            <div id="livePreviewBody" style="font-family: inherit; margin: 0; min-height: 80px; line-height: 1.65;"></div>
+
+                                            <div id="emailPreviewTip" class="p-2 rounded mt-3 small border-left" 
+                                                 style="background-color: #f8fafc; border-left: 4px solid #4361ee !important; font-size: 0.74rem;">
+                                                💡 <strong>Bon réflexe :</strong> En cas d'imprévu ou de motif médical, déposez votre justificatif auprès de l'administration sous 48 heures pour régulariser votre dossier.
+                                            </div>
+                                        </div>
+
+                                        <!-- Pied de page de l'email -->
+                                        <div class="py-2 px-3 text-center border-top small text-muted" id="emailPreviewFooter" style="background-color: #f8fafc; font-size: 0.7rem;">
+                                            Ce message vous est adressé dans le cadre du suivi de scolarité
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Formulaire caché pour l'envoi de test -->
+        <form id="hiddenTestMailForm" action="{{ url_for('configuration.test_mail') }}" method="POST" style="display: none;">
+            <input type="hidden" name="test_email" id="hidden_test_email">
+        </form>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ONGLET 6 : THÈME UI DE L'APPLICATION          -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade" id="tab-theme" role="tabpanel" aria-labelledby="theme-tab">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <!-- Header card -->
+                <div class="card shadow-sm mb-4" style="border: none; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: #fff; border-radius: 16px;">
+                    <div class="card-body py-4 px-4">
+                        <div class="d-flex align-items-center">
+                            <div class="mr-4" style="font-size:3rem;">🎨</div>
+                            <div>
+                                <h4 class="font-weight-bold mb-1" style="color:#fff;">Personnalisation du Thème UI</h4>
+                                <p class="mb-0" style="color:rgba(255,255,255,0.85); font-size:0.92rem;">
+                                    Choisissez l'ambiance visuelle de votre espace de gestion. Le thème s'applique instantanément à toute l'application.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <form action="{{ url_for('configuration.save_app_theme') }}" method="POST" id="appThemeForm">
+            <div class="row">
+
+                <!-- ===== Thème 1 : Bleu Royal Minimaliste (royal_blue) ===== -->
+                <div class="col-lg-6 mb-4">
+                    <div class="theme-card h-100 {% if app_ui_theme == 'royal_blue' %}theme-card-active{% endif %}"
+                         id="themeCard_royal_blue" onclick="selectTheme('royal_blue')"
+                         style="cursor:pointer; border-radius:16px; border:2px solid {% if app_ui_theme == 'royal_blue' %}#2563eb{% else %}#e2e8f0{% endif %}; transition:all .3s; overflow:hidden; background:#fff; box-shadow:{% if app_ui_theme == 'royal_blue' %}0 8px 30px rgba(37,99,235,0.25){% else %}0 2px 10px rgba(0,0,0,0.07){% endif %};">
+                        <!-- Preview Banner -->
+                        <div style="height:90px; background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); position:relative; overflow:hidden; padding:16px 20px; border-bottom:3px solid #2563eb;">
+                            <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(37,99,235,0.15);"></div>
+                            <span style="font-size:1.6rem;">🏛️</span>
+                            <div style="position:absolute;bottom:12px;left:20px;right:20px;display:flex;gap:6px;">
+                                <div style="width:40%;height:5px;background:#2563eb;border-radius:3px;"></div>
+                                <div style="width:20%;height:5px;background:rgba(255,255,255,0.25);border-radius:3px;"></div>
+                            </div>
+                        </div>
+                        <!-- Color Palette -->
+                        <div class="d-flex px-3 pt-3 pb-1" style="gap:6px;">
+                            <div style="width:28px;height:28px;border-radius:8px;background:#1e293b;" title="Bleu Nuit (Sidebar)"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#2563eb;" title="Bleu Royal (Accent)"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;" title="Fond Contenu"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#ffffff;border:1px solid #e2e8f0;" title="Menu Blanc Pur"></div>
+                        </div>
+                        <div class="card-body pt-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <h6 class="font-weight-bold mb-0" style="color:#0f172a;">🏛️ Bleu Royal Minimaliste</h6>
+                                {% if app_ui_theme == 'royal_blue' %}
+                                <span class="badge" style="background:#2563eb;color:#fff;font-size:0.72rem;padding:4px 10px;">✓ Actif</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-muted small mb-2">Contraste Équilibré & Sobriété Académique</p>
+                            <p style="font-size:0.82rem; color:#475569; line-height:1.5;">Barre latérale bleu nuit profond avec sous-menus blancs impeccables à fort contraste. Boutons cobalt intense et interface claire d'une lisibilité maximale.</p>
+                            <div class="d-flex flex-wrap mt-2" style="gap:5px;">
+                                <span class="badge" style="background:#eff6ff;color:#1d4ed8;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Haute Lisibilité</span>
+                                <span class="badge" style="background:#f1f5f9;color:#334155;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Sidebar Navy</span>
+                                <span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Cobalt Royal</span>
+                            </div>
+                        </div>
+                        <input type="radio" name="app_ui_theme" id="theme_royal_blue" value="royal_blue" class="d-none" {% if app_ui_theme == 'royal_blue' %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <!-- ===== Thème 2 : Vert Émeraude Campus (emerald_fresh) ===== -->
+                <div class="col-lg-6 mb-4">
+                    <div class="theme-card h-100 {% if app_ui_theme == 'emerald_fresh' %}theme-card-active{% endif %}"
+                         id="themeCard_emerald_fresh" onclick="selectTheme('emerald_fresh')"
+                         style="cursor:pointer; border-radius:16px; border:2px solid {% if app_ui_theme == 'emerald_fresh' %}#059669{% else %}#e2e8f0{% endif %}; transition:all .3s; overflow:hidden; background:#fff; box-shadow:{% if app_ui_theme == 'emerald_fresh' %}0 8px 30px rgba(5,150,105,0.2){% else %}0 2px 10px rgba(0,0,0,0.07){% endif %};">
+                        <!-- Preview Banner -->
+                        <div style="height:90px; background:linear-gradient(135deg, #064e3b 0%, #022c22 100%); position:relative; overflow:hidden; padding:16px 20px; border-bottom:3px solid #059669;">
+                            <div style="position:absolute;top:-15px;right:-15px;width:90px;height:90px;border-radius:50%;background:rgba(5,150,105,0.2);"></div>
+                            <span style="font-size:1.6rem;">🌿</span>
+                            <div style="position:absolute;bottom:12px;left:20px;right:20px;display:flex;gap:6px;">
+                                <div style="width:45%;height:5px;background:#10b981;border-radius:3px;"></div>
+                                <div style="width:25%;height:5px;background:rgba(255,255,255,0.2);border-radius:3px;"></div>
+                            </div>
+                        </div>
+                        <!-- Color Palette -->
+                        <div class="d-flex px-3 pt-3 pb-1" style="gap:6px;">
+                            <div style="width:28px;height:28px;border-radius:8px;background:#064e3b;" title="Vert Forêt Profond"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#059669;" title="Vert Émeraude"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#f0fdf4;border:1px solid #dcfce7;" title="Fond Menthe Clair"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#ffffff;border:1px solid #e2e8f0;" title="Sous-menu Blanc"></div>
+                        </div>
+                        <div class="card-body pt-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <h6 class="font-weight-bold mb-0" style="color:#064e3b;">🌿 Vert Émeraude Campus</h6>
+                                {% if app_ui_theme == 'emerald_fresh' %}
+                                <span class="badge" style="background:#059669;color:#fff;font-size:0.72rem;padding:4px 10px;">✓ Actif</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-muted small mb-2">Fraîcheur Pédagogique & Nature</p>
+                            <p style="font-size:0.82rem; color:#475569; line-height:1.5;">Barre latérale vert sapin haut de gamme, accents menthe et jade reposants pour les yeux. Sous-menus ultra-nets avec liseré vert délicat.</p>
+                            <div class="d-flex flex-wrap mt-2" style="gap:5px;">
+                                <span class="badge" style="background:#ecfdf5;color:#059669;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Reposant</span>
+                                <span class="badge" style="background:#d1fae5;color:#065f46;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Émeraude & Jade</span>
+                                <span class="badge" style="background:#f0fdf4;color:#047857;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Lycée Moderne</span>
+                            </div>
+                        </div>
+                        <input type="radio" name="app_ui_theme" id="theme_emerald_fresh" value="emerald_fresh" class="d-none" {% if app_ui_theme == 'emerald_fresh' %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <!-- ===== Thème 3 : Graphite Obsidienne Pro (obsidian_pro) ===== -->
+                <div class="col-lg-6 mb-4">
+                    <div class="theme-card h-100 {% if app_ui_theme == 'obsidian_pro' %}theme-card-active{% endif %}"
+                         id="themeCard_obsidian_pro" onclick="selectTheme('obsidian_pro')"
+                         style="cursor:pointer; border-radius:16px; border:2px solid {% if app_ui_theme == 'obsidian_pro' %}#6366f1{% else %}#e2e8f0{% endif %}; transition:all .3s; overflow:hidden; background:#fff; box-shadow:{% if app_ui_theme == 'obsidian_pro' %}0 8px 30px rgba(99,102,241,0.25){% else %}0 2px 10px rgba(0,0,0,0.07){% endif %};">
+                        <!-- Preview Banner -->
+                        <div style="height:90px; background:linear-gradient(135deg, #0b0f19 0%, #111827 100%); position:relative; overflow:hidden; padding:16px 20px; border-bottom:3px solid #6366f1;">
+                            <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;border-radius:50%;background:rgba(99,102,241,0.2);"></div>
+                            <span style="font-size:1.6rem;">🖤</span>
+                            <div style="position:absolute;bottom:12px;left:20px;right:20px;display:flex;gap:6px;">
+                                <div style="width:50%;height:5px;background:#6366f1;border-radius:3px;"></div>
+                                <div style="width:20%;height:5px;background:#38bdf8;border-radius:3px;"></div>
+                            </div>
+                        </div>
+                        <!-- Color Palette -->
+                        <div class="d-flex px-3 pt-3 pb-1" style="gap:6px;">
+                            <div style="width:28px;height:28px;border-radius:8px;background:#0b0f19;" title="Noir Obsidienne"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#1f2937;" title="Graphite (Sous-menus)"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#6366f1;" title="Indigo Électrique"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#e5e7eb;" title="Texte Blanc Radieux"></div>
+                        </div>
+                        <div class="card-body pt-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <h6 class="font-weight-bold mb-0" style="color:#0f172a;">🖤 Graphite Obsidienne Pro</h6>
+                                {% if app_ui_theme == 'obsidian_pro' %}
+                                <span class="badge" style="background:#6366f1;color:#fff;font-size:0.72rem;padding:4px 10px;">✓ Actif</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-muted small mb-2">Dark Mode Moderne & Contraste Lumineux</p>
+                            <p style="font-size:0.82rem; color:#475569; line-height:1.5;">Vrai thème sombre pro haut de gamme : fond noir anthracite, sous-menus graphite avec texte blanc très net et éclat indigo. Zéro fatigue oculaire.</p>
+                            <div class="d-flex flex-wrap mt-2" style="gap:5px;">
+                                <span class="badge" style="background:#1e1b4b;color:#a5b4fc;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Dark Mode Pro</span>
+                                <span class="badge" style="background:#111827;color:#e5e7eb;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Graphite & Indigo</span>
+                                <span class="badge" style="background:#e0e7ff;color:#4338ca;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Contraste Élevé</span>
+                            </div>
+                        </div>
+                        <input type="radio" name="app_ui_theme" id="theme_obsidian_pro" value="obsidian_pro" class="d-none" {% if app_ui_theme == 'obsidian_pro' %}checked{% endif %}>
+                    </div>
+                </div>
+
+                <!-- ===== Thème 4 : Chaleur Crépuscule Ambré (amber_warmth) ===== -->
+                <div class="col-lg-6 mb-4">
+                    <div class="theme-card h-100 {% if app_ui_theme == 'amber_warmth' %}theme-card-active{% endif %}"
+                         id="themeCard_amber_warmth" onclick="selectTheme('amber_warmth')"
+                         style="cursor:pointer; border-radius:16px; border:2px solid {% if app_ui_theme == 'amber_warmth' %}#ea580c{% else %}#e2e8f0{% endif %}; transition:all .3s; overflow:hidden; background:#fff; box-shadow:{% if app_ui_theme == 'amber_warmth' %}0 8px 30px rgba(234,88,12,0.25){% else %}0 2px 10px rgba(0,0,0,0.07){% endif %};">
+                        <!-- Preview Banner -->
+                        <div style="height:90px; background:linear-gradient(135deg, #431407 0%, #1c0a00 100%); position:relative; overflow:hidden; padding:16px 20px; border-bottom:3px solid #ea580c;">
+                            <div style="position:absolute;top:-15px;right:-15px;width:90px;height:90px;border-radius:50%;background:rgba(234,88,12,0.25);"></div>
+                            <span style="font-size:1.6rem;">🌅</span>
+                            <div style="position:absolute;bottom:12px;left:20px;right:20px;display:flex;gap:6px;">
+                                <div style="width:40%;height:5px;background:#f97316;border-radius:3px;"></div>
+                                <div style="width:25%;height:5px;background:rgba(255,255,255,0.25);border-radius:3px;"></div>
+                            </div>
+                        </div>
+                        <!-- Color Palette -->
+                        <div class="d-flex px-3 pt-3 pb-1" style="gap:6px;">
+                            <div style="width:28px;height:28px;border-radius:8px;background:#431407;" title="Chocolat Foncé"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#ea580c;" title="Ambre & Orange"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#fffbeb;border:1px solid #fef3c7;" title="Fond Ivoire Chaud"></div>
+                            <div style="width:28px;height:28px;border-radius:8px;background:#ffffff;border:1px solid #e2e8f0;" title="Sous-menu Blanc"></div>
+                        </div>
+                        <div class="card-body pt-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <h6 class="font-weight-bold mb-0" style="color:#431407;">🌅 Crépuscule Ambré</h6>
+                                {% if app_ui_theme == 'amber_warmth' %}
+                                <span class="badge" style="background:#ea580c;color:#fff;font-size:0.72rem;padding:4px 10px;">✓ Actif</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-muted small mb-2">Élégance Boisée & Tons Cuivrés</p>
+                            <p style="font-size:0.82rem; color:#475569; line-height:1.5;">Barre latérale terre de sienne/chocolatée, accents orange vif ambré, fond ivoire chaleureux. Sous-menus blancs au texte foncé d'une netteté exemplaire.</p>
+                            <div class="d-flex flex-wrap mt-2" style="gap:5px;">
+                                <span class="badge" style="background:#fff7ed;color:#c2410c;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Chaleureux</span>
+                                <span class="badge" style="background:#fed7aa;color:#9a3412;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Ambre & Cuivre</span>
+                                <span class="badge" style="background:#fef3c7;color:#b45309;font-size:0.7rem;padding:3px 8px;border-radius:6px;">Prestige Élégant</span>
+                            </div>
+                        </div>
+                        <input type="radio" name="app_ui_theme" id="theme_amber_warmth" value="amber_warmth" class="d-none" {% if app_ui_theme == 'amber_warmth' %}checked{% endif %}>
+                    </div>
+                </div>
+
+            </div><!-- /.row -->
+
+            <!-- Bouton Appliquer -->
+            <div class="row">
+                <div class="col-12 text-center mb-4">
+                    <button type="submit" class="btn btn-lg px-5" id="applyThemeBtn"
+                            style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:12px;font-weight:700;font-size:1rem;box-shadow:0 4px 20px rgba(37,99,235,0.4);transition:all .3s;">
+                        <i class="fas fa-check-circle mr-2"></i>Appliquer le Thème Sélectionné
+                    </button>
+                    <p class="text-muted small mt-2">Le thème sera actif immédiatement et conservé pour toutes vos prochaines sessions.</p>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- ONGLET 8 : SAUVEGARDE & RESTAURATION BASE -->
+    <!-- ============================================== -->
+    <div class="tab-pane fade" id="tab-backup" role="tabpanel" aria-labelledby="backup-tab">
+        <div class="row justify-content-center">
+            
+            <!-- Carte 1 : Téléchargement de Sauvegarde -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow h-100 border-left-primary">
+                    <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-download mr-2"></i>Sauvegarde des Données
+                        </h6>
+                        <span class="badge badge-primary px-2 py-1 font-weight-normal">
+                            <i class="fas fa-file-archive mr-1"></i>Format ZIP & DB
+                        </span>
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <div>
+                            <p class="text-gray-700 small mb-2">
+                                Téléchargez une copie complète ou ciblée de vos données (élèves, absences, évaluations, cahier de texte, réglages et photos).
+                            </p>
+                            <div class="alert alert-light border small text-muted mb-3 p-2">
+                                <i class="fas fa-shield-alt text-success mr-1"></i>
+                                <strong>Recommandé :</strong> L'archive <strong>ZIP</strong> regroupe la base SQLite ainsi que toutes les photos de vos élèves.
+                            </div>
+                        </div>
+
+                        <div class="mt-2">
+                            <a href="{{ url_for('configuration.backup_database', type='full') }}" class="btn btn-primary btn-block font-weight-bold shadow-sm py-2 mb-2">
+                                <i class="fas fa-file-archive mr-2"></i>Télécharger Sauvegarde Complète (.zip avec Photos)
+                            </a>
+                            <a href="{{ url_for('configuration.backup_database', type='db') }}" class="btn btn-outline-secondary btn-block font-weight-bold py-1.5 btn-sm">
+                                <i class="fas fa-database mr-1"></i>Télécharger la Base de Données seule (.db)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Carte 2 : Restauration de Sauvegarde -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow h-100 border-left-warning">
+                    <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-warning">
+                            <i class="fas fa-upload mr-2"></i>Restaurer une Sauvegarde
+                        </h6>
+                        <span class="badge badge-warning text-dark px-2 py-1 font-weight-normal">
+                            <i class="fas fa-history mr-1"></i>Restauration Assistée
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-gray-700 small mb-2">
+                            Importez une archive complète <code>.zip</code> ou un fichier de base <code>.db</code> pour réintégrer l'ensemble de vos données.
+                        </p>
+                        <div class="alert alert-warning border small text-dark mb-3 p-2">
+                            <i class="fas fa-shield-alt text-warning mr-1"></i>
+                            Une copie de secours de votre base actuelle sera créée automatiquement avant écrasement.
+                        </div>
+                        <form action="{{ url_for('configuration.restore_database') }}" method="POST" enctype="multipart/form-data"
+                              onsubmit="return confirm('Attention : La restauration remplacera toutes les données actuelles par celles du fichier importé. Une copie de sécurité automatique sera créée. Confirmer la restauration ?');">
+                            <div class="form-group mb-3">
+                                <label class="small font-weight-bold text-gray-700">Sélectionner l'archive .zip ou la base .db :</label>
+                                <div class="custom-file">
+                                    <input type="file" class="custom-file-input" id="backup_file" name="backup_file" accept=".zip,.db,.sqlite,.sqlite3" required onchange="updateLabel(this)">
+                                    <label class="custom-file-label" for="backup_file">Choisir le fichier (.zip ou .db)...</label>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-warning btn-block font-weight-bold shadow-sm py-2 text-dark">
+                                <i class="fas fa-history mr-2"></i>Lancer la Restauration
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Carte 3 : Optimisation & Défragmentation de la Base -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-12">
+                <div class="card shadow border-left-success">
+                    <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-success">
+                            <i class="fas fa-tachometer-alt mr-2"></i>Optimisation & Vitesse de la Base de Données
+                        </h6>
+                        <span class="badge badge-light border text-dark px-2.5 py-1 font-weight-bold" style="font-size: 0.85rem;">
+                            <i class="fas fa-database text-success mr-1"></i>Taille actuelle : <strong>{{ db_size_kb }} Ko</strong>
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-lg-8 mb-3 mb-lg-0">
+                                <h5 class="font-weight-bold text-dark mb-1">
+                                    <i class="fas fa-bolt text-warning mr-2"></i>Défragmentation & Recalcul des Index (VACUUM & ANALYZE)
+                                </h5>
+                                <p class="text-gray-700 small mb-2">
+                                    Cette opération réorganise physiquement les tables SQLite, compacte l'espace disque non utilisé et actualise les statistiques internes de l'optimiseur de requêtes.
+                                </p>
+                                <div class="d-flex align-items-center flex-wrap" style="gap: 15px;">
+                                    <span class="badge badge-light border text-muted py-1 px-2 font-weight-normal">
+                                        <i class="fas fa-check text-success mr-1"></i> Récupère l'espace disque résiduel
+                                    </span>
+                                    <span class="badge badge-light border text-muted py-1 px-2 font-weight-normal">
+                                        <i class="fas fa-check text-success mr-1"></i> Accélère les recherches et filtres
+                                    </span>
+                                    <span class="badge badge-light border text-muted py-1 px-2 font-weight-normal">
+                                        <i class="fas fa-shield-alt text-primary mr-1"></i> 100% sans risque pour vos données
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="col-lg-4 text-lg-right">
+                                <form action="{{ url_for('configuration.optimize_database') }}" method="POST" onsubmit="var b=this.querySelector('button'); b.disabled=true; b.innerHTML='<i class=\'fas fa-spinner fa-spin mr-2\'></i>Optimisation...';">
+                                    <button type="submit" class="btn btn-success font-weight-bold shadow-sm py-2 px-3">
+                                        <i class="fas fa-magic mr-2"></i>Optimiser & Défragmenter
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zone de Danger : Maintenance & Remise à Zéro des Données -->
+        <div class="row justify-content-center mt-2">
+            <div class="col-12">
+                <div class="card shadow border-left-danger">
+                    <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                        <h6 class="m-0 font-weight-bold text-danger">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Zone de Maintenance & Sécurité
+                        </h6>
+                        <span class="badge badge-danger px-2.5 py-1 font-weight-normal" style="font-size: 0.78rem;">
+                            <i class="fas fa-radiation-alt mr-1"></i>Action Irréversible
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-lg-8 mb-3 mb-lg-0">
+                                <h5 class="font-weight-bold text-dark mb-1">
+                                    <i class="fas fa-calendar-times text-danger mr-2"></i>Réinitialiser le registre des absences
+                                </h5>
+                                <p class="text-gray-700 small mb-2">
+                                    Supprime l'historique des pointages d'absence (absences justifiées et injustifiées).
+                                    <br><strong class="text-success"><i class="fas fa-check-circle mr-1"></i>Ce qui est préservé :</strong> Toutes vos classes, étudiants, photos, créneaux, évaluations et modules restent strictement intacts.
+                                </p>
+                                <div class="d-flex align-items-center flex-wrap" style="gap: 12px;">
+                                    <span class="badge badge-light border text-dark py-1.5 px-2.5 font-weight-normal small">
+                                        <i class="fas fa-database text-primary mr-1"></i> Total en base : <strong class="text-danger">{{ total_absences_count }}</strong> absence(s)
+                                    </span>
+                                    {% if current_school_year %}
+                                    <span class="badge badge-light border text-dark py-1.5 px-2.5 font-weight-normal small">
+                                        <i class="fas fa-calendar-check text-success mr-1"></i> Année active ({{ current_school_year.name }}) : <strong class="text-danger">{{ current_year_absences_count }}</strong> absence(s)
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-lg-4 text-lg-right">
+                                <button type="button" class="btn btn-outline-danger font-weight-bold shadow-sm py-2 px-3" data-toggle="modal" data-target="#resetAbsencesModal">
+                                    <i class="fas fa-trash-alt mr-2"></i>Réinitialiser les Absences...
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Confirmation Renforcée pour Réinitialisation des Absences -->
+        <div class="modal fade" id="resetAbsencesModal" tabindex="-1" role="dialog" aria-labelledby="resetAbsencesModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title font-weight-bold" id="resetAbsencesModalLabel">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>Réinitialiser le Registre des Absences
+                        </h5>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fermer">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form action="{{ url_for('configuration.reset_absences') }}" method="POST" id="resetAbsencesForm">
+                        <div class="modal-body p-4">
+                            <div class="alert alert-warning border-0 shadow-xs mb-3">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                <strong>Important :</strong> Cette opération efface définitivement les données d'assiduité selon le périmètre choisi.
+                                <br><span class="text-dark font-weight-bold">Vos classes, étudiants, notes et paramètres ne sont absolument pas supprimés.</span>
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="font-weight-bold small text-gray-800">
+                                    <i class="fas fa-bullseye mr-1 text-primary"></i>Périmètre de suppression :
+                                </label>
+                                {% if current_school_year %}
+                                <div class="custom-control custom-radio mb-2">
+                                    <input type="radio" id="scope_current" name="scope" value="current" class="custom-control-input" checked>
+                                    <label class="custom-control-label font-weight-bold small" for="scope_current">
+                                        Uniquement l'année scolaire active : <u>{{ current_school_year.name }}</u> ({{ current_year_absences_count }} absences)
+                                    </label>
+                                    <div class="text-muted small ml-4">Recommandé : n'impacte pas vos années scolaires archivées.</div>
+                                </div>
+                                {% endif %}
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="scope_all" name="scope" value="all" class="custom-control-input" {% if not current_school_year %}checked{% endif %}>
+                                    <label class="custom-control-label font-weight-bold small" for="scope_all">
+                                        Toutes les absences de la base entière ({{ total_absences_count }} absences)
+                                    </label>
+                                    <div class="text-muted small ml-4">Remet à zéro l'ensemble de l'historique d'assiduité toutes années confondues.</div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-light border small text-muted mb-3">
+                                <i class="fas fa-shield-alt text-success mr-1"></i>
+                                Par précaution, une copie automatique de sécurité <code>.bak</code> sera générée sur le serveur avant la suppression.
+                            </div>
+
+                            <div class="form-group mb-0 p-3 bg-light rounded border">
+                                <label class="font-weight-bold small text-danger d-block mb-1">
+                                    Pour confirmer, tapez <strong>EFFACER</strong> dans le champ ci-dessous :
+                                </label>
+                                <input type="text" name="confirmation_word" id="resetConfirmationInput" class="form-control font-weight-bold text-center border-danger" placeholder="Tapez EFFACER ici" autocomplete="off" required oninput="checkResetConfirmation(this.value)">
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Annuler</button>
+                            <button type="submit" class="btn btn-danger btn-sm font-weight-bold" id="btnConfirmResetAbsences" disabled>
+                                <i class="fas fa-trash-alt mr-1"></i> Confirmer la suppression
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function checkResetConfirmation(val) {
+        const btn = document.getElementById('btnConfirmResetAbsences');
+        if (btn) {
+            btn.disabled = (val.trim().toUpperCase() !== 'EFFACER');
+        }
+    }
+
+    // ==========================================
+    // SÉLECTION INTERACTIVE DE THÈME UI
+    // ==========================================
+    const THEME_ACCENT_COLORS = {
+        'royal_blue':    '#2563eb',
+        'emerald_fresh': '#059669',
+        'obsidian_pro':  '#6366f1',
+        'amber_warmth':  '#ea580c'
+    };
+
+    function selectTheme(themeKey) {
+        // Décocher toutes les cartes
+        document.querySelectorAll('.theme-card').forEach(card => {
+            card.style.borderColor = '#e2e8f0';
+            card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.07)';
+            card.classList.remove('theme-card-active');
+        });
+        // Cocher la carte sélectionnée
+        const selected = document.getElementById('themeCard_' + themeKey);
+        if (selected) {
+            const accent = THEME_ACCENT_COLORS[themeKey] || '#6366f1';
+            selected.style.borderColor = accent;
+            selected.style.boxShadow = '0 8px 30px ' + accent + '40';
+            selected.classList.add('theme-card-active');
+        }
+        // Cocher le radio caché
+        const radio = document.getElementById('theme_' + themeKey);
+        if (radio) radio.checked = true;
+    }
+
+    function updateLabel(input) {
+        var fileName = input.value.split('\\').pop();
+        input.nextElementSibling.innerText = fileName || 'Choisir...';
+    }
+
+    // Mémorisation de l'onglet actif après rechargement de la page via hash URL
+    document.addEventListener('DOMContentLoaded', function () {
+        var hash = window.location.hash;
+        if (hash) {
+            var targetTab = document.querySelector('#settingsTabs a[href="' + hash + '"]');
+            if (targetTab) {
+                $(targetTab).tab('show');
+            }
+        }
+
+        // Mettre à jour le hash de l'URL lors du clic sur un onglet
+        $('#settingsTabs a').on('shown.bs.tab', function (e) {
+            window.location.hash = e.target.hash;
+        });
+    });
+    // ==========================================
+    // LOGIQUE DE LA CASCADE PÉDAGOGIQUE (MODULE -> CHAPITRE -> OBJECTIFS)
+    // ==========================================
+    async function cascadeOnModuleChange() {
+        const moduleId = document.getElementById('cascadeModuleSelect').value;
+        const sectionSelect = document.getElementById('cascadeSectionSelect');
+        const sectionsContainer = document.getElementById('cascadeSectionsContainer');
+        const addSectionBox = document.getElementById('cascadeAddSectionBox');
+        const hiddenSectionModuleId = document.getElementById('hidden_section_module_id');
+        const sectionBadge = document.getElementById('cascadeSectionBadge');
+        const objectivesContainer = document.getElementById('cascadeObjectivesContainer');
+        const addObjectiveBox = document.getElementById('cascadeAddObjectiveBox');
+        const objectiveBadge = document.getElementById('cascadeObjectiveBadge');
+
+        // Reset section select & objectives
+        sectionSelect.innerHTML = '<option value="">-- Sélectionnez un Chapitre --</option>';
+        objectivesContainer.innerHTML = '<p class="text-muted small text-center my-3">Sélectionnez un module puis un chapitre ci-dessus.</p>';
+        addObjectiveBox.style.display = 'none';
+        objectiveBadge.innerText = '-';
+
+        if (!moduleId) {
+            sectionSelect.disabled = true;
+            sectionsContainer.innerHTML = '<p class="text-muted small text-center my-3">Veuillez sélectionner un module ci-dessus.</p>';
+            addSectionBox.style.display = 'none';
+            sectionBadge.innerText = '-';
+            return;
+        }
+
+        sectionSelect.disabled = false;
+        hiddenSectionModuleId.value = moduleId;
+        addSectionBox.style.display = 'block';
+
+        // 1. Charger les Chapitres du module
+        sectionsContainer.innerHTML = '<p class="text-center small text-muted"><i class="fas fa-spinner fa-spin mr-1"></i>Chargement des chapitres...</p>';
+        try {
+            const res = await fetch(`/api/module/${moduleId}/sections`);
+            const sections = await res.json();
+            sectionBadge.innerText = `${sections.length} chapitre(s)`;
+
+            if (sections.length === 0) {
+                sectionsContainer.innerHTML = '<p class="text-muted small text-center my-3">Aucun chapitre pour ce module. Ajoutez-en un ci-dessous.</p>';
+                sectionSelect.innerHTML = '<option value="">Aucun chapitre disponible</option>';
+            } else {
+                let html = '<ul class="list-group list-group-flush">';
+                let options = '<option value="">-- Sélectionnez un Chapitre --</option>';
+                sections.forEach(s => {
+                    options += `<option value="${s.id}">${s.name}</option>`;
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-1 small">
+                            <span class="font-weight-bold text-gray-800"><i class="fas fa-bookmark text-primary mr-2"></i>${s.name}</span>
+                            <form action="/configuration/settings/delete" method="POST" class="d-inline" onsubmit="return confirm('Supprimer ce chapitre ?');">
+                                <input type="hidden" name="category" value="section">
+                                <input type="hidden" name="id" value="${s.id}">
+                                <button type="submit" class="btn btn-outline-danger btn-circle btn-sm py-0" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </li>`;
+                });
+                html += '</ul>';
+                sectionsContainer.innerHTML = html;
+                sectionSelect.innerHTML = options;
+            }
+        } catch (err) {
+            sectionsContainer.innerHTML = '<p class="text-danger small text-center">Erreur de chargement des chapitres.</p>';
+        }
+    }
+
+    async function cascadeOnSectionChange() {
+        const sectionId = document.getElementById('cascadeSectionSelect').value;
+        const objectivesContainer = document.getElementById('cascadeObjectivesContainer');
+        const addObjectiveBox = document.getElementById('cascadeAddObjectiveBox');
+        const hiddenObjectiveSectionId = document.getElementById('hidden_objective_section_id');
+        const objectiveBadge = document.getElementById('cascadeObjectiveBadge');
+
+        if (!sectionId) {
+            objectivesContainer.innerHTML = '<p class="text-muted small text-center my-3">Sélectionnez un chapitre ci-dessus.</p>';
+            addObjectiveBox.style.display = 'none';
+            objectiveBadge.innerText = '-';
+            return;
+        }
+
+        hiddenObjectiveSectionId.value = sectionId;
+        addObjectiveBox.style.display = 'block';
+        objectivesContainer.innerHTML = '<p class="text-center small text-muted"><i class="fas fa-spinner fa-spin mr-1"></i>Chargement des objectifs...</p>';
+
+        try {
+            const res = await fetch(`/api/section/${sectionId}/objectives`);
+            const objectives = await res.json();
+            objectiveBadge.innerText = `${objectives.length} objectif(s)`;
+
+            if (objectives.length === 0) {
+                objectivesContainer.innerHTML = '<p class="text-muted small text-center my-3">Aucun objectif défini pour ce chapitre. Ajoutez-en un ci-dessous.</p>';
+            } else {
+                let html = '<ul class="list-group list-group-flush">';
+                objectives.forEach(o => {
+                    html += `
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-1 small">
+                            <span class="text-gray-800"><i class="fas fa-check-circle text-success mr-2"></i>${o.description}</span>
+                            <form action="/configuration/settings/delete" method="POST" class="d-inline" onsubmit="return confirm('Supprimer cet objectif ?');">
+                                <input type="hidden" name="category" value="objective">
+                                <input type="hidden" name="id" value="${o.id}">
+                                <button type="submit" class="btn btn-outline-danger btn-circle btn-sm py-0" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </li>`;
+                });
+                html += '</ul>';
+                objectivesContainer.innerHTML = html;
+            }
+        } catch (err) {
+            objectivesContainer.innerHTML = '<p class="text-danger small text-center">Erreur lors de la récupération des objectifs.</p>';
+        }
+    }
+
+    // ==========================================
+    // LOGIQUE DE L'ONGLET MAIL & LIVE PREVIEW
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function () {
+        const previewSubject = document.getElementById('livePreviewSubject');
+        const previewBody = document.getElementById('livePreviewBody');
+        const previewBadge = document.getElementById('previewBadge');
+        const previewThemeBadge = document.getElementById('previewThemeBadge');
+        const selectedThemeLabel = document.getElementById('selectedThemeLabel');
+        const teacherNameInput = document.getElementById('teacherNameInput');
+        
+        const livePreviewContainer = document.getElementById('livePreviewContainer');
+        const emailPreviewCard = document.getElementById('emailPreviewCard');
+        const emailPreviewHeader = document.getElementById('emailPreviewHeader');
+        const emailPreviewIcon = document.getElementById('emailPreviewIcon');
+        const emailPreviewBodyCard = document.getElementById('emailPreviewBodyCard');
+        const emailPreviewBadgeBox = document.getElementById('emailPreviewBadgeBox');
+        const emailPreviewTip = document.getElementById('emailPreviewTip');
+        const emailPreviewFooter = document.getElementById('emailPreviewFooter');
+
+        let currentTemplateId = document.querySelector('input[name="active_mail_template"]:checked')?.value || '1';
+        let currentThemeKey = document.querySelector('input[name="mail_theme"]:checked')?.value || 'campus';
+
+        const sampleStudent = {
+            '{prenom}': 'Karim',
+            '{nom}': 'EL IDRISSI',
+            '{classe}': '2BAC-SM',
+            '{cne}': 'R130123456',
+            '{liste_dates}': "- Lundi 08 Septembre 2026 (Non justifiée)\n- Mercredi 10 Septembre 2026 (Non justifiée)",
+            '{total_absences}': '2',
+            '{note_assiduite}': '19.0'
+        };
+
+        const themesConfig = {
+            'campus': {
+                name: 'Campus Bleu (Lycée & Étudiant)',
+                icon: '🎓',
+                primary: '#4361ee',
+                headerBg: 'linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%)',
+                bgPage: '#f4f6fb',
+                cardBg: '#ffffff',
+                cardText: '#2b2d42',
+                badgeBg: '#eef2ff',
+                badgeBorder: '#dbeafe',
+                tipBorder: '#4361ee'
+            },
+            'mint': {
+                name: 'Fresh Menthe (Écoute & Motivation)',
+                icon: '🌱',
+                primary: '#059669',
+                headerBg: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                bgPage: '#f0fdf4',
+                cardBg: '#ffffff',
+                cardText: '#1f2937',
+                badgeBg: '#d1fae5',
+                badgeBorder: '#a7f3d0',
+                tipBorder: '#059669'
+            },
+            'neon': {
+                name: 'Cyber Focus (Dark & Énergique)',
+                icon: '⚡',
+                primary: '#6366f1',
+                headerBg: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+                bgPage: '#0f172a',
+                cardBg: '#1e293b',
+                cardText: '#f1f5f9',
+                badgeBg: '#3730a3',
+                badgeBorder: '#4f46e5',
+                tipBorder: '#8b5cf6'
+            },
+            'sunset': {
+                name: 'Sunset Orange (Vigilance & Positif)',
+                icon: '🔔',
+                primary: '#ea580c',
+                headerBg: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
+                bgPage: '#fff7ed',
+                cardBg: '#ffffff',
+                cardText: '#2b2d42',
+                badgeBg: '#ffedd5',
+                badgeBorder: '#fed7aa',
+                tipBorder: '#ea580c'
+            }
+        };
+
+        function applyThemePreview(themeKey) {
+            const th = themesConfig[themeKey] || themesConfig['campus'];
+            currentThemeKey = themeKey;
+
+            if (selectedThemeLabel) selectedThemeLabel.textContent = th.name;
+            if (previewThemeBadge) previewThemeBadge.textContent = th.name;
+
+            if (livePreviewContainer) livePreviewContainer.style.backgroundColor = th.bgPage;
+            if (emailPreviewCard) {
+                emailPreviewCard.style.backgroundColor = th.cardBg;
+                emailPreviewCard.style.borderColor = (themeKey === 'neon' ? '#334155' : '#e2e8f0');
+            }
+            if (emailPreviewHeader) emailPreviewHeader.style.background = th.headerBg;
+            if (emailPreviewIcon) emailPreviewIcon.textContent = th.icon;
+            if (emailPreviewBodyCard) emailPreviewBodyCard.style.color = th.cardText;
+            if (emailPreviewBadgeBox) {
+                emailPreviewBadgeBox.style.backgroundColor = th.badgeBg;
+                emailPreviewBadgeBox.style.borderColor = th.badgeBorder;
+            }
+            if (emailPreviewTip) {
+                emailPreviewTip.style.backgroundColor = (themeKey === 'neon' ? '#1e293b' : '#f8fafc');
+                emailPreviewTip.style.borderLeftColor = th.tipBorder;
+                emailPreviewTip.style.color = (themeKey === 'neon' ? '#cbd5e1' : '#334155');
+            }
+            if (emailPreviewFooter) {
+                emailPreviewFooter.style.backgroundColor = (themeKey === 'neon' ? '#0f172a' : '#f8fafc');
+                emailPreviewFooter.style.borderColor = (themeKey === 'neon' ? '#334155' : '#e2e8f0');
+                emailPreviewFooter.style.color = (themeKey === 'neon' ? '#64748b' : '#8d99ae');
+            }
+
+            // Mettre en valeur la carte de thème sélectionnée
+            document.querySelectorAll('.theme-card-option').forEach(card => {
+                const radio = card.querySelector('.theme-radio');
+                if (radio && radio.value === themeKey) {
+                    card.style.borderColor = th.primary;
+                    card.style.boxShadow = '0 0 0 2px ' + th.primary + '33';
+                } else {
+                    card.style.borderColor = (card.getAttribute('for') === 'radio_theme_neon' ? '#334155' : '#e3e6f0');
+                    card.style.boxShadow = 'none';
+                }
+            });
+        }
+
+        function formatDatesTableJS(isDark) {
+            const tdBg = isDark ? '#1e293b' : '#ffffff';
+            const tdBorder = isDark ? '#334155' : '#e2e8f0';
+            const tdText = isDark ? '#f8fafc' : '#1e293b';
+            const thBg = isDark ? '#312e81' : '#f1f5f9';
+            const thText = isDark ? '#c7d2fe' : '#475569';
+            const border = isDark ? '#334155' : '#cbd5e1';
+
+            return `<div style="margin: 8px 0; border-radius: 8px; overflow: hidden; border: 1px solid ${border};">
+                <table style="width: 100%; border-collapse: collapse; margin: 0; font-size: 0.78rem;">
+                    <thead>
+                        <tr style="background-color: ${thBg}; border-bottom: 2px solid ${border};">
+                            <th style="padding: 6px 10px; text-align: left; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: ${thText};">Séance manquée</th>
+                            <th style="padding: 6px 10px; text-align: right; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: ${thText};">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid ${tdBorder}; background-color: ${tdBg};">
+                            <td style="padding: 6px 10px; color: ${tdText}; font-weight: 600; vertical-align: middle;">📅 Lundi 08 Septembre 2026</td>
+                            <td style="padding: 6px 10px; text-align: right; vertical-align: middle;"><span class="badge badge-danger px-2 py-1" style="font-size: 0.7rem;">✖ Non justifiée</span></td>
+                        </tr>
+                        <tr style="background-color: ${tdBg};">
+                            <td style="padding: 6px 10px; color: ${tdText}; font-weight: 600; vertical-align: middle;">📅 Mercredi 10 Septembre 2026</td>
+                            <td style="padding: 6px 10px; text-align: right; vertical-align: middle;"><span class="badge badge-danger px-2 py-1" style="font-size: 0.7rem;">✖ Non justifiée</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>`;
+        }
+
+        function updateLivePreview() {
+            const subjectField = document.getElementById(`subject_input_${currentTemplateId}`);
+            const bodyField = document.getElementById(`body_input_${currentTemplateId}`);
+            const teacher = teacherNameInput ? teacherNameInput.value.trim() : 'Prof ZYANI Azzeddine';
+
+            if (!subjectField || !bodyField) return;
+
+            let s = subjectField.value;
+            let b = bodyField.value;
+
+            // Remplacement des variables
+            const vars = { ...sampleStudent, '{nom_enseignant}': teacher };
+            for (const [k, v] of Object.entries(vars)) {
+                s = s.split(k).join(v);
+                b = b.split(k).join(v);
+            }
+
+            // Conversion markdown **texte** en <strong>texte</strong>
+            b = b.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // Conversion des retours à la ligne
+            b = b.replace(/\n/g, '<br>');
+
+            // Remplacement de la liste des dates par le mini-tableau stylisé
+            const isDark = (currentThemeKey === 'neon');
+            const datesTable = formatDatesTableJS(isDark);
+            
+            const rawDatesSimul = sampleStudent['{liste_dates}'];
+            const rawDatesSimulBr = rawDatesSimul.replace(/\n/g, '<br>');
+
+            if (b.includes(rawDatesSimulBr)) {
+                b = b.replace(rawDatesSimulBr, datesTable);
+            } else if (b.includes(rawDatesSimul)) {
+                b = b.replace(rawDatesSimul, datesTable);
+            } else {
+                b = b.replace('{liste_dates}', datesTable);
+            }
+
+            // Nettoyage des <br> superflus autour du tableau
+            b = b.replace(/<br>\s*(<div style="margin: 8px 0)/g, '$1');
+            b = b.replace(/(<\/div>)\s*<br>/g, '$1');
+
+            if (previewSubject) previewSubject.textContent = s;
+            if (previewBody) previewBody.innerHTML = b;
+            if (previewBadge) previewBadge.textContent = `Modèle ${currentTemplateId}`;
+            applyThemePreview(currentThemeKey);
+        }
+
+        // Écouteur sur le changement de thème
+        document.querySelectorAll('.theme-radio').forEach(radio => {
+            radio.addEventListener('change', function () {
+                applyThemePreview(this.value);
+            });
+        });
+
+        // Écouteurs sur les changements de texte
+        document.querySelectorAll('.template-subject-field, .template-body-field').forEach(el => {
+            el.addEventListener('input', function () {
+                if (this.dataset.tid === currentTemplateId) {
+                    updateLivePreview();
+                }
+            });
+        });
+
+        teacherNameInput.addEventListener('input', updateLivePreview);
+
+        // Changement du template radio
+        document.querySelectorAll('.template-radio').forEach(radio => {
+            radio.addEventListener('change', function () {
+                currentTemplateId = this.value;
+                // Activer l'onglet correspondant
+                $(`#edit-tmpl-${currentTemplateId}-tab`).tab('show');
+                updateLivePreview();
+            });
+        });
+
+        // Clic direct sur la carte du sélecteur de modèle
+        document.querySelectorAll('.template-card-selector').forEach(card => {
+            card.addEventListener('click', function (e) {
+                const radio = this.querySelector('.template-radio');
+                if (radio && e.target !== radio) {
+                    radio.checked = true;
+                    currentTemplateId = radio.value;
+                    $(`#edit-tmpl-${currentTemplateId}-tab`).tab('show');
+                    updateLivePreview();
+                }
+            });
+        });
+
+        // Changement d'onglet d'édition (Modèle 1, 2, 3, 4)
+        $('#templateEditorTabs a').on('shown.bs.tab', function (e) {
+            const href = $(e.target).attr('href'); // #edit-tmpl-X
+            const tid = href.replace('#edit-tmpl-', '');
+            currentTemplateId = tid;
+            // Cocher le radio correspondant
+            const radio = document.getElementById(`radio_tmpl_${tid}`);
+            if (radio) radio.checked = true;
+            updateLivePreview();
+        });
+
+        // Clic direct sur la carte du thème
+        document.querySelectorAll('.theme-card-option').forEach(card => {
+            card.addEventListener('click', function (e) {
+                const radio = this.querySelector('.theme-radio');
+                if (radio) {
+                    radio.checked = true;
+                    applyThemePreview(radio.value);
+                }
+            });
+        });
+
+        // Insertion facile de variable au clic sur un tag {variable}
+        document.querySelectorAll('.pointer-tag').forEach(tag => {
+            tag.style.cursor = 'pointer';
+            tag.addEventListener('click', function () {
+                const varText = this.innerText;
+                const activeBody = document.getElementById(`body_input_${currentTemplateId}`);
+                if (activeBody) {
+                    const start = activeBody.selectionStart;
+                    const end = activeBody.selectionEnd;
+                    const text = activeBody.value;
+                    activeBody.value = text.substring(0, start) + varText + text.substring(end);
+                    activeBody.selectionStart = activeBody.selectionEnd = start + varText.length;
+                    activeBody.focus();
+                    updateLivePreview();
+                }
+            });
+        });
+
+        // Déclencheur envoi de test SMTP
+        const triggerTestMailBtn = document.getElementById('triggerTestMailBtn');
+        if (triggerTestMailBtn) {
+            triggerTestMailBtn.addEventListener('click', function () {
+                const email = document.getElementById('testEmailInput').value.trim();
+                if (!email) {
+                    alert('Veuillez saisir une adresse email de test valide.');
+                    return;
+                }
+                const originalText = triggerTestMailBtn.innerHTML;
+                triggerTestMailBtn.disabled = true;
+                triggerTestMailBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Envoi...';
+
+                document.getElementById('hidden_test_email').value = email;
+                document.getElementById('hiddenTestMailForm').submit();
+            });
+        }
+
+        // Initialisation de la prévisualisation au chargement
+        updateLivePreview();
+    });
+
+    function calcSlotDuration() {
+        const start = document.getElementById('ts_start').value;
+        const end = document.getElementById('ts_end').value;
+        const durInput = document.getElementById('ts_duration');
+        const badge = document.getElementById('ts_dur_badge');
+        if (!start || !end) return;
+        const [h1, m1] = start.split(':').map(Number);
+        const [h2, m2] = end.split(':').map(Number);
+        let diffMinutes = (h2 * 60 + m2) - (h1 * 60 + m1);
+        if (diffMinutes < 0) diffMinutes += 24 * 60;
+        const hours = (diffMinutes / 60).toFixed(2);
+        durInput.value = parseFloat(hours);
+        badge.innerText = `${parseFloat(hours)} h`;
+    }
+
+    function openAddScheduleModal(dayOfWeek, slotId) {
+        document.getElementById('modal_sched_day').value = dayOfWeek;
+        if (slotId) {
+            document.getElementById('modal_sched_slot').value = slotId;
+        }
+        $('#modalAddScheduleEntry').modal('show');
+    }
+
+    function openEditClassModal(classId, currentName) {
+        const form = document.getElementById('editClassNameForm');
+        const input = document.getElementById('modalEditClassNameInput');
+        if (form && input) {
+            form.action = `/absence/class/${classId}/edit_name`;
+            input.value = currentName || '';
+            $('#modalEditClassName').modal('show');
+            setTimeout(() => {
+                input.focus();
+                input.select();
+            }, 300);
+        }
+    }
+
+    // Indicateur en direct de force du mot de passe
+    const newPwdInput = document.getElementById('newPasswordInput');
+    if (newPwdInput) {
+        newPwdInput.addEventListener('input', function() {
+            const val = this.value;
+            const bar = document.getElementById('pwdStrengthBar');
+            const txt = document.getElementById('pwdStrengthText');
+            if (!bar || !txt) return;
+
+            if (!val) {
+                bar.style.width = '0%';
+                bar.className = 'progress-bar bg-danger';
+                txt.textContent = 'Force : Inchangé';
+                txt.className = 'form-text text-muted';
+                return;
+            }
+
+            let score = 0;
+            if (val.length >= 8) score += 30;
+            if (val.length >= 12) score += 20;
+            if (/[0-9]/.test(val)) score += 20;
+            if (/[a-zA-Z]/.test(val)) score += 15;
+            if (/[^a-zA-Z0-9]/.test(val)) score += 15;
+
+            bar.style.width = score + '%';
+            if (score < 40) {
+                bar.className = 'progress-bar bg-danger';
+                txt.textContent = 'Faible (min. 8 car. avec lettres et chiffres)';
+                txt.className = 'form-text text-danger font-weight-bold';
+            } else if (score < 75) {
+                bar.className = 'progress-bar bg-warning';
+                txt.textContent = 'Moyen (ajoutez des chiffres ou symboles)';
+                txt.className = 'form-text text-warning font-weight-bold';
+            } else {
+                bar.className = 'progress-bar bg-success';
+                txt.textContent = 'Robuste et sécurisé';
+                txt.className = 'form-text text-success font-weight-bold';
+            }
+        });
+    }
+</script>
+{% endblock %}

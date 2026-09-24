@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Cahier de Texte - {{ classe.name }} ({{ school_year.name if school_year else '' }})</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 1.2cm;
+            @bottom-right {
+                content: "Page " counter(page) " / " counter(pages);
+                font-size: 8pt;
+                color: #666;
+            }
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 9.5pt;
+            line-height: 1.35;
+            color: #1a202c;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+        }
+        .d-print-none {
+            background: #1e293b;
+            color: #fff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #3b82f6;
+        }
+        .btn-print {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .btn-print:hover { background: #1d4ed8; }
+        .btn-close-window {
+            background: #475569;
+            color: #fff;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        @media print {
+            .d-print-none { display: none !important; }
+            body { padding: 0; }
+        }
+
+        /* En-tête Institutionnel */
+        .official-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+        .header-col {
+            width: 32%;
+            font-size: 8pt;
+            color: #334155;
+        }
+        .header-center {
+            text-align: center;
+        }
+        .header-title {
+            font-size: 15pt;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #0f172a;
+            margin: 0 0 4px 0;
+        }
+        .header-subtitle {
+            font-size: 10pt;
+            font-weight: 700;
+            color: #2563eb;
+            margin: 0;
+        }
+
+        /* Cartouche Métadonnées */
+        .metadata-box {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9pt;
+        }
+        .meta-item {
+            margin-bottom: 3px;
+        }
+        .meta-item strong {
+            color: #0f172a;
+        }
+
+        /* Tableau des Séances */
+        .sessions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        .sessions-table th {
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 8.5pt;
+            font-weight: 700;
+            padding: 7px 8px;
+            text-align: left;
+            border: 1px solid #0f172a;
+        }
+        .sessions-table td {
+            border: 1px solid #cbd5e1;
+            padding: 7px 8px;
+            vertical-align: top;
+            font-size: 8.5pt;
+        }
+        .sessions-table tr:nth-child(even) td {
+            background: #f8fafc;
+        }
+        .session-date {
+            font-weight: 700;
+            white-space: nowrap;
+            color: #0f172a;
+        }
+        .module-badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 7.5pt;
+            margin-bottom: 2px;
+        }
+        .section-name {
+            font-weight: 600;
+            color: #334155;
+        }
+        .course-titles {
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .pedagogy-list {
+            margin: 0;
+            padding-left: 14px;
+            color: #475569;
+            font-size: 7.8pt;
+        }
+        .pedagogy-list li {
+            margin-bottom: 1px;
+        }
+        .remark-text {
+            font-style: italic;
+            color: #64748b;
+            font-size: 8pt;
+            margin-top: 3px;
+        }
+
+        /* Section Signatures et Visas Réglementaires */
+        .signatures-section {
+            page-break-inside: avoid;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #94a3b8;
+        }
+        .sign-box {
+            width: 31%;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 8px 10px;
+            min-height: 90px;
+            text-align: center;
+            background: #fafafa;
+        }
+        .sign-title {
+            font-weight: 700;
+            font-size: 8.5pt;
+            color: #0f172a;
+            text-transform: uppercase;
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 4px;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barre d'outils (invisible à l'impression) -->
+    <div class="d-print-none">
+        <div>
+            <strong>Fiche Officielle du Cahier de Texte</strong> &nbsp;|&nbsp; 
+            <span>Classe : {{ classe.name }} ({{ sessions|length }} séances)</span>
+        </div>
+        <div>
+            <button class="btn-print" onclick="window.print()">
+                🖨️ Imprimer / Sauvegarder en PDF
+            </button>
+            <button class="btn-close-window" onclick="window.close()">Fermer</button>
+        </div>
+    </div>
+
+    <div style="padding: 15px 25px;">
+        <!-- En-tête officiel -->
+        <div class="official-header">
+            <div class="header-col">
+                <strong>ROYAUME DU MAROC</strong><br>
+                Ministère de l'Éducation Nationale<br>
+                Académie Régionale d'Éducation & Formation<br>
+                Direction Provinciale
+            </div>
+            <div class="header-col header-center">
+                <div class="header-title">Cahier de Texte</div>
+                <div class="header-subtitle">Classe : {{ classe.name }}</div>
+            </div>
+            <div class="header-col" style="text-align: right;">
+                <strong>{{ institution.name }}</strong><br>
+                {{ institution.address or '' }}<br>
+                Année Scolaire : <strong>{{ school_year.name if school_year else '-' }}</strong>
+            </div>
+        </div>
+
+        <!-- Cartouche Métadonnées -->
+        <div class="metadata-box">
+            <div>
+                <div class="meta-item"><strong>Enseignant(e) :</strong> {{ teacher_name or 'Non spécifié' }}</div>
+                <div class="meta-item"><strong>Classe :</strong> {{ classe.name }}</div>
+            </div>
+            <div>
+                <div class="meta-item"><strong>Nombre de séances :</strong> {{ sessions|length }}</div>
+                <div class="meta-item"><strong>Date du tirage :</strong> {{ now.strftime('%d/%m/%Y à %H:%M') }}</div>
+            </div>
+            <div>
+                <div class="meta-item"><strong>Année scolaire :</strong> {{ school_year.name if school_year else '-' }}</div>
+                <div class="meta-item"><strong>Statut :</strong> {% if school_year and school_year.is_read_only() %}Archivé{% else %}En cours{% endif %}</div>
+            </div>
+        </div>
+
+        <!-- Tableau chronologique -->
+        <table class="sessions-table">
+            <thead>
+                <tr>
+                    <th style="width: 40px; text-align: center;">#</th>
+                    <th style="width: 80px; text-align: center;">Date</th>
+                    <th style="width: 170px;">Module & Chapitre</th>
+                    <th>Contenu & Déroulement de la Séance</th>
+                    <th style="width: 160px;">Objectifs Pédagogiques</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td style="text-align: center; font-weight: bold;">{{ loop.index }}</td>
+                    <td style="text-align: center;" class="session-date">
+                        {{ s.date.strftime('%d/%m/%Y') }}
+                    </td>
+                    <td>
+                        {% if s.module %}
+                        <span class="module-badge">{{ s.module.name }}</span><br>
+                        {% endif %}
+                        <span class="section-name">{{ s.section.name if s.section else '-' }}</span>
+                    </td>
+                    <td>
+                        <div class="course-titles">
+                            <span style="display:inline-block; padding: 1px 6px; font-size: 8pt; font-weight: bold; background: #eef2f7; border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 3px;">
+                                {{ s.session_type or 'Cours' }}
+                            </span>
+                            {{ s.course_titles }}
+                        </div>
+                        {% if s.homework %}
+                        <div style="font-size: 8.5pt; color: #b45309; background: #fffbeb; padding: 3px 6px; border-radius: 4px; margin-top: 4px; border: 1px solid #fef3c7;">
+                            <strong>Devoirs :</strong> {{ s.homework }}
+                            {% if s.homework_due_date %}
+                            <span style="color: #dc2626; font-weight: bold;">(pour le {{ s.homework_due_date.strftime('%d/%m/%Y') }})</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% if s.remark %}
+                        <div class="remark-text"><strong>Remarque :</strong> {{ s.remark }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.objectives %}
+                        <ul class="pedagogy-list">
+                            {% for obj in s.objectives %}
+                            <li>{{ obj.description }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% else %}
+                        <span style="color: #94a3b8; font-size: 8pt;">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 25px; color: #64748b;">
+                        Aucune séance enregistrée pour cette classe dans l'année scolaire sélectionnée.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Visas et Signatures Réglementaires -->
+        <div class="signatures-section">
+            <div class="sign-box">
+                <div class="sign-title">Signature de l'Enseignant</div>
+            </div>
+            <div class="sign-box">
+                <div class="sign-title">Visa du Chef d'Établissement</div>
+            </div>
+            <div class="sign-box">
+                <div class="sign-title">Visa de l'Inspecteur Pédagogique</div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

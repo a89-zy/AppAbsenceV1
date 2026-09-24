@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<form method="POST" id="quickEntryForm">
+    <input type="hidden" name="class_id" value="{{ selected_class.id if selected_class else '' }}">
+    <input type="hidden" name="semester" value="{{ semester }}">
+    <input type="hidden" name="cc_number" value="{{ cc_number }}">
+
+    <!-- En-tête de la Saisie Rapide -->
+    <div class="d-md-flex align-items-center justify-content-between mb-3">
+        <div class="mb-2 mb-md-0">
+            <h1 class="h3 mb-1 text-gray-800 font-weight-bold">
+                <i class="fas fa-bolt text-warning mr-2"></i>Saisie Rapide : Contrôle Continu N°{{ cc_number }}
+            </h1>
+            <div class="small text-muted">
+                Mode correction de copies : navigation fluide au clavier avec <strong>Entrée</strong> ou <strong>Flèche Bas</strong>, calcul temps réel et sauvegarde automatique.
+            </div>
+        </div>
+        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+            <a href="{{ url_for('evaluation.index', semester=semester) }}" 
+               class="btn btn-sm btn-outline-secondary bg-white text-dark font-weight-bold shadow-xs text-nowrap px-3 py-2 action-ribbon-btn">
+                <i class="fas fa-arrow-left mr-1"></i> Tableau de Bord
+            </a>
+            <button type="submit" class="btn btn-sm btn-primary font-weight-bold shadow-xs text-nowrap px-3 py-2 action-ribbon-btn" title="Valider la Série" data-toggle="tooltip">
+                <i class="fas fa-save"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Barre de Contrôle : Sélection Classe, Semestre et Choix du CC -->
+    <div class="card shadow-sm border-0 mb-3" style="border-radius: 12px;">
+        <div class="card-body p-3 bg-white d-flex flex-wrap align-items-center justify-content-between" style="gap: 12px;">
+            <div class="d-flex flex-wrap align-items-center" style="gap: 12px;">
+                <!-- Sélecteur de Classe -->
+                <div class="d-flex align-items-center">
+                    <label class="small font-weight-bold text-gray-700 mb-0 mr-2">
+                        <i class="fas fa-chalkboard text-primary mr-1"></i>Classe :
+                    </label>
+                    <select class="form-control form-control-sm rounded-pill font-weight-bold" style="min-width: 170px;" 
+                            onchange="switchContext(this.value, '{{ semester }}', '{{ cc_number }}')">
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if selected_class and selected_class.id == c.id %}selected{% endif %}>
+                            {{ c.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Sélecteur de Semestre -->
+                <div class="btn-group btn-group-sm shadow-xs" role="group">
+                    <button type="button" class="btn {% if semester == 1 %}btn-primary font-weight-bold{% else %}btn-outline-primary{% endif %} text-nowrap"
+                            onclick="switchContext('{{ selected_class.id if selected_class else '' }}', 1, '{{ cc_number }}')">
+                        <i class="fas fa-calendar-alt mr-1"></i> S1
+                    </button>
+                    <button type="button" class="btn {% if semester == 2 %}btn-primary font-weight-bold{% else %}btn-outline-primary{% endif %} text-nowrap"
+                            onclick="switchContext('{{ selected_class.id if selected_class else '' }}', 2, '{{ cc_number }}')">
+                        <i class="fas fa-calendar-alt mr-1"></i> S2
+                    </button>
+                </div>
+            </div>
+
+            <!-- Onglets de Sélection du Contrôle Continu (CC1..CC4) -->
+            <ul class="nav nav-pills nav-fill shadow-xs" style="background: #f8f9fc; padding: 4px; border-radius: 8px; gap: 4px;">
+                {% for i in range(1, 5) %}
+                <li class="nav-item">
+                    <button type="button" 
+                            class="nav-link btn-sm py-1 px-3 font-weight-bold text-nowrap {% if cc_number == i %}active bg-warning text-dark shadow-xs{% else %}text-muted{% endif %}"
+                            style="border-radius: 6px; border: none;"
+                            onclick="switchContext('{{ selected_class.id if selected_class else '' }}', '{{ semester }}', {{ i }})">
+                        <i class="fas fa-file-alt mr-1"></i> Contrôle {{ i }}
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Ruban d'Actions Rapides -->
+    <div class="card shadow-sm border-0 mb-3 bg-white" style="border-radius: 12px;">
+        <div class="card-body py-2 px-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between">
+                <div class="d-flex align-items-center mr-3 my-1">
+                    <span class="badge badge-primary px-2 py-1 mr-2 font-weight-bold">
+                        <i class="fas fa-bolt mr-1"></i> Actions Classe
+                    </span>
+                    <span class="small text-muted font-weight-bold d-none d-lg-inline">Navigation pour <strong>{{ selected_class.name if selected_class else 'la classe' }}</strong> :</span>
+                </div>
+                <div class="d-flex flex-wrap align-items-center my-1" style="gap: 8px;">
+                    <a href="{{ url_for('evaluation.grades_grid', class_id=selected_class.id if selected_class else None, semester=semester) }}" 
+                       class="btn btn-sm btn-outline-success font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-table mr-1"></i> Carnet de Notes
+                    </a>
+                    <a href="{{ url_for('evaluation.makeup_manager', class_id=selected_class.id if selected_class else None, semester=semester, cc_number=cc_number) }}" 
+                       class="btn btn-sm btn-outline-warning text-dark font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-user-clock mr-1"></i> Rattrapages (CC{{ cc_number }})
+                    </a>
+                    <a href="{{ url_for('evaluation.analytics', class_id=selected_class.id if selected_class else None, semester=semester) }}" 
+                       class="btn btn-sm btn-outline-danger font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-chart-pie mr-1"></i> Analyses & Stats
+                    </a>
+                    {% if selected_class %}
+                    <a href="{{ url_for('evaluation.massar_hub', class_id=selected_class.id, semester=semester) }}" 
+                       class="btn btn-sm btn-outline-info font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-file-excel mr-1"></i> Passerelle MASSAR
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('evaluation.settings', class_id=selected_class.id if selected_class else 0) }}" 
+                       class="btn btn-sm btn-outline-secondary font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                        <i class="fas fa-sliders-h mr-1"></i> Paramètres
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bannière Live KPI du Contrôle -->
+    <div class="row mb-3" style="gap: 0;">
+        <div class="col-lg-3 col-6 mb-2">
+            <div class="card border-0 bg-white shadow-xs p-3" style="border-radius: 10px;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-xs font-weight-bold text-muted text-uppercase">Copies Corrigées</div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-800">
+                            <span id="statCount">{{ stats.count }}</span> / <span id="statTotal">{{ stats.total_students }}</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <i class="fas fa-check-double fa-2x text-primary opacity-50"></i>
+                    </div>
+                </div>
+                <div class="progress mt-2" style="height: 5px;">
+                    {% set pct = (stats.count / stats.total_students * 100)|round if stats.total_students > 0 else 0 %}
+                    <div id="statProgressBar" class="progress-bar bg-success" style="width: {{ pct }}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-6 mb-2">
+            <div class="card border-0 bg-white shadow-xs p-3 text-center" style="border-radius: 10px;">
+                <div class="text-xs font-weight-bold text-muted text-uppercase">Moyenne du CC{{ cc_number }}</div>
+                <div class="h4 mb-0 font-weight-bold text-primary">
+                    <span id="statAvg">{{ "%.2f"|format(stats.avg) }}</span> <small class="text-muted">/ 20</small>
+                </div>
+                <div class="small text-muted mt-1">Calculée sur les copies notées</div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-6 mb-2">
+            <div class="card border-0 bg-white shadow-xs p-3 text-center" style="border-radius: 10px;">
+                <div class="text-xs font-weight-bold text-muted text-uppercase">Taux de Réussite (&ge;10)</div>
+                <div class="h4 mb-0 font-weight-bold {% if stats.pass_rate >= 70 %}text-success{% elif stats.pass_rate >= 50 %}text-info{% else %}text-warning{% endif %}">
+                    <span id="statPassRate">{{ stats.pass_rate }}%</span>
+                </div>
+                <div class="small text-muted mt-1"><span id="statPassCount">{{ stats.pass_count }}</span> élèves &ge; 10</div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-6 mb-2">
+            <div class="card border-0 bg-white shadow-xs p-3 text-center" style="border-radius: 10px;">
+                <div class="text-xs font-weight-bold text-muted text-uppercase">Extrêmes (Min / Max)</div>
+                <div class="h4 mb-0 font-weight-bold text-gray-800">
+                    <span id="statMin" class="text-danger">{{ stats.min }}</span> / <span id="statMax" class="text-success">{{ stats.max }}</span>
+                </div>
+                <div class="small text-muted mt-1">Écart du groupe</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table Épurée de Correction Rapide -->
+    <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+        <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between border-bottom">
+            <h6 class="m-0 font-weight-bold text-gray-800">
+                <i class="fas fa-edit text-primary mr-2"></i>Feuille de Saisie CC{{ cc_number }} &mdash; {{ selected_class.name if selected_class else '' }}
+            </h6>
+            <div class="small text-muted">
+                <span class="badge badge-light border px-2 py-1 mr-2">
+                    <i class="fas fa-keyboard text-primary mr-1"></i> <strong>Entrée</strong> ou <strong>&darr;</strong> = Élève suivant
+                </span>
+                <span class="badge badge-light border px-2 py-1">
+                    <i class="fas fa-keyboard text-primary mr-1"></i> <strong>&uarr;</strong> = Élève précédent
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="quickTable">
+                    <thead class="bg-light text-uppercase text-muted small">
+                        <tr>
+                            <th style="width: 50px;" class="text-center">#</th>
+                            <th style="min-width: 250px;">Élève</th>
+                            <th style="width: 140px;" class="text-center">CNE (MASSAR)</th>
+                            <th style="width: 180px;" class="text-center bg-warning text-dark font-weight-bold">
+                                Note CC{{ cc_number }} / 20
+                            </th>
+                            <th style="width: 120px;" class="text-center">Absence</th>
+                            <th style="width: 150px;" class="text-center">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in student_items %}
+                        {% set st = item.student %}
+                        {% set val = item.grade %}
+                        <tr data-student-id="{{ st.id }}" id="row_{{ st.id }}">
+                            <!-- Index -->
+                            <td class="text-center align-middle text-muted font-weight-bold">{{ loop.index }}</td>
+
+                            <!-- Élève -->
+                            <td class="align-middle">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ url_for('main.uploaded_file', filename=st.photo_path if st.photo_path else 'photos/Default.jpg') }}" 
+                                         class="rounded-circle mr-3 border shadow-xs" 
+                                         style="width: 38px; height: 38px; object-fit: cover;"
+                                         loading="lazy" decoding="async"
+                                         onerror="this.src='{{ url_for('main.uploaded_file', filename='photos/Default.jpg') }}'">
+                                    <div>
+                                        <div class="font-weight-bold text-gray-900" style="font-size: 1rem;">
+                                            {{ st.last_name.upper() }} {{ st.first_name }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- CNE -->
+                            <td class="text-center align-middle font-monospace text-muted font-weight-bold">
+                                {{ st.cne }}
+                            </td>
+
+                            <!-- Champ de Saisie de Note -->
+                            <td class="text-center align-middle bg-light py-2">
+                                <input type="number" step="0.25" min="0" max="20"
+                                       name="grade_{{ st.id }}" id="input_{{ st.id }}"
+                                       data-index="{{ loop.index0 }}"
+                                       class="form-control form-control-lg text-center font-weight-bold grade-input shadow-xs"
+                                       value="{{ val if val is not none else '' }}"
+                                       placeholder="-"
+                                       style="width: 95px; margin: 0 auto; font-size: 1.25rem; border: 2px solid #cbd5e1; border-radius: 8px;"
+                                       onfocus="this.select()"
+                                       onchange="saveGradeSingle({{ st.id }})"
+                                       onkeydown="handleKeyNav(event, {{ loop.index0 }})">
+                            </td>
+
+                            <!-- Bouton Absent -->
+                            <td class="text-center align-middle">
+                                <button type="button" 
+                                        id="abs_btn_{{ st.id }}"
+                                        class="btn btn-sm btn-outline-danger font-weight-bold px-2 py-1"
+                                        onclick="toggleAbsent({{ st.id }})"
+                                        title="Marquer comme absent à ce contrôle">
+                                    <i class="fas fa-user-times mr-1"></i> ABS
+                                </button>
+                                <input type="hidden" name="absent_{{ st.id }}" id="abs_input_{{ st.id }}" value="0">
+                            </td>
+
+                            <!-- Statut de Saisie -->
+                            <td class="text-center align-middle" id="status_{{ st.id }}">
+                                {% if val is not none %}
+                                <span class="badge badge-success px-2 py-1 font-weight-bold">
+                                    <i class="fas fa-check mr-1"></i> Saisi ({{ val }})
+                                </span>
+                                {% else %}
+                                <span class="badge badge-light border text-muted px-2 py-1">
+                                    En attente
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="fas fa-info-circle mr-1"></i> Aucun élève trouvé dans cette classe.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card-footer bg-white py-3 d-flex align-items-center justify-content-between">
+            <div class="small text-muted">
+                <i class="fas fa-info-circle text-primary mr-1"></i> Chaque note saisie est enregistrée instantanément en arrière-plan.
+            </div>
+            <button type="submit" class="btn btn-primary font-weight-bold px-4 shadow-sm action-ribbon-btn text-nowrap">
+                <i class="fas fa-save mr-1"></i> Terminer et Enregistrer la Série
+            </button>
+        </div>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchContext(classId, sem, cc) {
+    const url = new URL("{{ url_for('evaluation.quick_entry') }}", window.location.origin);
+    if (classId) url.searchParams.set('class_id', classId);
+    url.searchParams.set('semester', sem);
+    url.searchParams.set('cc_number', cc);
+    window.location.href = url.toString();
+}
+
+// Navigation Clavier fluide (Entrée, Flèche Bas, Flèche Haut)
+function handleKeyNav(e, currentIndex) {
+    const allInputs = document.querySelectorAll('.grade-input');
+    
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < allInputs.length) {
+            allInputs[nextIndex].focus();
+            allInputs[nextIndex].select();
+        }
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prevIndex = currentIndex - 1;
+        if (prevIndex >= 0) {
+            allInputs[prevIndex].focus();
+            allInputs[prevIndex].select();
+        }
+    }
+}
+
+// Sauvegarde instantanée AJAX
+function saveGradeSingle(studentId, isAbsent = false) {
+    const input = document.getElementById('input_' + studentId);
+    let gradeVal = input.value.trim().replace(',', '.');
+    const classId = "{{ selected_class.id if selected_class else 0 }}";
+    const semester = "{{ semester }}";
+    const ccNumber = "{{ cc_number }}";
+
+    if (isAbsent) {
+        gradeVal = null;
+        input.value = '';
+    }
+
+    fetch("{{ url_for('evaluation.api_save_single_cc') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            student_id: studentId,
+            class_id: parseInt(classId),
+            semester: parseInt(semester),
+            cc_number: parseInt(ccNumber),
+            grade: gradeVal,
+            is_absent: isAbsent
+        })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) {
+            // Mise à jour du badge statut
+            const statusEl = document.getElementById('status_' + studentId);
+            if (isAbsent) {
+                statusEl.innerHTML = '<span class="badge badge-danger px-2 py-1 font-weight-bold"><i class="fas fa-user-times mr-1"></i> Absent</span>';
+            } else if (res.grade !== null) {
+                statusEl.innerHTML = `<span class="badge badge-success px-2 py-1 font-weight-bold"><i class="fas fa-check mr-1"></i> Saisi (${res.grade})</span>`;
+            } else {
+                statusEl.innerHTML = '<span class="badge badge-light border text-muted px-2 py-1">En attente</span>';
+            }
+
+            // Mise à jour dynamique des KPIs en haut de page
+            if (res.stats) {
+                document.getElementById('statCount').textContent = res.stats.count;
+                document.getElementById('statTotal').textContent = res.stats.total_students;
+                document.getElementById('statAvg').textContent = res.stats.avg.toFixed(2);
+                document.getElementById('statMin').textContent = res.stats.min;
+                document.getElementById('statMax').textContent = res.stats.max;
+                document.getElementById('statPassCount').textContent = res.stats.pass_count;
+                document.getElementById('statPassRate').textContent = res.stats.pass_rate + '%';
+
+                const pct = res.stats.total_students > 0 ? Math.round((res.stats.count / res.stats.total_students) * 100) : 0;
+                document.getElementById('statProgressBar').style.width = pct + '%';
+            }
+        }
+    })
+    .catch(err => {
+        console.error("Erreur sauvegarde note:", err);
+    });
+}
+
+function toggleAbsent(studentId) {
+    const absInput = document.getElementById('abs_input_' + studentId);
+    const absBtn = document.getElementById('abs_btn_' + studentId);
+    const input = document.getElementById('input_' + studentId);
+
+    const isNowAbsent = absInput.value !== '1';
+    absInput.value = isNowAbsent ? '1' : '0';
+
+    if (isNowAbsent) {
+        absBtn.classList.remove('btn-outline-danger');
+        absBtn.classList.add('btn-danger', 'active');
+        input.disabled = true;
+        saveGradeSingle(studentId, true);
+    } else {
+        absBtn.classList.remove('btn-danger', 'active');
+        absBtn.classList.add('btn-outline-danger');
+        input.disabled = false;
+        input.focus();
+        saveGradeSingle(studentId, false);
+    }
+}
+
+// Auto-focus sur la première note dès le chargement de la page
+document.addEventListener('DOMContentLoaded', () => {
+    const firstInput = document.querySelector('.grade-input');
+    if (firstInput) {
+        firstInput.focus();
+        firstInput.select();
+    }
+});
+</script>
+{% endblock %}

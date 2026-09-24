@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Suivi Activité</h1>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Critères de Surveillance</h6>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('activity.monitoring') }}">
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label>Classe</label>
+                    <select name="class_id" id="classSelect" class="form-control" onchange="fetchActivities()">
+                        <option value="">Choisir...</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}" {% if request.args.get('class_id')|int==c.id %}selected{% endif %}>{{
+                            c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-md-3">
+                    <label>Module</label>
+                    <select name="module" id="moduleSelect" class="form-control"
+                        onchange="fetchSections(); fetchActivities();">
+                        <option value="">Tous</option>
+                        {% for m in modules %}
+                        <option value="{{ m.name }}" {% if request.args.get('module')==m.name %}selected{% endif %}>{{
+                            m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-md-3">
+                    <label>Section</label>
+                    <select name="section" id="sectionSelect" class="form-control" onchange="fetchActivities()">
+                        <option value="">Toutes</option>
+                        {% for s in sections %}
+                        <option value="{{ s.name }}" {% if request.args.get('section')==s.name %}selected{% endif %}>{{
+                            s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-md-3">
+                    <label>Activité</label>
+                    <select name="activity_id" id="activitySelect" class="form-control">
+                        <option value="">Choisir une activité...</option>
+                        {% for a in activities %}
+                        <option value="{{ a.id }}" {% if request.args.get('activity_id')|int==a.id %}selected{% endif
+                            %}>
+                            {{ a.activity_type }} - {{ a.date.strftime('%d/%m/%Y') }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group col-md-3">
+                    <label>Statut Étudiant</label>
+                    <select name="status" class="form-control">
+                        <option value="">Tous les statuts</option>
+                        <option value="Non assigné" {% if request.args.get('status')=='Non assigné' %}selected{% endif
+                            %}>Non assigné</option>
+                        <option value="Assigné" {% if request.args.get('status')=='Assigné' %}selected{% endif %}>
+                            Assigné</option>
+                        <option value="Fait" {% if request.args.get('status')=='Fait' %}selected{% endif %}>Fait
+                        </option>
+                        <option value="Non fait" {% if request.args.get('status')=='Non fait' %}selected{% endif %}>Non
+                            fait</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if request.args.get('activity_id') %}
+<div class="card shadow mb-4">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">Avancement des Étudiants</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered" width="100%" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>CNE</th>
+                        <th>Nom Complet</th>
+                        <th>Statut</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in students_data %}
+                    <tr>
+                        <td>{{ data.student.cne }}</td>
+                        <td>{{ data.student.last_name }} {{ data.student.first_name }}</td>
+                        <td>
+                            {% if data.status == 'Fait' %}
+                            <span class="badge badge-success">Fait</span>
+                            {% elif data.status == 'Non fait' %}
+                            <span class="badge badge-danger">Non fait</span>
+                            {% elif data.status == 'Assigné' %}
+                            <span class="badge badge-warning">Assigné</span>
+                            {% else %}
+                            <span class="badge badge-secondary">Non assigné</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if data.score is not none %}
+                            {{ data.score }} / 20
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center">Aucun étudiant trouvé pour ces critères.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    function fetchSections() {
+        // ... (Reuse existing logic or include common JS)
+        const moduleName = document.getElementById('moduleSelect').value;
+        const sectionSelect = document.getElementById('sectionSelect');
+
+        if (!moduleName) {
+            sectionSelect.innerHTML = '<option value="">Toutes</option>';
+            return;
+        }
+
+        fetch(`/activity/api/get_sections?module_name=${encodeURIComponent(moduleName)}`)
+            .then(response => response.json())
+            .then(data => {
+                sectionSelect.innerHTML = '<option value="">Toutes</option>';
+                data.forEach(section => {
+                    const opt = document.createElement('option');
+                    opt.value = section;
+                    opt.textContent = section;
+                    sectionSelect.appendChild(opt);
+                });
+            });
+    }
+
+    function fetchActivities() {
+        const classId = document.getElementById('classSelect').value;
+        const moduleName = document.getElementById('moduleSelect').value;
+        const sectionName = document.getElementById('sectionSelect').value;
+        const activitySelect = document.getElementById('activitySelect');
+
+        if (!classId) {
+            activitySelect.innerHTML = '<option value="">Choisir une classe d\'abord...</option>';
+            activitySelect.disabled = true;
+            return;
+        }
+        activitySelect.disabled = false;
+
+        const params = new URLSearchParams({
+            class_id: classId,
+            module: moduleName,
+            section: sectionName
+        });
+
+        fetch(`/activity/api/get_activities?${params.toString()}`)
+            .then(response => response.json())
+            .then(data => {
+                activitySelect.innerHTML = '<option value="">Choisir une activité...</option>';
+                data.forEach(act => {
+                    const opt = document.createElement('option');
+                    opt.value = act.id;
+                    opt.textContent = act.label;
+                    activitySelect.appendChild(opt);
+                });
+            });
+    }
+</script>
+{% endblock %}

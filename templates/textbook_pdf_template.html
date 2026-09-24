@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>{{ title }}</title>
+    <style>
+        body {
+            font-family: Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            max-width: 21cm;
+            margin: auto;
+            padding: 2cm;
+            background: white;
+        }
+
+        @media print {
+            body {
+                margin: 0;
+                padding: 0 2cm;
+            }
+
+            @page {
+                size: A4;
+                margin: 2cm;
+            }
+        }
+
+        /* ... existing styles ... */
+        h1 {
+            text-align: center;
+            font-size: 16pt;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .header-info {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .header-info td {
+            vertical-align: top;
+            width: 50%;
+        }
+
+        .section-title {
+            background-color: #f0f0f0;
+            padding: 5px;
+            font-weight: bold;
+            margin-top: 15px;
+            border-left: 4px solid #4e73df;
+        }
+
+        .content-box {
+            margin-left: 10px;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Fiche de Séance</h1>
+
+    <table class="header-info">
+        <tr>
+            <td>
+                <div class="label">Date :</div> {{ session.date.strftime('%d/%m/%Y') }}<br>
+                <div class="label">Type de séance :</div> <strong>{{ session.session_type or 'Cours' }}</strong><br>
+                <div class="label">Classe :</div> {{ session.classe.name }}<br>
+                <div class="label">Enseignant :</div> {{ session.teacher_name or 'Non spécifié' }}
+            </td>
+            <td>
+                <div class="label">Module :</div> {{ session.module.name }}<br>
+                <div class="label">Chapitre :</div> {{ session.section.name }}
+            </td>
+        </tr>
+    </table>
+
+    <div class="section-title">Grandes Lignes du Cours</div>
+    <div class="content-box">{{ session.course_titles }}</div>
+
+    <div class="section-title">Objectifs Pédagogiques</div>
+    <div class="content-box">
+        <ul>
+            {% for obj in session.objectives %}
+            <li>{{ obj.description }}</li>
+            {% else %}
+            <li>Aucun objectif spécifié.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="section-title">Compétences Visées</div>
+    <div class="content-box">
+        <ul>
+            {% for comp in session.competencies %}
+            <li>{{ comp.description }}</li>
+            {% else %}
+            <li>Aucune compétence spécifiée.</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    {% if session.homework %}
+    <div class="section-title">Travail à Faire / Devoirs</div>
+    <div class="content-box">
+        {{ session.homework }}
+        {% if session.homework_due_date %}
+        <br><strong>Pour le :</strong> {{ session.homework_due_date.strftime('%d/%m/%Y') }}
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if session.remark %}
+    <div class="section-title">Remarques</div>
+    <div class="content-box">{{ session.remark }}</div>
+    {% endif %}
+
+</body>
+
+</html>

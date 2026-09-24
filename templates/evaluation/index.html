@@ -1,0 +1,326 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- En-tête : Titre & Sélecteur de Semestre -->
+<div class="d-md-flex align-items-center justify-content-between mb-3">
+    <div class="mb-2 mb-md-0">
+        <h1 class="h3 mb-1 text-gray-800 font-weight-bold">
+            <i class="fas fa-graduation-cap text-warning mr-2"></i>Module Évaluation & Carnet de Notes
+        </h1>
+        <p class="text-muted small mb-0">
+            Gestion centralisée des <strong>5 Notes Officielles d'Informatique</strong> (CC1, CC2, CC3, CC4 & Activité Formule B) et passerelle directe avec <strong>MASSAR</strong>.
+        </p>
+    </div>
+    <div class="d-flex align-items-center">
+        <!-- Sélecteur de Semestre -->
+        <div class="btn-group shadow-xs" role="group">
+            <a href="{{ url_for('evaluation.index', semester=1) }}" 
+               class="btn btn-sm {% if selected_semester == 1 %}btn-primary font-weight-bold shadow-xs{% else %}btn-outline-secondary text-dark bg-white{% endif %} text-nowrap px-3">
+                <i class="fas fa-calendar-alt mr-1"></i> Semestre 1
+            </a>
+            <a href="{{ url_for('evaluation.index', semester=2) }}" 
+               class="btn btn-sm {% if selected_semester == 2 %}btn-primary font-weight-bold shadow-xs{% else %}btn-outline-secondary text-dark bg-white{% endif %} text-nowrap px-3">
+                <i class="fas fa-calendar-alt mr-1"></i> Semestre 2
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Ruban d'Actions Rapides & Navigation -->
+<div class="card shadow-sm border-0 mb-4 bg-white" style="border-radius: 12px;">
+    <div class="card-body py-2 px-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between">
+            <div class="d-flex align-items-center mr-3 my-1">
+                <span class="badge badge-primary px-2 py-1 mr-2 font-weight-bold">
+                    <i class="fas fa-bolt mr-1"></i> Actions Rapides
+                </span>
+                <span class="small text-muted font-weight-bold d-none d-lg-inline">Accès direct aux modules d'évaluation :</span>
+            </div>
+            <div class="d-flex flex-wrap align-items-center my-1" style="gap: 8px;">
+                <a href="{{ url_for('evaluation.grades_grid', semester=selected_semester) }}" 
+                   class="btn btn-sm btn-outline-success font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-table mr-1"></i> Carnet de Notes
+                </a>
+                <a href="{{ url_for('evaluation.quick_entry', semester=selected_semester) }}" 
+                   class="btn btn-sm btn-outline-warning text-dark font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-bolt mr-1"></i> Saisie Rapide CC
+                </a>
+                <a href="{{ url_for('evaluation.makeup_manager', semester=selected_semester) }}" 
+                   class="btn btn-sm btn-outline-warning text-dark font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-user-clock mr-1"></i> Rattrapages
+                </a>
+                <a href="{{ url_for('evaluation.analytics', semester=selected_semester) }}" 
+                   class="btn btn-sm btn-outline-danger font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-chart-pie mr-1"></i> Analyses & Stats
+                </a>
+                <a href="{{ url_for('evaluation.massar_hub', semester=selected_semester) }}" 
+                   class="btn btn-sm btn-outline-info font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-file-excel mr-1"></i> Passerelle MASSAR
+                </a>
+                <a href="{{ url_for('evaluation.settings') }}" 
+                   class="btn btn-sm btn-outline-secondary font-weight-bold text-nowrap px-3 py-1 shadow-xs action-ribbon-btn">
+                    <i class="fas fa-sliders-h mr-1"></i> Paramètres
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4 Cartes Synthétiques KPI -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-primary shadow-sm h-100 py-2" style="border-radius: 10px;">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Élèves Inscrits</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_students_count }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-success shadow-sm h-100 py-2" style="border-radius: 10px;">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Notes Saisies (S{{ selected_semester }})</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_grades_entered }} / {{ total_students_count * 5 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-info shadow-sm h-100 py-2" style="border-radius: 10px;">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Architecture Officielle</div>
+                        <div class="h6 mb-0 font-weight-bold text-gray-800">4 CC + Activité = 5 Notes</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-award fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-warning shadow-sm h-100 py-2" style="border-radius: 10px;">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Export Institutionnel</div>
+                        <div class="h6 mb-0 font-weight-bold text-gray-800">Injecteur MASSAR (.xlsx)</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-excel fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Synthèse d'avancement par Classe -->
+<div class="card shadow-sm border-0 mb-4" style="border-radius: 12px;">
+    <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between border-bottom">
+        <h6 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-chalkboard text-primary mr-2"></i>État d'avancement des évaluations par classe (Semestre {{ selected_semester }})
+        </h6>
+        <span class="badge badge-light border text-muted px-2 py-1 font-weight-normal">
+            Année scolaire active : <strong>{{ current_year.name if current_year else '-' }}</strong>
+        </span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-uppercase text-muted small">
+                    <tr>
+                        <th class="pl-4">Classe</th>
+                        <th class="text-center">Effectif</th>
+                        <th class="text-center">CC1</th>
+                        <th class="text-center">CC2</th>
+                        <th class="text-center">CC3</th>
+                        <th class="text-center">CC4</th>
+                        <th class="text-center">Note Activité</th>
+                        <th class="text-center" style="width: 180px;">Progression Globale</th>
+                        <th class="text-center">Moyenne Classe</th>
+                        <th class="text-right pr-4 text-nowrap" style="min-width: 240px;">Actions Rapides</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in classes_summary %}
+                    <tr>
+                        <td class="pl-4 font-weight-bold text-gray-800 align-middle">
+                            <i class="fas fa-users text-muted mr-2"></i>{{ item.class.name }}
+                        </td>
+                        <td class="text-center align-middle font-weight-bold text-muted">
+                            {{ item.student_count }}
+                        </td>
+                        
+                        <!-- CC1 -->
+                        <td class="text-center align-middle">
+                            {% if item.cc1_done == item.student_count and item.student_count > 0 %}
+                            <span class="badge badge-success px-2 py-1"><i class="fas fa-check"></i> {{ item.cc1_done }}</span>
+                            {% elif item.cc1_done > 0 %}
+                            <span class="badge badge-warning text-dark px-2 py-1">{{ item.cc1_done }}/{{ item.student_count }}</span>
+                            {% else %}
+                            <span class="badge badge-light text-muted border px-2 py-1">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- CC2 -->
+                        <td class="text-center align-middle">
+                            {% if item.cc2_done == item.student_count and item.student_count > 0 %}
+                            <span class="badge badge-success px-2 py-1"><i class="fas fa-check"></i> {{ item.cc2_done }}</span>
+                            {% elif item.cc2_done > 0 %}
+                            <span class="badge badge-warning text-dark px-2 py-1">{{ item.cc2_done }}/{{ item.student_count }}</span>
+                            {% else %}
+                            <span class="badge badge-light text-muted border px-2 py-1">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- CC3 -->
+                        <td class="text-center align-middle">
+                            {% if item.cc3_done == item.student_count and item.student_count > 0 %}
+                            <span class="badge badge-success px-2 py-1"><i class="fas fa-check"></i> {{ item.cc3_done }}</span>
+                            {% elif item.cc3_done > 0 %}
+                            <span class="badge badge-warning text-dark px-2 py-1">{{ item.cc3_done }}/{{ item.student_count }}</span>
+                            {% else %}
+                            <span class="badge badge-light text-muted border px-2 py-1">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- CC4 -->
+                        <td class="text-center align-middle">
+                            {% if item.cc4_done == item.student_count and item.student_count > 0 %}
+                            <span class="badge badge-success px-2 py-1"><i class="fas fa-check"></i> {{ item.cc4_done }}</span>
+                            {% elif item.cc4_done > 0 %}
+                            <span class="badge badge-warning text-dark px-2 py-1">{{ item.cc4_done }}/{{ item.student_count }}</span>
+                            {% else %}
+                            <span class="badge badge-light text-muted border px-2 py-1">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Note Activité -->
+                        <td class="text-center align-middle">
+                            {% if item.act_done == item.student_count and item.student_count > 0 %}
+                            <span class="badge badge-success px-2 py-1"><i class="fas fa-check"></i> {{ item.act_done }}</span>
+                            {% elif item.act_done > 0 %}
+                            <span class="badge badge-warning text-dark px-2 py-1">{{ item.act_done }}/{{ item.student_count }}</span>
+                            {% else %}
+                            <span class="badge badge-light text-muted border px-2 py-1">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Barre Progression -->
+                        <td class="text-center align-middle">
+                            <div class="d-flex align-items-center">
+                                <div class="progress flex-grow-1 mr-2" style="height: 8px; border-radius: 4px;">
+                                    <div class="progress-bar {% if item.pct_progress >= 100 %}bg-success{% elif item.pct_progress >= 50 %}bg-info{% else %}bg-warning{% endif %}" 
+                                         role="progressbar" style="width: {{ item.pct_progress }}%;"></div>
+                                </div>
+                                <span class="small font-weight-bold text-gray-700" style="min-width: 40px;">{{ item.pct_progress }}%</span>
+                            </div>
+                        </td>
+
+                        <!-- Moyenne Classe -->
+                        <td class="text-center align-middle font-weight-bold">
+                            {% if item.class_avg is not none %}
+                            <span class="badge {% if item.class_avg >= 14 %}badge-success{% elif item.class_avg >= 10 %}badge-primary{% else %}badge-warning text-dark{% endif %} px-2 py-1 font-weight-bold" style="font-size: 0.9rem;">
+                                {{ "%.2f"|format(item.class_avg) }} / 20
+                            </span>
+                            {% else %}
+                            <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Actions Rapides -->
+                        <td class="text-right pr-4 align-middle text-nowrap">
+                            <div class="d-inline-flex align-items-center justify-content-end" style="gap: 6px;">
+                                <a href="{{ url_for('evaluation.grades_grid', class_id=item.class.id, semester=selected_semester) }}" 
+                                   class="btn btn-sm btn-outline-primary font-weight-bold shadow-xs action-ribbon-btn text-nowrap px-2 py-1" 
+                                   title="Ouvrir le carnet des 5 notes de {{ item.class.name }}">
+                                    <i class="fas fa-table mr-1 text-primary"></i> Grille
+                                </a>
+                                <a href="{{ url_for('evaluation.quick_entry', class_id=item.class.id, semester=selected_semester, cc_number=1) }}" 
+                                   class="btn btn-sm btn-outline-warning text-dark font-weight-bold shadow-xs action-ribbon-btn text-nowrap px-2 py-1" 
+                                   title="Saisie rapide par contrôle (copies)">
+                                    <i class="fas fa-bolt mr-1 text-warning"></i> Saisie CC
+                                </a>
+                                <a href="{{ url_for('evaluation.massar_hub', class_id=item.class.id, semester=selected_semester) }}" 
+                                   class="btn btn-sm btn-outline-success font-weight-bold shadow-xs action-ribbon-btn text-nowrap px-2 py-1" 
+                                   title="Passerelle et export MASSAR">
+                                    <i class="fas fa-file-excel mr-1 text-success"></i> MASSAR
+                                </a>
+                                <div class="dropdown d-inline">
+                                    <button class="btn btn-sm btn-outline-secondary font-weight-bold shadow-xs action-ribbon-btn text-nowrap px-2 py-1" 
+                                            type="button" id="classDrop{{ item.class.id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" 
+                                            title="Plus d'actions pour {{ item.class.name }}">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-menu-right shadow border-0" aria-labelledby="classDrop{{ item.class.id }}" style="border-radius: 10px;">
+                                        <h6 class="dropdown-header text-uppercase font-weight-bold text-muted small">{{ item.class.name }}</h6>
+                                        <a class="dropdown-item py-2" href="{{ url_for('evaluation.makeup_manager', class_id=item.class.id, semester=selected_semester) }}">
+                                            <i class="fas fa-user-clock text-warning mr-2" style="width: 18px;"></i> Rattrapages Classe
+                                        </a>
+                                        <a class="dropdown-item py-2" href="{{ url_for('evaluation.analytics', class_id=item.class.id, semester=selected_semester) }}">
+                                            <i class="fas fa-chart-pie text-danger mr-2" style="width: 18px;"></i> Stats & Remédiation
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-muted">
+                            <i class="fas fa-info-circle mr-1"></i> Aucune classe enregistrée pour cette année scolaire.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Rappel Officiel de la Matière Informatique -->
+<div class="card shadow-sm border-0 bg-light" style="border-radius: 12px;">
+    <div class="card-body p-4">
+        <h6 class="font-weight-bold text-gray-800 mb-2">
+            <i class="fas fa-book-reader text-primary mr-2"></i>Architecture Officielle des Évaluations en Informatique (Maroc)
+        </h6>
+        <div class="row small text-muted">
+            <div class="col-md-3 mb-2">
+                <span class="font-weight-bold text-dark">Contrôles Continus (CC1 à CC4) :</span>
+                <div>4 évaluations formelles (devoirs surveillés et épreuves pratiques) réalisées durant le semestre.</div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <span class="font-weight-bold text-dark">Note d'Activité (Formule B) :</span>
+                <div>Note d'assiduité, de participation orale et de régularité lors des séances de TP en laboratoire.</div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <span class="font-weight-bold text-dark">Moyenne Semestrielle :</span>
+                <div>Calculée automatiquement à partir des 5 notes de la matière pour refléter le niveau global de l'élève.</div>
+            </div>
+            <div class="col-md-3 mb-2">
+                <span class="font-weight-bold text-dark">Passerelle MASSAR :</span>
+                <div>Injection directe en 1-clic dans le fichier Excel officiel sans ressaisie manuelle fastidieuse.</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

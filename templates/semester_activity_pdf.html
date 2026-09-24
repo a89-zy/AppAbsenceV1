@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Bilan des Notes d'Activités & Assiduité — {{ selected_class.name }} (S{{ semester }})</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            color: #1e293b;
+            background: #fff;
+            margin: 0;
+            padding: 10px;
+        }
+        .no-print-bar {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 8px 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 6px;
+        }
+        .btn-print {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 7px 16px;
+            font-weight: bold;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .header-box {
+            border-bottom: 2px solid #1e3a8a;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .school-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #1e3a8a;
+            text-transform: uppercase;
+        }
+        .doc-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #0f172a;
+            margin-top: 4px;
+        }
+        .meta-info {
+            text-align: right;
+            font-size: 10px;
+            color: #475569;
+            line-height: 1.4;
+        }
+        .kpi-bar {
+            display: flex;
+            gap: 15px;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 10.5px;
+        }
+        .kpi-item strong {
+            color: #1e3a8a;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+        th {
+            background-color: #1e3a8a;
+            color: #ffffff;
+            font-size: 9.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: bold; }
+        .score-box {
+            font-size: 12px;
+            font-weight: bold;
+            color: #15803d;
+            background: #dcfce7;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        .signature-section {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px;
+            page-break-inside: avoid;
+        }
+        .signature-box {
+            text-align: center;
+            width: 200px;
+        }
+        .signature-line {
+            height: 50px;
+            border-bottom: 1px dashed #94a3b8;
+            margin-bottom: 4px;
+        }
+        @media print {
+            .no-print-bar { display: none !important; }
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barre d'action (masquée à l'impression) -->
+    <div class="no-print-bar">
+        <div>
+            <strong>Impression du Bilan Semestriel :</strong> {{ selected_class.name }} — Semestre {{ semester }}
+        </div>
+        <div>
+            <button type="button" class="btn-print" onclick="window.print()">
+                🖨️ Imprimer / Enregistrer en PDF
+            </button>
+            <button type="button" onclick="window.close()" style="padding: 6px 12px; margin-left: 8px; cursor: pointer;">
+                Fermer
+            </button>
+        </div>
+    </div>
+
+    <!-- En-tête officiel -->
+    <div class="header-box">
+        <div>
+            <div class="school-title">{{ school_name }}</div>
+            <div class="doc-title">BILAN DES NOTES D'ACTIVITÉS & ASSIDUITÉ — SEMESTRE {{ semester }}</div>
+            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
+                Matière : <strong>Informatique</strong> | Formule B (Base TP/TD + Bonus Flash - Malus Absences)
+            </div>
+        </div>
+        <div class="meta-info">
+            <div>Année Scolaire : <strong>{{ current_year.name if current_year else '' }}</strong></div>
+            <div>Classe : <strong>{{ selected_class.name }}</strong> ({{ evaluations|length }} élèves)</div>
+            <div>Enseignant : <strong>{{ teacher_name }}</strong></div>
+            <div>Édité le : {{ now.strftime('%d/%m/%Y à %H:%M') }}</div>
+        </div>
+    </div>
+
+    <!-- Synthèse KPI -->
+    <div class="kpi-bar">
+        <div class="kpi-item">Moyenne Générale : <strong>{{ stats.avg }} / 20</strong></div>
+        <div class="kpi-item">Taux de Réussite : <strong>{{ stats.pass_rate }}%</strong> ({{ stats.pass_count }}/{{ stats.count }})</div>
+        <div class="kpi-item">Note Maximale : <strong>{{ stats.max }} / 20</strong></div>
+        <div class="kpi-item">Note Minimale : <strong>{{ stats.min }} / 20</strong></div>
+    </div>
+
+    <!-- Tableau des Notes -->
+    <table>
+        <thead>
+            <tr>
+                <th width="25" class="text-center">N°</th>
+                <th width="90" class="text-center">Code MASSAR</th>
+                <th>Nom & Prénom</th>
+                <th width="45" class="text-center">Gr.</th>
+                <th width="75" class="text-center">Base TP/TD</th>
+                <th width="65" class="text-center">Bonus Flash</th>
+                <th width="65" class="text-center">Malus Abs.</th>
+                <th width="75" class="text-center">NOTE / 20</th>
+                <th>Appréciation / Remarques</th>
+                <th width="80" class="text-center">Émargement</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in evaluations %}
+            {% set st = item.student %}
+            <tr>
+                <td class="text-center">{{ loop.index }}</td>
+                <td class="text-center font-bold">{{ st.cne }}</td>
+                <td class="font-bold">{{ st.last_name|upper }} {{ st.first_name }}</td>
+                <td class="text-center">{{ 'G' + st.group if st.group else 'G1' }}</td>
+                <td class="text-center">{{ "%.2f"|format(item.base_score) }}</td>
+                <td class="text-center" style="color: #15803d;">+{{ "%.2f"|format(item.bonus_score) }}</td>
+                <td class="text-center" style="color: #b91c1c;">-{{ "%.2f"|format(item.malus_score) }}</td>
+                <td class="text-center">
+                    <span class="score-box">{{ item.final_score }}</span>
+                </td>
+                <td style="font-size: 9.5px; color: #334155;">{{ item.appreciation }}</td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Signatures -->
+    <div class="signature-section">
+        <div class="signature-box">
+            <div style="font-weight: bold;">L'Enseignant Responsable</div>
+            <div style="font-size: 9px; color: #64748b;">{{ teacher_name }}</div>
+            <div class="signature-line"></div>
+            <div style="font-size: 8px; color: #94a3b8;">Signature & Date</div>
+        </div>
+        <div class="signature-box">
+            <div style="font-weight: bold;">L'Administration / Direction</div>
+            <div style="font-size: 9px; color: #64748b;">Visa & Cachet de l'établissement</div>
+            <div class="signature-line"></div>
+            <div style="font-size: 8px; color: #94a3b8;">Signature & Cachet</div>
+        </div>
+    </div>
+
+</body>
+</html>

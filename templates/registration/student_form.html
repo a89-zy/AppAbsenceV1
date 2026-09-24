@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fiche d'Inscription Élève</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-gradient: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            --secondary: #4cc9f0;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #0b0f19;
+            --surface: #111827;
+            --surface-card: rgba(255, 255, 255, 0.04);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(67, 97, 238, 0.15) 0%, transparent 35%),
+                radial-gradient(circle at 85% 85%, rgba(76, 201, 240, 0.1) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 760px;
+            background: var(--surface-card);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .header {
+            background: linear-gradient(180deg, rgba(67, 97, 238, 0.12) 0%, transparent 100%);
+            padding: 28px 24px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        .device-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            color: var(--secondary);
+            font-weight: 600;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+            background: linear-gradient(135deg, #ffffff 40%, #93c5fd 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        form {
+            padding: 24px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+        }
+
+        /* Mode Bureau : 2 colonnes */
+        @media (min-width: 640px) {
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .full-width {
+                grid-column: span 2;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #d1d5db;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        label .required {
+            color: #f87171;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper i.prefix-icon {
+            position: absolute;
+            left: 14px;
+            color: #64748b;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        input, select {
+            width: 100%;
+            height: 48px;
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 15px;
+            padding: 0 14px 0 42px;
+            transition: all 0.2s ease;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            background-size: 16px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.25);
+            background: rgba(17, 24, 39, 0.95);
+        }
+
+        /* SECTION PHOTO */
+        .photo-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1.5px dashed var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .photo-card:hover {
+            border-color: var(--primary);
+        }
+
+        .photo-preview-container {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 0 auto 14px;
+            background: #1f2937;
+            border: 3px solid rgba(67, 97, 238, 0.4);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .photo-preview-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .photo-placeholder {
+            color: #64748b;
+            font-size: 38px;
+        }
+
+        .photo-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-photo {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            color: #f3f4f6;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-photo:hover {
+            background: rgba(67, 97, 238, 0.2);
+            border-color: var(--primary);
+        }
+
+        .btn-photo i {
+            color: var(--secondary);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .compression-indicator {
+            font-size: 11px;
+            color: var(--success);
+            margin-top: 8px;
+            display: none;
+        }
+
+        /* BOUTON SOUMETTRE */
+        .btn-submit {
+            width: 100%;
+            height: 52px;
+            background: var(--primary-gradient);
+            color: #ffffff;
+            border: none;
+            border-radius: 14px;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 24px;
+            box-shadow: 0 10px 25px -5px rgba(67, 97, 238, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px -5px rgba(67, 97, 238, 0.7);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* NOTIFICATIONS / POPUP */
+        .alert-box {
+            display: none;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            margin-bottom: 18px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .alert-success-screen {
+            display: none;
+            text-align: center;
+            padding: 45px 25px;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.15);
+            border: 2px solid rgba(16, 185, 129, 0.4);
+            color: var(--success);
+            font-size: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .success-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .success-desc {
+            color: var(--text-muted);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .student-summary-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+            max-width: 360px;
+            margin: 0 auto 25px;
+            text-align: left;
+        }
+
+        .summary-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .summary-line:last-child {
+            border-bottom: none;
+        }
+        .summary-label {
+            color: #94a3b8;
+        }
+        .summary-val {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <div class="device-badge">
+            <i class="fas {% if device_type == 'Smartphone' %}fa-mobile-alt{% elif device_type == 'Tablette' %}fa-tablet-alt{% else %}fa-desktop{% endif %}"></i>
+            <span>{{ device_type }}</span>
+        </div>
+        <h1>Fiche d'Inscription</h1>
+        <p>Remplissez vos coordonnées pour rejoindre la classe</p>
+    </div>
+
+    <!-- Écran de Succès après soumission -->
+    <div id="successScreen" class="alert-success-screen">
+        <div class="success-icon">
+            <i class="fas fa-check"></i>
+        </div>
+        <h2 class="success-title">Inscription Enregistrée !</h2>
+        <p class="success-desc">Vos informations ont été transmises à l'enseignant. Votre fiche est en attente de validation.</p>
+        
+        <div class="student-summary-card" id="summaryCard"></div>
+
+        <button onclick="location.reload()" class="btn-photo" style="margin: 0 auto;">
+            <i class="fas fa-plus"></i> Inscrire un autre élève
+        </button>
+    </div>
+
+    <!-- Formulaire d'inscription -->
+    <form id="studentForm" onsubmit="handleFormSubmit(event)">
+        <div id="alertBox" class="alert-box alert-danger"></div>
+
+        <div class="form-grid">
+            <!-- SECTION PHOTO PROFIL COMPRESSÉE -->
+            <div class="form-group full-width">
+                <label><i class="fas fa-camera"></i> Photo d'identité (Recommandée)</label>
+                <div class="photo-card">
+                    <div class="photo-preview-container">
+                        <i class="fas fa-user photo-placeholder" id="photoPlaceholder"></i>
+                        <img id="photoPreview" alt="Aperçu photo">
+                    </div>
+                    
+                    <div class="photo-actions">
+                        <!-- Déclencheur selfie / appareil photo sur mobile -->
+                        <label for="cameraInput" class="btn-photo">
+                            <i class="fas fa-camera"></i> Prendre Photo
+                        </label>
+                        <input type="file" id="cameraInput" accept="image/*" capture="user" onchange="processImageFile(this)">
+
+                        <!-- Importer fichier image -->
+                        <label for="fileInput" class="btn-photo">
+                            <i class="fas fa-folder-open"></i> Importer Image
+                        </label>
+                        <input type="file" id="fileInput" accept="image/*" onchange="processImageFile(this)">
+                    </div>
+
+                    <div id="compressionBadge" class="compression-indicator">
+                        <i class="fas fa-check-circle"></i> Image compressée et prête (<span id="compressedSize">0</span> Ko)
+                    </div>
+                </div>
+            </div>
+
+            <!-- CODE PIN (si requis par l'enseignant) -->
+            {% if has_pin %}
+            <div class="form-group full-width">
+                <label for="pin"><i class="fas fa-key"></i> Code PIN de la séance <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock prefix-icon"></i>
+                    <input type="text" id="pin" name="pin" required placeholder="Code à 4 chiffres affiché au tableau" maxlength="10">
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- CLASSE -->
+            <div class="form-group full-width">
+                <label for="class_id"><i class="fas fa-graduation-cap"></i> Classe <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-school prefix-icon"></i>
+                    <select id="class_id" name="class_id" required>
+                        <option value="">Sélectionnez votre classe...</option>
+                        {% for c in classes %}
+                        <option value="{{ c.id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- CNE / CODE NATIONAL -->
+            <div class="form-group">
+                <label for="cne"><i class="fas fa-id-card"></i> Code CNE / Massar <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-barcode prefix-icon"></i>
+                    <input type="text" id="cne" name="cne" required placeholder="Ex: R134567890" autocomplete="off">
+                </div>
+            </div>
+
+            <!-- DATE DE NAISSANCE -->
+            <div class="form-group">
+                <label for="birth_date"><i class="fas fa-birthday-cake"></i> Date de naissance</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-calendar-alt prefix-icon"></i>
+                    <input type="date" id="birth_date" name="birth_date">
+                </div>
+            </div>
+
+            <!-- NOM -->
+            <div class="form-group">
+                <label for="last_name"><i class="fas fa-user"></i> Nom de famille <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-font prefix-icon"></i>
+                    <input type="text" id="last_name" name="last_name" required placeholder="Ex: ALAMI" autocomplete="family-name">
+                </div>
+            </div>
+
+            <!-- PRÉNOM -->
+            <div class="form-group">
+                <label for="first_name"><i class="fas fa-user"></i> Prénom <span class="required">*</span></label>
+                <div class="input-wrapper">
+                    <i class="fas fa-font prefix-icon"></i>
+                    <input type="text" id="first_name" name="first_name" required placeholder="Ex: Mehdi" autocomplete="given-name">
+                </div>
+            </div>
+
+            <!-- TÉLÉPHONE -->
+            <div class="form-group">
+                <label for="phone"><i class="fas fa-phone-alt"></i> Téléphone</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-mobile prefix-icon"></i>
+                    <input type="tel" id="phone" name="phone" placeholder="Ex: 0612345678" autocomplete="tel">
+                </div>
+            </div>
+
+            <!-- EMAIL -->
+            <div class="form-group">
+                <label for="email"><i class="fas fa-envelope"></i> Email (facultatif)</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-at prefix-icon"></i>
+                    <input type="email" id="email" name="email" placeholder="nom@domaine.com" autocomplete="email">
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn-submit">
+            <i class="fas fa-paper-plane"></i>
+            <span id="btnText">Envoyer mon Inscription</span>
+        </button>
+    </form>
+</div>
+
+<script>
+    let compressedPhotoBlob = null;
+
+    // COMPRESSION CLIENT-SIDE ULTRA LÉGÈRE (HTML5 Canvas)
+    // Réduit instantanément toute photo de smartphone (5-10 Mo) à < 150 Ko
+    function processImageFile(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // Redimensionnement max 800x800 tout en gardant le ratio
+                const maxDim = 800;
+                if (width > height) {
+                    if (width > maxDim) {
+                        height = Math.round((height * maxDim) / width);
+                        width = maxDim;
+                    }
+                } else {
+                    if (height > maxDim) {
+                        width = Math.round((width * maxDim) / height);
+                        height = maxDim;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Compression JPEG 78% (qualité photo parfaite, poids minuscule)
+                canvas.toBlob(function(blob) {
+                    compressedPhotoBlob = blob;
+                    const preview = document.getElementById('photoPreview');
+                    const placeholder = document.getElementById('photoPlaceholder');
+                    const badge = document.getElementById('compressionBadge');
+                    const sizeEl = document.getElementById('compressedSize');
+
+                    preview.src = URL.createObjectURL(blob);
+                    preview.style.display = 'block';
+                    placeholder.style.display = 'none';
+
+                    const kb = Math.round(blob.size / 1024);
+                    sizeEl.textContent = kb;
+                    badge.style.display = 'block';
+                }, 'image/jpeg', 0.78);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // SOUMISSION EN AJAX MULTI-PART (Rapide et sans freeze)
+    async function handleFormSubmit(e) {
+        e.preventDefault();
+        const form = document.getElementById('studentForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const alertBox = document.getElementById('alertBox');
+
+        alertBox.style.display = 'none';
+        submitBtn.disabled = true;
+        btnText.textContent = "Envoi en cours...";
+
+        try {
+            const formData = new FormData(form);
+
+            // Remplacer le fichier brut par la version compressée si disponible
+            if (compressedPhotoBlob) {
+                const cneVal = document.getElementById('cne').value.trim() || 'student';
+                formData.set('photo', compressedPhotoBlob, `${cneVal}.jpg`);
+            }
+
+            const response = await fetch("{{ url_for('registration.student_submit') }}", {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Afficher confirmation
+                form.style.display = 'none';
+                const successScreen = document.getElementById('successScreen');
+                const summaryCard = document.getElementById('summaryCard');
+                
+                const selClass = document.getElementById('class_id');
+                const className = selClass.options[selClass.selectedIndex]?.text || '';
+                
+                summaryCard.innerHTML = `
+                    <div class="summary-line">
+                        <span class="summary-label">CNE / Massar :</span>
+                        <span class="summary-val">${document.getElementById('cne').value.toUpperCase()}</span>
+                    </div>
+                    <div class="summary-line">
+                        <span class="summary-label">Nom & Prénom :</span>
+                        <span class="summary-val">${document.getElementById('last_name').value.toUpperCase()} ${document.getElementById('first_name').value}</span>
+                    </div>
+                    <div class="summary-line">
+                        <span class="summary-label">Classe :</span>
+                        <span class="summary-val">${className}</span>
+                    </div>
+                `;
+
+                successScreen.style.display = 'block';
+            } else {
+                alertBox.textContent = data.message || "Une erreur est survenue lors de l'enregistrement.";
+                alertBox.style.display = 'block';
+                submitBtn.disabled = false;
+                btnText.textContent = "Envoyer mon Inscription";
+            }
+        } catch (err) {
+            alertBox.textContent = "Erreur de connexion au serveur local. Vérifiez que vous êtes bien connecté au Wi-Fi.";
+            alertBox.style.display = 'block';
+            submitBtn.disabled = false;
+            btnText.textContent = "Envoyer mon Inscription";
+        }
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Répartition en 2 Groupes - {{ classe.name }}</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 15mm;
+        }
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #333;
+            font-size: 11pt;
+            line-height: 1.4;
+            margin: 0;
+            padding: 10px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #4e73df;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0 0 5px 0;
+            color: #2e59d9;
+            font-size: 20pt;
+        }
+        .header .meta {
+            color: #666;
+            font-size: 10pt;
+        }
+        .groups-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .group-column {
+            width: 48%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .group-header-1 {
+            background-color: #4e73df;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+        .group-header-2 {
+            background-color: #1cc88a;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+        }
+        th, td {
+            padding: 6px 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #f8f9fc;
+            color: #555;
+            font-size: 9pt;
+            text-transform: uppercase;
+        }
+        tr:nth-child(even) {
+            background-color: #fdfdfd;
+        }
+        .num-col {
+            width: 25px;
+            color: #888;
+            font-weight: bold;
+        }
+        .cne-col {
+            width: 80px;
+            color: #555;
+            font-family: monospace;
+            font-size: 9pt;
+        }
+        .signature-col {
+            width: 70px;
+            border-left: 1px dashed #ccc;
+        }
+        .footer {
+            margin-top: 25px;
+            text-align: right;
+            font-size: 9pt;
+            color: #777;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 15px; text-align: right;">
+        <button onclick="window.print()" style="background: #4e73df; color: white; border: none; padding: 8px 18px; border-radius: 6px; font-weight: bold; cursor: pointer;">
+            Imprimer / Enregistrer en PDF
+        </button>
+    </div>
+
+    <div class="header">
+        <h1>Fiche de Répartition en 2 Groupes</h1>
+        <div class="meta">
+            <strong>Classe :</strong> {{ classe.name }} &nbsp;|&nbsp; 
+            <strong>Critère appliqué :</strong> {{ criterion|capitalize }} &nbsp;|&nbsp;
+            <strong>Généré le :</strong> {{ created_at }}
+        </div>
+    </div>
+
+    <div class="groups-container">
+        <!-- GROUPE 1 -->
+        <div class="group-column">
+            <div class="group-header-1">
+                <span>GROUPE 1</span>
+                <span>{{ students_g1|length }} élève(s)</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="num-col">#</th>
+                        <th class="cne-col">CNE</th>
+                        <th>Nom & Prénom</th>
+                        <th class="signature-col">Émargement</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students_g1 %}
+                    <tr>
+                        <td class="num-col">{{ loop.index }}</td>
+                        <td class="cne-col">{{ s.cne }}</td>
+                        <td><strong>{{ s.last_name }}</strong> {{ s.first_name }}</td>
+                        <td class="signature-col"></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #999; padding: 15px;">Aucun étudiant</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- GROUPE 2 -->
+        <div class="group-column">
+            <div class="group-header-2">
+                <span>GROUPE 2</span>
+                <span>{{ students_g2|length }} élève(s)</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th class="num-col">#</th>
+                        <th class="cne-col">CNE</th>
+                        <th>Nom & Prénom</th>
+                        <th class="signature-col">Émargement</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students_g2 %}
+                    <tr>
+                        <td class="num-col">{{ loop.index }}</td>
+                        <td class="cne-col">{{ s.cne }}</td>
+                        <td><strong>{{ s.last_name }}</strong> {{ s.first_name }}</td>
+                        <td class="signature-col"></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #999; padding: 15px;">Aucun étudiant</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="footer">
+        Fiche générée automatiquement par l'Application de Gestion des Absences
+    </div>
+</body>
+</html>

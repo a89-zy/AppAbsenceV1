@@ -1,0 +1,35 @@
+# Python & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environnements virtuels
+.venv/
+venv/
+ENV/
+env/
+
+# Bases de données locales & SQLite
+*.db
+*.sqlite3
+instance/
+
+# Fichiers uploadés & temporaires
+uploads/
+scratch/
+*.log
+
+# OS & Editeurs
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

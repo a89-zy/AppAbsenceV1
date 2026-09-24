@@ -1,0 +1,1275 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .stats-card-kpi {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border-radius: 12px;
+    }
+    .stats-card-kpi:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important;
+    }
+    .period-btn.active {
+        background-color: #4e73df !important;
+        color: #fff !important;
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(78, 115, 223, 0.4);
+    }
+    .profile-pill-filter.active {
+        box-shadow: 0 0 0 2px #4e73df;
+    }
+    .chart-container-sm {
+        position: relative;
+        height: 250px;
+        width: 100%;
+    }
+    .chart-container-md {
+        position: relative;
+        height: 280px;
+        width: 100%;
+    }
+    @media print {
+        #accordionSidebar, .navbar, .stats-controls-row, .action-cell, .btn, .breadcrumb, #studentActionCol {
+            display: none !important;
+        }
+        #content-wrapper, #content, .container-fluid {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+        }
+        .card {
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
+            break-inside: avoid;
+            margin-bottom: 20px !important;
+        }
+        .print-header {
+            display: block !important;
+        }
+    }
+    .print-header {
+        display: none;
+    }
+</style>
+
+<!-- En-tête visible à l'impression -->
+<div class="print-header mb-4 text-center border-bottom pb-3">
+    <h2 class="font-weight-bold text-dark mb-1">Bilan Analytique d'Assiduité & Statistiques</h2>
+    <p class="text-muted small mb-0">Établissement scolaire — Document officiel d'analyse pédagogique — Généré le <span id="printDate"></span></p>
+</div>
+
+<!-- ============================================== -->
+<!-- 1. EN-TÊTE & BARRE DE FILTRES SUPÉRIEURE      -->
+<!-- ============================================== -->
+<div class="d-sm-flex align-items-center justify-content-between mb-4 stats-controls-row flex-wrap" style="gap: 12px;">
+    <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+        <h1 class="h3 mb-0 text-gray-800 font-weight-bold d-flex align-items-center">
+            <i class="fas fa-chart-line text-primary mr-2"></i>
+            Analyses & Statistiques d'Assiduité
+        </h1>
+        {% if current_year %}
+        <span class="badge badge-light border text-primary font-weight-bold px-2.5 py-1.5 shadow-xs" style="font-size: 0.85rem;">
+            <i class="fas fa-calendar-alt mr-1"></i> {{ current_year.name }}
+        </span>
+        {% endif %}
+    </div>
+
+    <!-- Filtres Classe, Période & Actions -->
+    <div class="app-toolbar mt-2 mt-md-0">
+        <!-- Sélecteur de Classe stylisé -->
+        <div class="d-inline-flex align-items-center bg-white px-2 py-1 rounded-pill border shadow-xs" style="height: 32px;">
+            <i class="fas fa-school text-primary mr-2 ml-1" style="font-size: 0.8rem;"></i>
+            <select id="classFilter" class="border-0 font-weight-bold text-dark bg-transparent" style="font-size: 0.78rem; outline: none; cursor: pointer; min-width: 150px;" onchange="onClassChange();">
+                <option value="">Toutes les classes</option>
+                {% for c in classes %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Filtre Étudiant spécifique (dynamique) -->
+        <select id="studentFilter" class="form-control form-control-sm rounded-pill shadow-xs font-weight-bold text-dark" style="width: 170px; height: 32px; font-size: 0.78rem; display: none;" onchange="loadStats();">
+            <option value="">Tous les étudiants</option>
+        </select>
+
+        <!-- Capsule Période Rapide -->
+        <div class="toolbar-capsule" id="periodButtonGroup">
+            <button type="button" class="toolbar-btn period-btn active" data-period="all" onclick="setPeriod('all')" title="Toute l'année">Année</button>
+            <button type="button" class="toolbar-btn period-btn" data-period="month" onclick="setPeriod('month')" title="Mois en cours">Ce mois</button>
+            <button type="button" class="toolbar-btn period-btn" data-period="30days" onclick="setPeriod('30days')" title="30 derniers jours">30 jours</button>
+            <button type="button" class="toolbar-btn period-btn" data-period="t1" onclick="setPeriod('t1')" title="Semestre 1">S1</button>
+            <button type="button" class="toolbar-btn period-btn" data-period="t2" onclick="setPeriod('t2')" title="Semestre 2">S2</button>
+        </div>
+
+        <!-- Capsule Actions : Export, Print & Refresh -->
+        <div class="toolbar-capsule">
+            <button type="button" class="toolbar-btn text-success" onclick="exportStatsExcel();" title="Exporter le récapitulatif officiel en tableur Excel (.xlsx)">
+                <i class="fas fa-file-excel mr-1"></i> Excel
+            </button>
+            <button type="button" class="toolbar-btn text-secondary" onclick="printReport();" title="Imprimer ou exporter ce bilan en PDF">
+                <i class="fas fa-print mr-1"></i> Imprimer
+            </button>
+            <button type="button" class="toolbar-btn text-primary px-2" onclick="loadStats();" title="Actualiser les données">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- 2. CARTES KPIS SYNTHÉTIQUES                   -->
+<!-- ============================================== -->
+<div class="row mb-4">
+    <!-- KPI 1 : Taux d'Assiduité Global -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-primary shadow-sm h-100 py-2 stats-card-kpi">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Taux d'Assiduité Global</div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-900" id="kpiAttendanceRate">--%</div>
+                        <div class="mt-1 small text-muted d-flex align-items-center">
+                            <i class="fas fa-users mr-1"></i> <span id="kpiTotalStudents">--</span> élève(s) dans le périmètre
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="icon-circle bg-primary-subtle text-primary p-3 rounded-circle" style="background: rgba(78, 115, 223, 0.12);">
+                            <i class="fas fa-user-check fa-2x text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI 2 : Total des Absences & Justification -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-danger shadow-sm h-100 py-2 stats-card-kpi">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Absences Enregistrées</div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-900" id="kpiTotalAbsences">--</div>
+                        <div class="mt-1 small text-muted">
+                            <span class="text-success font-weight-bold" id="kpiJustifiedCount">--</span> justifiées / 
+                            <span class="text-danger font-weight-bold" id="kpiUnjustifiedCount">--</span> sèches (<span id="kpiJustifiedRate">--%</span> régularisées)
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="icon-circle p-3 rounded-circle" style="background: rgba(231, 74, 59, 0.12);">
+                            <i class="fas fa-calendar-times fa-2x text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI 3 : Élèves en Alerte Critique -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-warning shadow-sm h-100 py-2 stats-card-kpi">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Élèves en Alerte Décrochage</div>
+                        <div class="h4 mb-0 font-weight-bold text-warning" id="kpiAlertCount">--</div>
+                        <div class="mt-1 small text-muted">
+                            + <span class="font-weight-bold text-dark" id="kpiVigilanceCount">--</span> en zone de vigilance (2-3 abs)
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="icon-circle p-3 rounded-circle" style="background: rgba(246, 194, 62, 0.15);">
+                            <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KPI 4 : Jour le Plus Touché & Moyenne Notes -->
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-left-info shadow-sm h-100 py-2 stats-card-kpi">
+            <div class="card-body py-2">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Pic d'Absence & Moyenne</div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-900" id="kpiPeakDay">--</div>
+                        <div class="mt-1 small text-muted">
+                            Moyenne générale notes : <strong class="text-success" id="kpiAvgGrade">--/20</strong>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="icon-circle p-3 rounded-circle" style="background: rgba(54, 185, 204, 0.12);">
+                            <i class="fas fa-chart-pie fa-2x text-info"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- 3. GRAPHIQUES : TEMPOREL & PROFILS D'ÉLÈVES   -->
+<!-- ============================================== -->
+<div class="row">
+    <!-- Graphique 1 : Tendance Chronologique (Évolution) -->
+    <div class="col-xl-8 col-lg-7 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-area mr-2"></i>Tendance Chronologique des Absences
+                </h6>
+                <span class="badge badge-light border text-muted small">Évolution hebdomadaire</span>
+            </div>
+            <div class="card-body">
+                <div class="chart-container-md">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique 2 : Segmentation des 3 Profils d'Élèves -->
+    <div class="col-xl-4 col-lg-5 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-users-cog mr-2"></i>Profils d'Assiduité
+                </h6>
+                <span class="badge badge-light border text-muted small">Répartition</span>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center">
+                <div class="chart-container-sm">
+                    <canvas id="profilesChart"></canvas>
+                </div>
+                <div class="mt-3 text-center small d-flex justify-content-around">
+                    <span><i class="fas fa-circle text-success mr-1"></i> Assidus (0-1)</span>
+                    <span><i class="fas fa-circle text-warning mr-1"></i> Vigilance (2-3)</span>
+                    <span><i class="fas fa-circle text-danger mr-1"></i> Alerte (≥4)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- 4. GRAPHIQUES : JOURS, BENCHMARK & CORRÉLATION-->
+<!-- ============================================== -->
+<div class="row">
+    <!-- Graphique 3 : Répartition par Jour de la Semaine -->
+    <div class="col-xl-4 col-lg-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-calendar-day mr-2"></i>Absences par Jour (Semaine)
+                </h6>
+                <small class="text-muted">Lundi à Samedi</small>
+            </div>
+            <div class="card-body">
+                <div class="chart-container-sm">
+                    <canvas id="dayOfWeekChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique 4 : Comparatif Inter-Classes OU Groupe 1 vs Groupe 2 -->
+    <div class="col-xl-4 col-lg-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary" id="comparisonChartTitle">
+                    <i class="fas fa-balance-scale mr-2"></i>Comparatif d'Assiduité
+                </h6>
+                <span class="badge badge-info" id="comparisonBadge">Classes</span>
+            </div>
+            <div class="card-body">
+                <div class="chart-container-sm">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique 5 : Corrélation Assiduité vs Réussite aux Évaluations -->
+    <div class="col-xl-4 col-lg-12 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header py-3 bg-white d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-graduation-cap mr-2"></i>Impact : Notes selon l'Assiduité
+                </h6>
+                <small class="text-muted">Moyenne / 20</small>
+            </div>
+            <div class="card-body">
+                <div class="chart-container-sm">
+                    <canvas id="correlationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================== -->
+<!-- 5. TABLEAU ACTIONNABLE DES ÉLÈVES DU PÉRIMÈTRE -->
+<!-- ============================================== -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header py-3 bg-white d-flex flex-wrap justify-content-between align-items-center" style="gap: 10px;">
+        <div class="d-flex align-items-center flex-wrap" style="gap: 10px;">
+            <h6 class="m-0 font-weight-bold text-gray-900 mr-2">
+                <i class="fas fa-list-alt text-danger mr-2"></i>Suivi Individuel & Signalement des Élèves
+            </h6>
+            <span class="badge badge-light border text-dark font-weight-bold mr-2" id="studentsTableCount">0 élève(s)</span>
+        <div class="app-toolbar my-1">
+            <!-- Bouton Relance Groupée -->
+            <button type="button" class="toolbar-btn text-danger font-weight-bold" id="btnBatchAlert" onclick="openBatchAlertModal()" title="Envoyer une relance email groupée aux élèves sélectionnés ou en alerte">
+                <i class="fas fa-paper-plane mr-1"></i> Relance Groupée
+                <span class="badge badge-danger text-white ml-2 px-2" id="batchAlertBadge">0</span>
+            </button>
+
+            <!-- Capsule Filtres de Profils -->
+            <div class="toolbar-capsule" id="tableFilterGroup">
+                <button type="button" class="toolbar-btn active profile-pill-filter" data-filter="signals" onclick="filterTableProfile('signals', this)">
+                    <i class="fas fa-exclamation-circle mr-1"></i>Signalés
+                </button>
+                <button type="button" class="toolbar-btn text-danger profile-pill-filter" data-filter="alerte" onclick="filterTableProfile('alerte', this)">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>Alerte
+                </button>
+                <button type="button" class="toolbar-btn text-warning profile-pill-filter" data-filter="vigilance" onclick="filterTableProfile('vigilance', this)">
+                    Vigilance
+                </button>
+                <button type="button" class="toolbar-btn text-success profile-pill-filter" data-filter="assidu" onclick="filterTableProfile('assidu', this)">
+                    Assidus
+                </button>
+                <button type="button" class="toolbar-btn profile-pill-filter" data-filter="all" onclick="filterTableProfile('all', this)">
+                    Tous
+                </button>
+            </div>
+
+            <!-- Barre de Recherche Stylisée -->
+            <div class="d-inline-flex align-items-center bg-white px-2 py-1 rounded-pill border shadow-xs" style="height: 32px;">
+                <i class="fas fa-search text-muted mr-2 ml-1" style="font-size: 0.8rem;"></i>
+                <input type="text" id="tableSearchInput" class="border-0 font-weight-bold text-dark bg-transparent" placeholder="Chercher un élève..." 
+                       style="font-size: 0.78rem; outline: none; width: 140px;" onkeyup="searchStudentsTable();">
+            </div>
+
+            <!-- Sélecteur d'éléments par page -->
+            <select id="pageSizeSelect" class="form-control form-control-sm rounded-pill shadow-xs font-weight-bold text-dark" style="width: auto; height: 32px; font-size: 0.78rem;" onchange="changePageSize(this.value);" title="Nombre d'élèves par page">
+                <option value="10" selected>10 / page</option>
+                <option value="25">25 / page</option>
+                <option value="50">50 / page</option>
+                <option value="all">Tout</option>
+            </select>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="studentsAnalyticsTable">
+                <thead class="thead-light">
+                    <tr>
+                        <th width="40" class="text-center">
+                            <input type="checkbox" id="selectAllStudentsCheckbox" onclick="toggleSelectAllVisible(this)" title="Tout cocher / décocher">
+                        </th>
+                        <th width="50" class="text-center">Photo</th>
+                        <th>Élève</th>
+                        <th>Classe</th>
+                        <th class="text-center" width="95">Total Abs.</th>
+                        <th class="text-center" width="95">Sèches</th>
+                        <th class="text-center" width="95">Justifiées</th>
+                        <th class="text-center" width="115">Note Assiduité</th>
+                        <th class="text-center" width="125">Profil</th>
+                        <th class="text-center action-cell" width="115" id="studentActionCol">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="studentsTableBody">
+                    <tr>
+                        <td colspan="10" class="text-center py-4 text-muted">
+                            <i class="fas fa-spinner fa-spin mr-2"></i> Chargement des analyses...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pied de carte avec Pagination -->
+    <div class="card-footer bg-white border-top py-2 px-3 d-flex flex-wrap justify-content-between align-items-center small" id="tablePaginationFooter">
+        <div class="text-muted my-1" id="paginationInfo">
+            Affichage de 0 à 0 sur 0 élève(s)
+        </div>
+        <nav aria-label="Pagination des élèves" class="my-1">
+            <ul class="pagination pagination-sm mb-0" id="paginationNav">
+                <!-- Boutons générés en JS -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Modal Relance Groupée d'Emails -->
+<div class="modal fade" id="batchEmailModal" tabindex="-1" role="dialog" aria-labelledby="batchEmailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg border-0 rounded-lg">
+            <div class="modal-header bg-gradient-danger text-white py-3">
+                <h5 class="modal-title font-weight-bold" id="batchEmailModalLabel">
+                    <i class="fas fa-paper-plane mr-2"></i>Relance Email Groupée — Notification aux Élèves
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Fermer">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Synthèse des destinataires -->
+                <div class="alert alert-light border d-flex align-items-center justify-content-between p-3 mb-3">
+                    <div>
+                        <span class="font-weight-bold text-dark"><i class="fas fa-users mr-2 text-primary"></i>Destinataires ciblés :</span>
+                        <span class="badge badge-primary px-2 py-1 ml-1" id="modalTotalSelected">0 élève(s)</span>
+                    </div>
+                    <div class="small">
+                        <span class="text-success font-weight-bold mr-2"><i class="fas fa-check-circle mr-1"></i><span id="modalValidEmailCount">0</span> avec email</span>
+                        <span class="text-danger font-weight-bold" id="modalNoEmailSpan" style="display:none;"><i class="fas fa-exclamation-triangle mr-1"></i><span id="modalNoEmailCount">0</span> sans email (ignorés)</span>
+                    </div>
+                </div>
+
+                <!-- Sélecteur de Modèle d'Email -->
+                <div class="form-group mb-3">
+                    <label class="font-weight-bold small text-gray-700">Modèle de Message Pédagogique :</label>
+                    <select id="batchTemplateSelect" class="form-control" onchange="onBatchTemplateChange(this.value)">
+                        <!-- Rempli dynamiquement via API -->
+                    </select>
+                </div>
+
+                <!-- Aperçu Objet & Corps -->
+                <div class="form-group mb-3">
+                    <label class="font-weight-bold small text-gray-700">Objet de l'Email :</label>
+                    <input type="text" id="batchEmailSubject" class="form-control" placeholder="Objet de l'email...">
+                </div>
+
+                <div class="form-group mb-3">
+                    <label class="font-weight-bold small text-gray-700 d-flex justify-content-between align-items-center">
+                        <span>Corps du Message :</span>
+                        <span class="text-muted font-weight-normal small">Variables <code>{prenom}</code>, <code>{nom}</code>, <code>{classe}</code>, <code>{total_absences}</code> résolues automatiquement</span>
+                    </label>
+                    <textarea id="batchEmailBody" class="form-control small" rows="8" style="font-family: inherit; font-size: 0.85rem;"></textarea>
+                </div>
+
+                <!-- Liste rapide des élèves inclus -->
+                <div class="card bg-light border-0 p-3 mb-0">
+                    <div class="small font-weight-bold text-muted mb-2">Destinataires concernés :</div>
+                    <div id="modalStudentsListPreview" style="max-height: 120px; overflow-y: auto; font-size: 0.8rem;">
+                        <!-- Rempli en JS -->
+                    </div>
+                </div>
+
+                <!-- Rapport de statut d'envoi -->
+                <div id="batchSendReport" class="mt-3 alert" style="display: none;"></div>
+            </div>
+            <div class="modal-footer bg-light py-2">
+                <button type="button" class="btn btn-secondary btn-sm px-3" data-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-danger btn-sm px-4 font-weight-bold shadow-sm" id="btnConfirmBatchSend" onclick="executeBatchSend()">
+                    <i class="fas fa-paper-plane mr-1"></i> Envoyer Maintenant (<span id="btnConfirmSendCount">0</span>)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let activePeriod = 'all';
+    let rawStudentsData = [];
+    let currentProfileFilter = 'signals'; // Filtre par défaut : priorité aux élèves avec au moins 1 absence
+    let currentPage = 1;
+    let pageSize = 10;
+    let filteredStudentsCache = [];
+    let selectedStudentIds = new Set();
+    let cachedMailTemplates = null;
+
+    // Instances Chart.js
+    let trendChartInstance = null;
+    let profilesChartInstance = null;
+    let dayOfWeekChartInstance = null;
+    let comparisonChartInstance = null;
+    let correlationChartInstance = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('printDate').innerText = new Date().toLocaleDateString('fr-FR', {
+            day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        loadStats();
+    });
+
+    function setPeriod(period) {
+        activePeriod = period;
+        document.querySelectorAll('#periodButtonGroup .period-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.period === period);
+        });
+        loadStats();
+    }
+
+    async function onClassChange() {
+        const classId = document.getElementById('classFilter').value;
+        const studentSelect = document.getElementById('studentFilter');
+
+        if (!classId) {
+            studentSelect.style.display = 'none';
+            studentSelect.value = '';
+        } else {
+            studentSelect.style.display = 'inline-block';
+            studentSelect.innerHTML = '<option value="">Tous les étudiants</option>';
+            try {
+                const res = await fetch(`/activity/api/class_students?class_id=${classId}`);
+                const students = await res.json();
+                students.forEach(st => {
+                    const opt = document.createElement('option');
+                    opt.value = st.id;
+                    opt.textContent = `${st.first_name} ${st.last_name}`;
+                    studentSelect.appendChild(opt);
+                });
+            } catch (e) {
+                console.error('Erreur chargement élèves de la classe:', e);
+            }
+        }
+        loadStats();
+    }
+
+    async function loadStats() {
+        const classId = document.getElementById('classFilter').value;
+        const studentId = document.getElementById('studentFilter').value;
+        const refreshIcon = document.getElementById('refreshIcon');
+        if (refreshIcon) refreshIcon.classList.add('fa-spin');
+
+        const params = new URLSearchParams({
+            class_id: classId,
+            student_id: studentId,
+            period: activePeriod
+        });
+
+        try {
+            const response = await fetch(`/activity/api/stats_data?${params.toString()}`);
+            if (!response.ok) throw new Error('Erreur HTTP ' + response.status);
+            const data = await response.json();
+
+            // 1. Remplir les KPIs
+            updateKPIs(data.kpis);
+
+            // 2. Mettre à jour les graphiques
+            renderTrendChart(data.trend);
+            renderProfilesChart(data.profiles);
+            renderDayOfWeekChart(data.day_of_week);
+            renderComparisonChart(data.comparison);
+            renderCorrelationChart(data.correlation);
+
+            // 3. Remplir le tableau des étudiants avec filtres et pagination
+            rawStudentsData = data.students || [];
+            currentPage = 1;
+            applyTableFilters();
+
+        } catch (error) {
+            console.error('Erreur chargement statistiques:', error);
+        } finally {
+            if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+        }
+    }
+
+    function updateKPIs(kpis) {
+        if (!kpis) return;
+        document.getElementById('kpiAttendanceRate').innerText = kpis.attendance_rate + '%';
+        document.getElementById('kpiTotalStudents').innerText = kpis.total_students;
+        document.getElementById('kpiTotalAbsences').innerText = kpis.total_absences;
+        document.getElementById('kpiJustifiedCount').innerText = kpis.justified_count;
+        document.getElementById('kpiUnjustifiedCount').innerText = kpis.unjustified_count;
+        document.getElementById('kpiJustifiedRate').innerText = kpis.justified_rate + '%';
+        document.getElementById('kpiAlertCount').innerText = kpis.alert_count;
+        document.getElementById('kpiVigilanceCount').innerText = kpis.vigilance_count;
+        document.getElementById('kpiPeakDay').innerText = kpis.peak_day;
+        document.getElementById('kpiAvgGrade').innerText = kpis.avg_grade + '/20';
+
+        updateBatchSelectedCount();
+    }
+
+    // ==========================================
+    // RENDU DES GRAPHIQUES (Chart.js)
+    // ==========================================
+
+    function renderTrendChart(trendData) {
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        if (trendChartInstance) trendChartInstance.destroy();
+
+        trendChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trendData.labels,
+                datasets: [{
+                    label: 'Absences enregistrées',
+                    data: trendData.data,
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.08)',
+                    pointBackgroundColor: '#4e73df',
+                    pointBorderColor: '#fff',
+                    pointHoverRadius: 6,
+                    lineTension: 0.3,
+                    fill: true,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                legend: { display: false },
+                scales: {
+                    xAxes: [{ gridLines: { display: false } }],
+                    yAxes: [{
+                        ticks: { beginAtZero: true, stepSize: 1 },
+                        gridLines: { color: '#eaecf4' }
+                    }]
+                }
+            }
+        });
+    }
+
+    function renderProfilesChart(profilesData) {
+        const ctx = document.getElementById('profilesChart').getContext('2d');
+        if (profilesChartInstance) profilesChartInstance.destroy();
+
+        profilesChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: profilesData.labels,
+                datasets: [{
+                    data: profilesData.data,
+                    backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b'],
+                    hoverBackgroundColor: ['#17a673', '#dda20a', '#be2617'],
+                    hoverBorderColor: '#fff',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                cutoutPercentage: 70,
+                legend: { display: false }
+            }
+        });
+    }
+
+    function renderDayOfWeekChart(dayData) {
+        const ctx = document.getElementById('dayOfWeekChart').getContext('2d');
+        if (dayOfWeekChartInstance) dayOfWeekChartInstance.destroy();
+
+        dayOfWeekChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dayData.labels,
+                datasets: [{
+                    label: 'Volume d\'absences',
+                    data: dayData.data,
+                    backgroundColor: '#36b9cc',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                legend: { display: false },
+                scales: {
+                    xAxes: [{ gridLines: { display: false } }],
+                    yAxes: [{
+                        ticks: { beginAtZero: true, stepSize: 1 },
+                        gridLines: { color: '#eaecf4' }
+                    }]
+                }
+            }
+        });
+    }
+
+    function renderComparisonChart(compData) {
+        const ctx = document.getElementById('comparisonChart').getContext('2d');
+        if (comparisonChartInstance) comparisonChartInstance.destroy();
+
+        const badge = document.getElementById('comparisonBadge');
+        const title = document.getElementById('comparisonChartTitle');
+        if (compData.type === 'groups') {
+            badge.innerText = 'Groupe 1 vs 2';
+            badge.className = 'badge badge-success';
+            title.innerHTML = '<i class="fas fa-users mr-2"></i>Absences : Groupe 1 vs Groupe 2';
+        } else {
+            badge.innerText = 'Classes';
+            badge.className = 'badge badge-info';
+            title.innerHTML = '<i class="fas fa-balance-scale mr-2"></i>Comparatif par Classe';
+        }
+
+        comparisonChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: compData.labels,
+                datasets: [{
+                    label: 'Absences',
+                    data: compData.data,
+                    backgroundColor: compData.type === 'groups' ? ['#4e73df', '#1cc88a'] : '#4e73df',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                legend: { display: false },
+                scales: {
+                    xAxes: [{ gridLines: { display: false } }],
+                    yAxes: [{
+                        ticks: { beginAtZero: true, stepSize: 1 },
+                        gridLines: { color: '#eaecf4' }
+                    }]
+                }
+            }
+        });
+    }
+
+    function renderCorrelationChart(corrData) {
+        const ctx = document.getElementById('correlationChart').getContext('2d');
+        if (correlationChartInstance) correlationChartInstance.destroy();
+
+        correlationChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: corrData.labels,
+                datasets: [{
+                    label: 'Moyenne générale (/20)',
+                    data: corrData.data,
+                    backgroundColor: ['#1cc88a', '#f6c23e', '#e74a3b'],
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                legend: { display: false },
+                scales: {
+                    xAxes: [{ gridLines: { display: false } }],
+                    yAxes: [{
+                        ticks: { beginAtZero: true, max: 20, stepSize: 5 },
+                        gridLines: { color: '#eaecf4' }
+                    }]
+                }
+            }
+        });
+    }
+
+    // ==========================================
+    // GESTION DU TABLEAU DES ÉLÈVES AVEC PAGINATION & FILTRES
+    // ==========================================
+
+    function filterTableProfile(profile, btn) {
+        currentProfileFilter = profile;
+        document.querySelectorAll('#tableFilterGroup .profile-pill-filter').forEach(b => {
+            b.classList.remove('active');
+            if (b.dataset.filter === 'signals') b.className = 'btn btn-outline-primary profile-pill-filter';
+            else if (b.dataset.filter === 'alerte') b.className = 'btn btn-outline-danger profile-pill-filter';
+            else if (b.dataset.filter === 'vigilance') b.className = 'btn btn-outline-warning text-dark profile-pill-filter';
+            else if (b.dataset.filter === 'assidu') b.className = 'btn btn-outline-success profile-pill-filter';
+            else if (b.dataset.filter === 'all') b.className = 'btn btn-outline-secondary profile-pill-filter';
+        });
+
+        if (btn) {
+            btn.classList.add('active');
+            if (profile === 'signals') btn.className = 'btn btn-primary active profile-pill-filter';
+            else if (profile === 'alerte') btn.className = 'btn btn-danger active profile-pill-filter';
+            else if (profile === 'vigilance') btn.className = 'btn btn-warning text-dark active profile-pill-filter';
+            else if (profile === 'assidu') btn.className = 'btn btn-success active profile-pill-filter';
+            else if (profile === 'all') btn.className = 'btn btn-secondary active profile-pill-filter';
+        }
+
+        currentPage = 1;
+        applyTableFilters();
+    }
+
+    function searchStudentsTable() {
+        currentPage = 1;
+        applyTableFilters();
+    }
+
+    function changePageSize(val) {
+        pageSize = (val === 'all') ? 999999 : parseInt(val, 10);
+        currentPage = 1;
+        applyTableFilters();
+    }
+
+    function applyTableFilters() {
+        const query = (document.getElementById('tableSearchInput').value || '').trim().toLowerCase();
+
+        filteredStudentsCache = rawStudentsData.filter(s => {
+            let matchProfile = true;
+            if (currentProfileFilter === 'signals') {
+                matchProfile = (s.total_abs > 0);
+            } else if (currentProfileFilter === 'alerte') {
+                matchProfile = (s.profile === 'alerte');
+            } else if (currentProfileFilter === 'vigilance') {
+                matchProfile = (s.profile === 'vigilance');
+            } else if (currentProfileFilter === 'assidu') {
+                matchProfile = (s.profile === 'assidu');
+            } else if (currentProfileFilter === 'all') {
+                matchProfile = true;
+            }
+
+            const matchQuery = !query ||
+                s.name.toLowerCase().includes(query) ||
+                s.cne.toLowerCase().includes(query) ||
+                s.class_name.toLowerCase().includes(query);
+
+            return matchProfile && matchQuery;
+        });
+
+        renderPaginatedTable();
+    }
+
+    function goToPage(page) {
+        const totalPages = Math.ceil(filteredStudentsCache.length / pageSize) || 1;
+        if (page < 1) page = 1;
+        if (page > totalPages) page = totalPages;
+        currentPage = page;
+        renderPaginatedTable();
+    }
+
+    function renderPaginatedTable() {
+        const total = filteredStudentsCache.length;
+        const totalPages = Math.ceil(total / pageSize) || 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const countSpan = document.getElementById('studentsTableCount');
+        countSpan.innerText = `${total} élève(s)`;
+
+        const startIdx = (currentPage - 1) * pageSize;
+        const endIdx = Math.min(startIdx + pageSize, total);
+        const pageItems = filteredStudentsCache.slice(startIdx, endIdx);
+
+        // Mise à jour de l'indicateur de pagination
+        const infoEl = document.getElementById('paginationInfo');
+        if (total === 0) {
+            infoEl.innerText = 'Affichage de 0 élève';
+        } else {
+            infoEl.innerText = `Affichage de ${startIdx + 1} à ${endIdx} sur ${total} élève(s)`;
+        }
+
+        // Rendu des boutons de pagination
+        renderPaginationButtons(totalPages);
+
+        // Rendu des lignes du tableau
+        renderStudentsTableRows(pageItems);
+    }
+
+    function renderPaginationButtons(totalPages) {
+        const nav = document.getElementById('paginationNav');
+        if (totalPages <= 1) {
+            nav.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+
+        // Bouton Précédent
+        html += `
+            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="goToPage(${currentPage - 1})" aria-label="Précédent">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            </li>
+        `;
+
+        // Calcul des pages visibles (max 5 pages affichées)
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, startPage + 4);
+        if (endPage - startPage < 4) {
+            startPage = Math.max(1, endPage - 4);
+        }
+
+        if (startPage > 1) {
+            html += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="goToPage(1)">1</a></li>`;
+            if (startPage > 2) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        for (let p = startPage; p <= endPage; p++) {
+            html += `
+                <li class="page-item ${p === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="javascript:void(0)" onclick="goToPage(${p})">${p}</a>
+                </li>
+            `;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            html += `<li class="page-item"><a class="page-link" href="javascript:void(0)" onclick="goToPage(${totalPages})">${totalPages}</a></li>`;
+        }
+
+        // Bouton Suivant
+        html += `
+            <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="javascript:void(0)" onclick="goToPage(${currentPage + 1})" aria-label="Suivant">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+
+        nav.innerHTML = html;
+    }
+
+    function renderStudentsTableRows(students) {
+        const tbody = document.getElementById('studentsTableBody');
+
+        if (!students || students.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center py-5 text-muted">
+                        <i class="fas fa-user-check fa-2x mb-2 text-success"></i>
+                        <p class="mb-0 font-weight-bold">Aucun étudiant ne correspond aux critères sélectionnés.</p>
+                        <small class="text-muted">Si le filtre "Signalés" est actif, cela indique qu'aucun élève du périmètre n'a d'absence.</small>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        let html = '';
+        students.forEach(s => {
+            let profileBadge = '';
+            if (s.profile === 'alerte') {
+                profileBadge = '<span class="badge badge-danger px-2.5 py-1 font-weight-bold"><i class="fas fa-exclamation-triangle mr-1"></i>Alerte Décrochage</span>';
+            } else if (s.profile === 'vigilance') {
+                profileBadge = '<span class="badge badge-warning text-dark px-2.5 py-1 font-weight-bold"><i class="fas fa-clock mr-1"></i>Vigilance</span>';
+            } else {
+                profileBadge = '<span class="badge badge-success px-2.5 py-1 font-weight-bold"><i class="fas fa-check-circle mr-1"></i>Assidu</span>';
+            }
+
+            const isChecked = selectedStudentIds.has(s.id) ? 'checked' : '';
+
+            html += `
+                <tr class="${s.profile === 'alerte' ? 'table-danger-light' : ''}">
+                    <td class="text-center align-middle">
+                        <input type="checkbox" class="student-batch-cb" value="${s.id}" ${isChecked} onchange="onStudentCheckboxChange(this, ${s.id})" title="Sélectionner pour relance groupée">
+                    </td>
+                    <td class="text-center align-middle">
+                        <img src="${s.photo_url}" class="rounded-circle border shadow-xs" style="width: 38px; height: 38px; object-fit: cover;" alt="Photo">
+                    </td>
+                    <td class="align-middle">
+                        <div class="font-weight-bold text-gray-900">${s.name}</div>
+                        <small class="text-muted">CNE: ${s.cne}</small>
+                    </td>
+                    <td class="align-middle">
+                        <span class="badge badge-light border font-weight-bold">${s.class_name}</span>
+                    </td>
+                    <td class="text-center align-middle font-weight-bold text-dark">
+                        ${s.total_abs}
+                    </td>
+                    <td class="text-center align-middle font-weight-bold text-danger">
+                        ${s.unjustified_abs}
+                    </td>
+                    <td class="text-center align-middle font-weight-bold text-success">
+                        ${s.justified_abs}
+                    </td>
+                    <td class="text-center align-middle font-weight-bold">
+                        <span class="${s.score < 10 ? 'text-danger' : (s.score < 15 ? 'text-warning' : 'text-success')}">
+                            ${s.score.toFixed(2)}/20
+                        </span>
+                    </td>
+                    <td class="text-center align-middle">
+                        ${profileBadge}
+                    </td>
+                    <td class="text-center align-middle action-cell">
+                        <div class="toolbar-capsule d-inline-flex">
+                            <a href="/absence/student/${s.id}" class="toolbar-btn text-primary" title="Consulter l'historique complet">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="/absence/student/${s.id}/export_bilan_pdf" target="_blank" class="toolbar-btn text-info" title="Fiche Bilan Individuelle PDF">
+                                <i class="fas fa-file-pdf"></i>
+                            </a>
+                            <button type="button" class="toolbar-btn text-danger" onclick="sendAlertEmail(${s.id}, '${s.name.replace(/'/g, "\\'")}', this)" title="Envoyer une relance email officielle" ${!s.has_email ? 'disabled' : ''}>
+                                <i class="fas fa-envelope"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+        updateSelectAllCheckboxState();
+    }
+
+    // ==========================================
+    // SÉLECTION MULTIPLE & RELANCE GROUPÉE
+    // ==========================================
+
+    function toggleSelectAllVisible(masterCb) {
+        const isChecked = masterCb.checked;
+        const startIdx = (currentPage - 1) * pageSize;
+        const endIdx = Math.min(startIdx + pageSize, filteredStudentsCache.length);
+        const pageItems = filteredStudentsCache.slice(startIdx, endIdx);
+
+        pageItems.forEach(s => {
+            if (isChecked) {
+                selectedStudentIds.add(s.id);
+            } else {
+                selectedStudentIds.delete(s.id);
+            }
+        });
+
+        document.querySelectorAll('.student-batch-cb').forEach(cb => {
+            cb.checked = isChecked;
+        });
+
+        updateBatchSelectedCount();
+    }
+
+    function onStudentCheckboxChange(cb, studentId) {
+        if (cb.checked) {
+            selectedStudentIds.add(studentId);
+        } else {
+            selectedStudentIds.delete(studentId);
+        }
+        updateSelectAllCheckboxState();
+        updateBatchSelectedCount();
+    }
+
+    function updateSelectAllCheckboxState() {
+        const masterCb = document.getElementById('selectAllStudentsCheckbox');
+        if (!masterCb) return;
+
+        const startIdx = (currentPage - 1) * pageSize;
+        const endIdx = Math.min(startIdx + pageSize, filteredStudentsCache.length);
+        const pageItems = filteredStudentsCache.slice(startIdx, endIdx);
+
+        if (pageItems.length === 0) {
+            masterCb.checked = false;
+            masterCb.indeterminate = false;
+            return;
+        }
+
+        const checkedOnPage = pageItems.filter(s => selectedStudentIds.has(s.id)).length;
+        if (checkedOnPage === pageItems.length) {
+            masterCb.checked = true;
+            masterCb.indeterminate = false;
+        } else if (checkedOnPage > 0) {
+            masterCb.checked = false;
+            masterCb.indeterminate = true;
+        } else {
+            masterCb.checked = false;
+            masterCb.indeterminate = false;
+        }
+    }
+
+    function updateBatchSelectedCount() {
+        const totalSelected = selectedStudentIds.size;
+        const btn = document.getElementById('btnBatchAlert');
+        const badge = document.getElementById('batchAlertBadge');
+        if (!badge || !btn) return;
+
+        if (totalSelected > 0) {
+            badge.innerText = `${totalSelected} sélec.`;
+            badge.className = 'badge badge-light text-danger ml-2 px-2';
+            btn.classList.remove('btn-outline-danger');
+            btn.classList.add('btn-danger');
+        } else {
+            const alertCount = (rawStudentsData || []).filter(s => s.profile === 'alerte').length;
+            badge.innerText = `${alertCount} alerte(s)`;
+            badge.className = 'badge badge-danger text-white ml-2 px-2';
+            btn.classList.remove('btn-danger');
+            btn.classList.add('btn-outline-danger');
+        }
+    }
+
+    let currentTargetedStudents = [];
+
+    async function openBatchAlertModal() {
+        // Déterminer les élèves ciblés : soit la sélection manuelle, soit tous les élèves en alerte
+        if (selectedStudentIds.size > 0) {
+            currentTargetedStudents = (rawStudentsData || []).filter(s => selectedStudentIds.has(s.id));
+        } else {
+            currentTargetedStudents = (rawStudentsData || []).filter(s => s.profile === 'alerte');
+        }
+
+        if (currentTargetedStudents.length === 0) {
+            alert('Aucun élève en situation d\'alerte ou sélectionné pour le moment.');
+            return;
+        }
+
+        // Mettre à jour les compteurs
+        const totalCount = currentTargetedStudents.length;
+        const validEmails = currentTargetedStudents.filter(s => s.has_email);
+        const noEmails = currentTargetedStudents.filter(s => !s.has_email);
+
+        document.getElementById('modalTotalSelected').innerText = `${totalCount} élève(s)`;
+        document.getElementById('modalValidEmailCount').innerText = `${validEmails.length}`;
+        document.getElementById('btnConfirmSendCount').innerText = `${validEmails.length}`;
+
+        const noEmailSpan = document.getElementById('modalNoEmailSpan');
+        if (noEmails.length > 0) {
+            noEmailSpan.style.display = 'inline-block';
+            document.getElementById('modalNoEmailCount').innerText = `${noEmails.length}`;
+        } else {
+            noEmailSpan.style.display = 'none';
+        }
+
+        // Remplir l'aperçu de la liste des destinataires
+        let listHtml = '<div class="d-flex flex-wrap" style="gap: 6px;">';
+        currentTargetedStudents.forEach(st => {
+            if (st.has_email) {
+                listHtml += `<span class="badge badge-success px-2 py-1"><i class="fas fa-check mr-1"></i>${st.name} (${st.class_name})</span>`;
+            } else {
+                listHtml += `<span class="badge badge-warning text-dark px-2 py-1" title="Pas d'adresse email"><i class="fas fa-exclamation-triangle mr-1"></i>${st.name} (${st.class_name}) - Sans email</span>`;
+            }
+        });
+        listHtml += '</div>';
+        document.getElementById('modalStudentsListPreview').innerHTML = listHtml;
+
+        // Charger les modèles d'emails depuis l'API si pas déjà fait
+        await loadMailTemplates();
+
+        // Réinitialiser le rapport
+        const report = document.getElementById('batchSendReport');
+        report.style.display = 'none';
+        report.innerHTML = '';
+
+        const sendBtn = document.getElementById('btnConfirmBatchSend');
+        sendBtn.disabled = (validEmails.length === 0);
+        sendBtn.innerHTML = `<i class="fas fa-paper-plane mr-1"></i> Envoyer Maintenant (${validEmails.length})`;
+
+        $('#batchEmailModal').modal('show');
+    }
+
+    async function loadMailTemplates() {
+        if (!cachedMailTemplates) {
+            try {
+                const res = await fetch('/activity/api/mail_templates');
+                const data = await res.json();
+                cachedMailTemplates = data.templates || [];
+            } catch (err) {
+                console.error('Erreur chargement modèles d\'email:', err);
+                cachedMailTemplates = [];
+            }
+        }
+
+        const select = document.getElementById('batchTemplateSelect');
+        select.innerHTML = '';
+
+        cachedMailTemplates.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = `${t.id === '3' ? '⭐ ' : ''}${t.name} (Modèle ${t.id})`;
+            if (t.id === '3') opt.selected = true; // Privilégier le modèle Alerte Décrochage
+            select.appendChild(opt);
+        });
+
+        // Déclencher le remplissage du premier modèle
+        const initialTid = select.value || (cachedMailTemplates[0] ? cachedMailTemplates[0].id : '1');
+        onBatchTemplateChange(initialTid);
+    }
+
+    function onBatchTemplateChange(templateId) {
+        if (!cachedMailTemplates) return;
+        const tmpl = cachedMailTemplates.find(t => t.id === templateId) || cachedMailTemplates[0];
+        if (tmpl) {
+            document.getElementById('batchEmailSubject').value = tmpl.subject;
+            document.getElementById('batchEmailBody').value = tmpl.body;
+        }
+    }
+
+    async function executeBatchSend() {
+        const sendBtn = document.getElementById('btnConfirmBatchSend');
+        const report = document.getElementById('batchSendReport');
+        const originalText = sendBtn.innerHTML;
+
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Envoi en cours...';
+        report.style.display = 'none';
+
+        const templateId = document.getElementById('batchTemplateSelect').value;
+        const customSubject = document.getElementById('batchEmailSubject').value;
+        const customBody = document.getElementById('batchEmailBody').value;
+        const studentIds = currentTargetedStudents.map(s => s.id);
+
+        try {
+            const res = await fetch('/activity/api/send_batch_alert_emails', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_ids: studentIds,
+                    template_id: templateId,
+                    custom_subject: customSubject,
+                    custom_body: customBody
+                })
+            });
+
+            const data = await res.json();
+            report.style.display = 'block';
+
+            if (data.success) {
+                report.className = 'mt-3 alert alert-success small font-weight-bold';
+                report.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${data.message}`;
+
+                // Vider les sélections après succès
+                selectedStudentIds.clear();
+                document.querySelectorAll('.student-batch-cb').forEach(cb => cb.checked = false);
+                updateSelectAllCheckboxState();
+                updateBatchSelectedCount();
+
+                setTimeout(() => {
+                    $('#batchEmailModal').modal('hide');
+                }, 2500);
+            } else {
+                report.className = 'mt-3 alert alert-danger small font-weight-bold';
+                report.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>Échec : ${data.message}`;
+            }
+        } catch (err) {
+            report.style.display = 'block';
+            report.className = 'mt-3 alert alert-danger small font-weight-bold';
+            report.innerHTML = `<i class="fas fa-exclamation-circle mr-2"></i>Erreur technique : ${err.message}`;
+        } finally {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = originalText;
+        }
+    }
+
+    async function sendAlertEmail(studentId, studentName, btn) {
+        if (!confirm(`Envoyer un email d'alerte officiel à ${studentName} ?`)) {
+            return;
+        }
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.disabled = true;
+
+        try {
+            const formData = new FormData();
+            formData.append('student_id', studentId);
+
+            const res = await fetch('/activity/api/send_alert_email', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Notification transmise : ' + data.message);
+            } else {
+                alert('Échec de l\'envoi : ' + data.message);
+            }
+        } catch (err) {
+            alert('Erreur technique lors de l\'envoi : ' + err.message);
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+
+    function exportStatsExcel() {
+        const classId = document.getElementById('classFilter').value || '';
+        const params = new URLSearchParams({
+            class_id: classId,
+            period: activePeriod || 'all'
+        });
+        window.location.href = `/activity/export_stats_excel?${params.toString()}`;
+    }
+
+    function printReport() {
+        window.print();
+    }
+</script>
+{% endblock %}
